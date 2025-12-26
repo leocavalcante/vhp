@@ -1,0 +1,17 @@
+--TEST--
+Switch with string cases
+--FILE--
+<?php
+$fruit = "apple";
+switch ($fruit) {
+    case "banana":
+        echo "yellow";
+        break;
+    case "apple":
+        echo "red";
+        break;
+    default:
+        echo "unknown";
+}
+--EXPECT--
+red

@@ -1,0 +1,10 @@
+--TEST--
+If statement with false condition
+--FILE--
+<?php
+if (false) {
+    echo "no";
+}
+echo "done";
+--EXPECT--
+done

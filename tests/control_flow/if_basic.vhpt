@@ -1,0 +1,9 @@
+--TEST--
+Basic if statement with true condition
+--FILE--
+<?php
+if (true) {
+    echo "yes";
+}
+--EXPECT--
+yes

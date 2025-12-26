@@ -1,0 +1,13 @@
+--TEST--
+Nested if statements
+--FILE--
+<?php
+$x = 5;
+$y = 10;
+if ($x > 0) {
+    if ($y > 5) {
+        echo "both";
+    }
+}
+--EXPECT--
+both

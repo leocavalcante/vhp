@@ -1,6 +1,14 @@
-use crate::ast::{AssignOp, BinaryOp, Expr, Program, Stmt, UnaryOp};
+use crate::ast::{AssignOp, BinaryOp, Expr, Program, Stmt, SwitchCase, UnaryOp};
 use std::collections::HashMap;
 use std::io::{self, Write};
+
+/// Control flow signals for break/continue
+#[derive(Debug, Clone, PartialEq)]
+pub enum ControlFlow {
+    None,
+    Break,
+    Continue,
+}
 
 /// Runtime value representation
 #[derive(Debug, Clone)]
@@ -454,13 +462,13 @@ impl<W: Write> Interpreter<W> {
 
     pub fn execute(&mut self, program: &Program) -> io::Result<()> {
         for stmt in &program.statements {
-            self.execute_stmt(stmt)?;
+            let _ = self.execute_stmt(stmt)?;
         }
         self.output.flush()?;
         Ok(())
     }
 
-    fn execute_stmt(&mut self, stmt: &Stmt) -> io::Result<()> {
+    fn execute_stmt(&mut self, stmt: &Stmt) -> io::Result<ControlFlow> {
         match stmt {
             Stmt::Echo(exprs) => {
                 for expr in exprs {
@@ -469,17 +477,231 @@ impl<W: Write> Interpreter<W> {
                     })?;
                     write!(self.output, "{}", value.to_output_string())?;
                 }
+                Ok(ControlFlow::None)
             }
             Stmt::Expression(expr) => {
                 self.eval_expr(expr).map_err(|e| {
                     io::Error::new(io::ErrorKind::Other, e)
                 })?;
+                Ok(ControlFlow::None)
             }
             Stmt::Html(html) => {
                 write!(self.output, "{}", html)?;
+                Ok(ControlFlow::None)
             }
+            Stmt::If {
+                condition,
+                then_branch,
+                elseif_branches,
+                else_branch,
+            } => {
+                let cond_value = self.eval_expr(condition).map_err(|e| {
+                    io::Error::new(io::ErrorKind::Other, e)
+                })?;
+
+                if cond_value.to_bool() {
+                    for stmt in then_branch {
+                        let cf = self.execute_stmt(stmt)?;
+                        if cf != ControlFlow::None {
+                            return Ok(cf);
+                        }
+                    }
+                } else {
+                    // Try elseif branches
+                    let mut executed = false;
+                    for (elseif_cond, elseif_body) in elseif_branches {
+                        let elseif_value = self.eval_expr(elseif_cond).map_err(|e| {
+                            io::Error::new(io::ErrorKind::Other, e)
+                        })?;
+                        if elseif_value.to_bool() {
+                            for stmt in elseif_body {
+                                let cf = self.execute_stmt(stmt)?;
+                                if cf != ControlFlow::None {
+                                    return Ok(cf);
+                                }
+                            }
+                            executed = true;
+                            break;
+                        }
+                    }
+
+                    // Execute else branch if no condition was true
+                    if !executed {
+                        if let Some(else_body) = else_branch {
+                            for stmt in else_body {
+                                let cf = self.execute_stmt(stmt)?;
+                                if cf != ControlFlow::None {
+                                    return Ok(cf);
+                                }
+                            }
+                        }
+                    }
+                }
+                Ok(ControlFlow::None)
+            }
+            Stmt::While { condition, body } => {
+                loop {
+                    let cond_value = self.eval_expr(condition).map_err(|e| {
+                        io::Error::new(io::ErrorKind::Other, e)
+                    })?;
+
+                    if !cond_value.to_bool() {
+                        break;
+                    }
+
+                    for stmt in body {
+                        let cf = self.execute_stmt(stmt)?;
+                        match cf {
+                            ControlFlow::Break => return Ok(ControlFlow::None),
+                            ControlFlow::Continue => break,
+                            ControlFlow::None => {}
+                        }
+                    }
+                }
+                Ok(ControlFlow::None)
+            }
+            Stmt::DoWhile { body, condition } => {
+                loop {
+                    let mut should_break = false;
+                    for stmt in body {
+                        let cf = self.execute_stmt(stmt)?;
+                        match cf {
+                            ControlFlow::Break => {
+                                should_break = true;
+                                break;
+                            }
+                            ControlFlow::Continue => break,
+                            ControlFlow::None => {}
+                        }
+                    }
+
+                    if should_break {
+                        break;
+                    }
+
+                    let cond_value = self.eval_expr(condition).map_err(|e| {
+                        io::Error::new(io::ErrorKind::Other, e)
+                    })?;
+
+                    if !cond_value.to_bool() {
+                        break;
+                    }
+                }
+                Ok(ControlFlow::None)
+            }
+            Stmt::For {
+                init,
+                condition,
+                update,
+                body,
+            } => {
+                // Execute init
+                if let Some(init_expr) = init {
+                    self.eval_expr(init_expr).map_err(|e| {
+                        io::Error::new(io::ErrorKind::Other, e)
+                    })?;
+                }
+
+                loop {
+                    // Check condition
+                    if let Some(cond_expr) = condition {
+                        let cond_value = self.eval_expr(cond_expr).map_err(|e| {
+                            io::Error::new(io::ErrorKind::Other, e)
+                        })?;
+                        if !cond_value.to_bool() {
+                            break;
+                        }
+                    }
+
+                    // Execute body
+                    let mut should_break = false;
+                    for stmt in body {
+                        let cf = self.execute_stmt(stmt)?;
+                        match cf {
+                            ControlFlow::Break => {
+                                should_break = true;
+                                break;
+                            }
+                            ControlFlow::Continue => break,
+                            ControlFlow::None => {}
+                        }
+                    }
+
+                    if should_break {
+                        break;
+                    }
+
+                    // Execute update
+                    if let Some(update_expr) = update {
+                        self.eval_expr(update_expr).map_err(|e| {
+                            io::Error::new(io::ErrorKind::Other, e)
+                        })?;
+                    }
+                }
+                Ok(ControlFlow::None)
+            }
+            Stmt::Foreach {
+                array: _,
+                key: _,
+                value: _,
+                body: _,
+            } => {
+                // Foreach requires array support - skip for now with a clear error
+                Err(io::Error::new(
+                    io::ErrorKind::Other,
+                    "foreach requires array support (not yet implemented)",
+                ))
+            }
+            Stmt::Switch {
+                expr,
+                cases,
+                default,
+            } => {
+                let switch_value = self.eval_expr(expr).map_err(|e| {
+                    io::Error::new(io::ErrorKind::Other, e)
+                })?;
+
+                let mut matched = false;
+                let mut fall_through = false;
+
+                for SwitchCase { value, body } in cases {
+                    if !matched && !fall_through {
+                        let case_value = self.eval_expr(value).map_err(|e| {
+                            io::Error::new(io::ErrorKind::Other, e)
+                        })?;
+                        if switch_value.loose_equals(&case_value) {
+                            matched = true;
+                        }
+                    }
+
+                    if matched || fall_through {
+                        for stmt in body {
+                            let cf = self.execute_stmt(stmt)?;
+                            if cf == ControlFlow::Break {
+                                return Ok(ControlFlow::None);
+                            }
+                        }
+                        fall_through = true;
+                    }
+                }
+
+                // Execute default if no case matched
+                if !matched && !fall_through {
+                    if let Some(default_body) = default {
+                        for stmt in default_body {
+                            let cf = self.execute_stmt(stmt)?;
+                            if cf == ControlFlow::Break {
+                                return Ok(ControlFlow::None);
+                            }
+                        }
+                    }
+                }
+
+                Ok(ControlFlow::None)
+            }
+            Stmt::Break => Ok(ControlFlow::Break),
+            Stmt::Continue => Ok(ControlFlow::Continue),
         }
-        Ok(())
     }
 }
 

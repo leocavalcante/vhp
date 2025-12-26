@@ -35,8 +35,9 @@ src/
 ├── interpreter.rs  # Tree-walking interpreter (AST → output)
 └── test_runner.rs  # .vhpt test framework
 
-tests/              # Test suite organized by feature
+tests/              # Test suite organized by feature (89 tests)
 ├── comments/       # Comment syntax tests
+├── control_flow/   # Control flow tests (if, while, for, switch, break, continue)
 ├── echo/           # Echo statement tests
 ├── errors/         # Error handling tests
 ├── expressions/    # Expression evaluation tests
@@ -87,6 +88,18 @@ Source Code → Lexer → Tokens → Parser → AST → Interpreter → Output
 - [x] Ternary: `? :`
 - [x] Increment/decrement: `++$x`, `$x++`, `--$x`, `$x--`
 - [x] Unary negation: `-$x`
+
+### Control Flow
+- [x] `if`/`elseif`/`else` statements
+- [x] `else if` (two tokens) syntax
+- [x] Single-statement blocks (no braces required)
+- [x] `while` loops
+- [x] `do`...`while` loops
+- [x] `for` loops with optional init/condition/update
+- [x] `switch`/`case`/`default` with fall-through
+- [x] `break` statement
+- [x] `continue` statement
+- [x] Nested loop support with proper break/continue scoping
 
 ### Type Coercion (PHP-compatible)
 - [x] Loose equality (`==`) with type coercion
@@ -229,15 +242,16 @@ partial error message to match
 - [x] Ternary operator (`? :`)
 - [x] Increment/decrement (`++`, `--`)
 
-### Phase 2: Control Flow (Next)
-- [ ] `if`/`elseif`/`else`
-- [ ] `while` loops
-- [ ] `for` loops
-- [ ] `foreach` loops
-- [ ] `switch`/`case`
-- [ ] `break`/`continue`
+### Phase 2: Control Flow ✅ Complete
+- [x] `if`/`elseif`/`else`
+- [x] `while` loops
+- [x] `do`...`while` loops
+- [x] `for` loops
+- [x] `foreach` loops (syntax parsing - requires arrays for full support)
+- [x] `switch`/`case`/`default`
+- [x] `break`/`continue`
 
-### Phase 3: Functions
+### Phase 3: Functions (Next)
 - [ ] Function declarations
 - [ ] Function calls
 - [ ] Return statements

@@ -1,0 +1,14 @@
+--TEST--
+Continue in nested loop only continues inner loop
+--FILE--
+<?php
+for ($i = 0; $i < 2; $i++) {
+    for ($j = 0; $j < 4; $j++) {
+        if ($j == 1) {
+            continue;
+        }
+        echo $j;
+    }
+}
+--EXPECT--
+023023

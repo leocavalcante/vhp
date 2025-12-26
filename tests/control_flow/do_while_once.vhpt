@@ -1,0 +1,10 @@
+--TEST--
+Do-while executes at least once
+--FILE--
+<?php
+$i = 10;
+do {
+    echo "executed";
+} while ($i < 5);
+--EXPECT--
+executed

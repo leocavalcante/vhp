@@ -1,0 +1,17 @@
+--TEST--
+Switch with default case
+--FILE--
+<?php
+$x = 5;
+switch ($x) {
+    case 1:
+        echo "one";
+        break;
+    case 2:
+        echo "two";
+        break;
+    default:
+        echo "other";
+}
+--EXPECT--
+other

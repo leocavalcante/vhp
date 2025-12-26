@@ -1,0 +1,9 @@
+--TEST--
+Basic for loop
+--FILE--
+<?php
+for ($i = 0; $i < 5; $i++) {
+    echo $i;
+}
+--EXPECT--
+01234

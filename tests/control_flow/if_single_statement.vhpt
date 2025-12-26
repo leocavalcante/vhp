@@ -1,0 +1,8 @@
+--TEST--
+If with single statement (no braces)
+--FILE--
+<?php
+if (true)
+    echo "yes";
+--EXPECT--
+yes

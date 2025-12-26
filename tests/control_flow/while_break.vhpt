@@ -1,0 +1,14 @@
+--TEST--
+While loop with break
+--FILE--
+<?php
+$i = 0;
+while (true) {
+    echo $i;
+    $i++;
+    if ($i >= 5) {
+        break;
+    }
+}
+--EXPECT--
+01234

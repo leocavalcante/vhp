@@ -1,0 +1,11 @@
+--TEST--
+Basic while loop
+--FILE--
+<?php
+$i = 0;
+while ($i < 5) {
+    echo $i;
+    $i++;
+}
+--EXPECT--
+01234

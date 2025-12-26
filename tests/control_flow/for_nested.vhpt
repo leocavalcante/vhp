@@ -1,0 +1,11 @@
+--TEST--
+Nested for loops
+--FILE--
+<?php
+for ($i = 0; $i < 3; $i++) {
+    for ($j = 0; $j < 2; $j++) {
+        echo $i . $j;
+    }
+}
+--EXPECT--
+000110112021

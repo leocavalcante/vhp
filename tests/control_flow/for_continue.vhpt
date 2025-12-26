@@ -1,0 +1,12 @@
+--TEST--
+For loop with continue
+--FILE--
+<?php
+for ($i = 0; $i < 10; $i++) {
+    if ($i % 2 == 0) {
+        continue;
+    }
+    echo $i;
+}
+--EXPECT--
+13579

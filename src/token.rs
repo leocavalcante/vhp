@@ -10,6 +10,19 @@ pub enum TokenKind {
     True,         // true
     False,        // false
     Null,         // null
+    If,           // if
+    Else,         // else
+    Elseif,       // elseif
+    While,        // while
+    For,          // for
+    Foreach,      // foreach
+    As,           // as
+    Switch,       // switch
+    Case,         // case
+    Default,      // default
+    Break,        // break
+    Continue,     // continue
+    Do,           // do
 
     // Identifiers and Variables
     Variable(String),  // $name

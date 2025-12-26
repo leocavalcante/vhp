@@ -1,0 +1,14 @@
+--TEST--
+If-elseif-else statement
+--FILE--
+<?php
+$x = 5;
+if ($x > 10) {
+    echo "big";
+} elseif ($x > 3) {
+    echo "medium";
+} else {
+    echo "small";
+}
+--EXPECT--
+medium

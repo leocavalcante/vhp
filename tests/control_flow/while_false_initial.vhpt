@@ -1,0 +1,12 @@
+--TEST--
+While loop with false initial condition
+--FILE--
+<?php
+$i = 10;
+while ($i < 5) {
+    echo $i;
+    $i++;
+}
+echo "done";
+--EXPECT--
+done

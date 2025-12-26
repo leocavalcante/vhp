@@ -1,4 +1,4 @@
-use crate::ast::{AssignOp, BinaryOp, Expr, Program, Stmt, UnaryOp};
+use crate::ast::{AssignOp, BinaryOp, Expr, Program, Stmt, SwitchCase, UnaryOp};
 use crate::token::{Token, TokenKind};
 
 /// Operator precedence levels (higher = binds tighter)
@@ -447,6 +447,395 @@ impl Parser {
         Ok(Stmt::Echo(expressions))
     }
 
+    /// Parse a block of statements enclosed in braces or a single statement
+    fn parse_block(&mut self) -> Result<Vec<Stmt>, String> {
+        if self.check(&TokenKind::LeftBrace) {
+            self.advance(); // consume '{'
+            let mut statements = Vec::new();
+
+            while !self.check(&TokenKind::RightBrace) && !self.check(&TokenKind::Eof) {
+                if let Some(stmt) = self.parse_statement()? {
+                    statements.push(stmt);
+                }
+            }
+
+            self.consume(TokenKind::RightBrace, "Expected '}' after block")?;
+            Ok(statements)
+        } else if self.check(&TokenKind::Colon) {
+            // Alternative syntax: if (...): ... endif;
+            self.advance(); // consume ':'
+            let mut statements = Vec::new();
+
+            while !self.check(&TokenKind::Eof) {
+                // Check for endif, endwhile, endfor, endforeach, endswitch, else, elseif, case, default
+                match &self.current().kind {
+                    TokenKind::Identifier(s)
+                        if s.to_lowercase() == "endif"
+                            || s.to_lowercase() == "endwhile"
+                            || s.to_lowercase() == "endfor"
+                            || s.to_lowercase() == "endforeach"
+                            || s.to_lowercase() == "endswitch" => break,
+                    TokenKind::Else | TokenKind::Elseif | TokenKind::Case | TokenKind::Default => break,
+                    _ => {}
+                }
+
+                if let Some(stmt) = self.parse_statement()? {
+                    statements.push(stmt);
+                }
+            }
+
+            Ok(statements)
+        } else {
+            // Single statement
+            let mut statements = Vec::new();
+            if let Some(stmt) = self.parse_statement()? {
+                statements.push(stmt);
+            }
+            Ok(statements)
+        }
+    }
+
+    /// Parse if statement
+    fn parse_if(&mut self) -> Result<Stmt, String> {
+        self.advance(); // consume 'if'
+        self.consume(TokenKind::LeftParen, "Expected '(' after 'if'")?;
+        let condition = self.parse_expression(Precedence::None)?;
+        self.consume(TokenKind::RightParen, "Expected ')' after if condition")?;
+
+        // Check if using alternative syntax
+        let using_alt_syntax = self.check(&TokenKind::Colon);
+        let then_branch = self.parse_block()?;
+
+        let mut elseif_branches = Vec::new();
+        let mut else_branch = None;
+
+        // Parse elseif clauses
+        while self.check(&TokenKind::Elseif) {
+            self.advance(); // consume 'elseif'
+            self.consume(TokenKind::LeftParen, "Expected '(' after 'elseif'")?;
+            let elseif_condition = self.parse_expression(Precedence::None)?;
+            self.consume(TokenKind::RightParen, "Expected ')' after elseif condition")?;
+            let elseif_body = self.parse_block()?;
+            elseif_branches.push((elseif_condition, elseif_body));
+        }
+
+        // Parse else clause
+        if self.check(&TokenKind::Else) {
+            self.advance(); // consume 'else'
+
+            // Check for else if (two separate tokens)
+            if self.check(&TokenKind::If) {
+                // Parse as nested if and wrap in else branch
+                let nested_if = self.parse_if()?;
+                else_branch = Some(vec![nested_if]);
+            } else {
+                else_branch = Some(self.parse_block()?);
+            }
+        }
+
+        // Handle endif for alternative syntax
+        if using_alt_syntax {
+            if let TokenKind::Identifier(s) = &self.current().kind {
+                if s.to_lowercase() == "endif" {
+                    self.advance(); // consume 'endif'
+                    if self.check(&TokenKind::Semicolon) {
+                        self.advance();
+                    }
+                }
+            }
+        }
+
+        Ok(Stmt::If {
+            condition,
+            then_branch,
+            elseif_branches,
+            else_branch,
+        })
+    }
+
+    /// Parse while statement
+    fn parse_while(&mut self) -> Result<Stmt, String> {
+        self.advance(); // consume 'while'
+        self.consume(TokenKind::LeftParen, "Expected '(' after 'while'")?;
+        let condition = self.parse_expression(Precedence::None)?;
+        self.consume(TokenKind::RightParen, "Expected ')' after while condition")?;
+
+        let using_alt_syntax = self.check(&TokenKind::Colon);
+        let body = self.parse_block()?;
+
+        // Handle endwhile for alternative syntax
+        if using_alt_syntax {
+            if let TokenKind::Identifier(s) = &self.current().kind {
+                if s.to_lowercase() == "endwhile" {
+                    self.advance(); // consume 'endwhile'
+                    if self.check(&TokenKind::Semicolon) {
+                        self.advance();
+                    }
+                }
+            }
+        }
+
+        Ok(Stmt::While { condition, body })
+    }
+
+    /// Parse do-while statement
+    fn parse_do_while(&mut self) -> Result<Stmt, String> {
+        self.advance(); // consume 'do'
+        let body = self.parse_block()?;
+        self.consume(TokenKind::While, "Expected 'while' after do block")?;
+        self.consume(TokenKind::LeftParen, "Expected '(' after 'while'")?;
+        let condition = self.parse_expression(Precedence::None)?;
+        self.consume(TokenKind::RightParen, "Expected ')' after while condition")?;
+
+        if self.check(&TokenKind::Semicolon) {
+            self.advance();
+        }
+
+        Ok(Stmt::DoWhile { body, condition })
+    }
+
+    /// Parse for statement
+    fn parse_for(&mut self) -> Result<Stmt, String> {
+        self.advance(); // consume 'for'
+        self.consume(TokenKind::LeftParen, "Expected '(' after 'for'")?;
+
+        // Parse init expression (optional)
+        let init = if !self.check(&TokenKind::Semicolon) {
+            Some(self.parse_expression(Precedence::None)?)
+        } else {
+            None
+        };
+        self.consume(TokenKind::Semicolon, "Expected ';' after for init")?;
+
+        // Parse condition (optional)
+        let condition = if !self.check(&TokenKind::Semicolon) {
+            Some(self.parse_expression(Precedence::None)?)
+        } else {
+            None
+        };
+        self.consume(TokenKind::Semicolon, "Expected ';' after for condition")?;
+
+        // Parse update expression (optional)
+        let update = if !self.check(&TokenKind::RightParen) {
+            Some(self.parse_expression(Precedence::None)?)
+        } else {
+            None
+        };
+        self.consume(TokenKind::RightParen, "Expected ')' after for clauses")?;
+
+        let using_alt_syntax = self.check(&TokenKind::Colon);
+        let body = self.parse_block()?;
+
+        // Handle endfor for alternative syntax
+        if using_alt_syntax {
+            if let TokenKind::Identifier(s) = &self.current().kind {
+                if s.to_lowercase() == "endfor" {
+                    self.advance(); // consume 'endfor'
+                    if self.check(&TokenKind::Semicolon) {
+                        self.advance();
+                    }
+                }
+            }
+        }
+
+        Ok(Stmt::For {
+            init,
+            condition,
+            update,
+            body,
+        })
+    }
+
+    /// Parse foreach statement
+    fn parse_foreach(&mut self) -> Result<Stmt, String> {
+        self.advance(); // consume 'foreach'
+        self.consume(TokenKind::LeftParen, "Expected '(' after 'foreach'")?;
+
+        let array = self.parse_expression(Precedence::None)?;
+        self.consume(TokenKind::As, "Expected 'as' in foreach")?;
+
+        // Parse key => value or just value
+        let first_var = if let TokenKind::Variable(name) = &self.current().kind {
+            let name = name.clone();
+            self.advance();
+            name
+        } else {
+            return Err(format!(
+                "Expected variable after 'as' at line {}, column {}",
+                self.current().line,
+                self.current().column
+            ));
+        };
+
+        let (key, value) = if self.check(&TokenKind::Identifier(String::new())) {
+            // Check for => (arrow)
+            if let TokenKind::Identifier(s) = &self.current().kind {
+                if s == "=>" {
+                    self.advance(); // consume '=>'
+
+                    if let TokenKind::Variable(val_name) = &self.current().kind {
+                        let val_name = val_name.clone();
+                        self.advance();
+                        (Some(first_var), val_name)
+                    } else {
+                        return Err(format!(
+                            "Expected variable after '=>' at line {}, column {}",
+                            self.current().line,
+                            self.current().column
+                        ));
+                    }
+                } else {
+                    (None, first_var)
+                }
+            } else {
+                (None, first_var)
+            }
+        } else {
+            (None, first_var)
+        };
+
+        self.consume(TokenKind::RightParen, "Expected ')' after foreach")?;
+
+        let using_alt_syntax = self.check(&TokenKind::Colon);
+        let body = self.parse_block()?;
+
+        // Handle endforeach for alternative syntax
+        if using_alt_syntax {
+            if let TokenKind::Identifier(s) = &self.current().kind {
+                if s.to_lowercase() == "endforeach" {
+                    self.advance(); // consume 'endforeach'
+                    if self.check(&TokenKind::Semicolon) {
+                        self.advance();
+                    }
+                }
+            }
+        }
+
+        Ok(Stmt::Foreach {
+            array,
+            key,
+            value,
+            body,
+        })
+    }
+
+    /// Parse switch statement
+    fn parse_switch(&mut self) -> Result<Stmt, String> {
+        self.advance(); // consume 'switch'
+        self.consume(TokenKind::LeftParen, "Expected '(' after 'switch'")?;
+        let expr = self.parse_expression(Precedence::None)?;
+        self.consume(TokenKind::RightParen, "Expected ')' after switch expression")?;
+
+        let using_alt_syntax = self.check(&TokenKind::Colon);
+
+        if using_alt_syntax {
+            self.advance(); // consume ':'
+        } else {
+            self.consume(TokenKind::LeftBrace, "Expected '{' or ':' after switch")?;
+        }
+
+        let mut cases = Vec::new();
+        let mut default = None;
+
+        while !self.check(&TokenKind::RightBrace) && !self.check(&TokenKind::Eof) {
+            // Check for endswitch in alternative syntax
+            if using_alt_syntax {
+                if let TokenKind::Identifier(s) = &self.current().kind {
+                    if s.to_lowercase() == "endswitch" {
+                        break;
+                    }
+                }
+            }
+
+            if self.check(&TokenKind::Case) {
+                self.advance(); // consume 'case'
+                let value = self.parse_expression(Precedence::None)?;
+                self.consume(TokenKind::Colon, "Expected ':' after case value")?;
+
+                let mut body = Vec::new();
+                while !self.check(&TokenKind::Case)
+                    && !self.check(&TokenKind::Default)
+                    && !self.check(&TokenKind::RightBrace)
+                    && !self.check(&TokenKind::Eof)
+                {
+                    // Check for endswitch
+                    if let TokenKind::Identifier(s) = &self.current().kind {
+                        if s.to_lowercase() == "endswitch" {
+                            break;
+                        }
+                    }
+
+                    if let Some(stmt) = self.parse_statement()? {
+                        body.push(stmt);
+                    }
+                }
+
+                cases.push(SwitchCase { value, body });
+            } else if self.check(&TokenKind::Default) {
+                self.advance(); // consume 'default'
+                self.consume(TokenKind::Colon, "Expected ':' after 'default'")?;
+
+                let mut body = Vec::new();
+                while !self.check(&TokenKind::Case)
+                    && !self.check(&TokenKind::RightBrace)
+                    && !self.check(&TokenKind::Eof)
+                {
+                    // Check for endswitch
+                    if let TokenKind::Identifier(s) = &self.current().kind {
+                        if s.to_lowercase() == "endswitch" {
+                            break;
+                        }
+                    }
+
+                    if let Some(stmt) = self.parse_statement()? {
+                        body.push(stmt);
+                    }
+                }
+
+                default = Some(body);
+            } else {
+                break;
+            }
+        }
+
+        if using_alt_syntax {
+            if let TokenKind::Identifier(s) = &self.current().kind {
+                if s.to_lowercase() == "endswitch" {
+                    self.advance(); // consume 'endswitch'
+                    if self.check(&TokenKind::Semicolon) {
+                        self.advance();
+                    }
+                }
+            }
+        } else {
+            self.consume(TokenKind::RightBrace, "Expected '}' after switch")?;
+        }
+
+        Ok(Stmt::Switch {
+            expr,
+            cases,
+            default,
+        })
+    }
+
+    /// Parse break statement
+    fn parse_break(&mut self) -> Result<Stmt, String> {
+        self.advance(); // consume 'break'
+        if self.check(&TokenKind::Semicolon) {
+            self.advance();
+        }
+        Ok(Stmt::Break)
+    }
+
+    /// Parse continue statement
+    fn parse_continue(&mut self) -> Result<Stmt, String> {
+        self.advance(); // consume 'continue'
+        if self.check(&TokenKind::Semicolon) {
+            self.advance();
+        }
+        Ok(Stmt::Continue)
+    }
+
     /// Parse expression statement
     fn parse_expression_statement(&mut self) -> Result<Stmt, String> {
         let expr = self.parse_expression(Precedence::None)?;
@@ -476,6 +865,14 @@ impl Parser {
                 Ok(None)
             }
             TokenKind::Echo => Ok(Some(self.parse_echo()?)),
+            TokenKind::If => Ok(Some(self.parse_if()?)),
+            TokenKind::While => Ok(Some(self.parse_while()?)),
+            TokenKind::Do => Ok(Some(self.parse_do_while()?)),
+            TokenKind::For => Ok(Some(self.parse_for()?)),
+            TokenKind::Foreach => Ok(Some(self.parse_foreach()?)),
+            TokenKind::Switch => Ok(Some(self.parse_switch()?)),
+            TokenKind::Break => Ok(Some(self.parse_break()?)),
+            TokenKind::Continue => Ok(Some(self.parse_continue()?)),
             TokenKind::Html(html) => {
                 self.advance();
                 Ok(Some(Stmt::Html(html)))

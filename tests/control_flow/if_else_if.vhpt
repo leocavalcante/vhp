@@ -1,0 +1,14 @@
+--TEST--
+If with else if (two tokens)
+--FILE--
+<?php
+$x = 5;
+if ($x > 10) {
+    echo "big";
+} else if ($x > 3) {
+    echo "medium";
+} else {
+    echo "small";
+}
+--EXPECT--
+medium

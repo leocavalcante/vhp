@@ -77,6 +77,57 @@ echo ++$i;  // 1 (pre-increment)
 echo $i++;  // 1 (post-increment, $i is now 2)
 ```
 
+### Control Flow
+```php
+<?php
+// If-elseif-else
+$score = 85;
+if ($score >= 90) {
+    echo "A";
+} elseif ($score >= 80) {
+    echo "B";
+} else {
+    echo "C";
+}
+
+// While loop
+$i = 0;
+while ($i < 5) {
+    echo $i++;
+}
+
+// For loop
+for ($i = 0; $i < 5; $i++) {
+    echo $i;
+}
+
+// Do-while loop
+$i = 0;
+do {
+    echo $i++;
+} while ($i < 3);
+
+// Switch statement
+$day = 1;
+switch ($day) {
+    case 1:
+        echo "Monday";
+        break;
+    case 2:
+        echo "Tuesday";
+        break;
+    default:
+        echo "Other day";
+}
+
+// Break and continue
+for ($i = 0; $i < 10; $i++) {
+    if ($i == 3) continue;  // Skip 3
+    if ($i == 7) break;     // Stop at 7
+    echo $i;
+}
+```
+
 ### PHP-Compatible Type Coercion
 ```php
 <?php
@@ -175,8 +226,8 @@ echo "Timeout: $timeout";  // Output: Timeout: 30
 | Phase | Status | Features |
 |-------|--------|----------|
 | **1. Variables & Operators** | ✅ Complete | Variables, assignment, arithmetic, comparison, logical, ternary, null coalescing |
-| **2. Control Flow** | 🚧 Next | `if`/`else`, `while`, `for`, `foreach`, `switch`, `break`/`continue` |
-| **3. Functions** | 📋 Planned | Declarations, calls, returns, parameters, built-ins |
+| **2. Control Flow** | ✅ Complete | `if`/`else`, `while`, `for`, `do-while`, `switch`, `break`/`continue` |
+| **3. Functions** | 🚧 Next | Declarations, calls, returns, parameters, built-ins |
 | **4. Arrays** | 📋 Planned | Literals, access, modification, `foreach` iteration |
 | **5. Classes & Objects** | 📋 Planned | Classes, properties, methods, inheritance, interfaces |
 | **6. VHP Extensions** | 💡 Future | Type inference, pattern matching, async/await |
@@ -203,8 +254,9 @@ src/
 ├── interpreter.rs  # Tree-walking interpreter
 └── test_runner.rs  # .vhpt test framework
 
-tests/              # 64 tests organized by feature
+tests/              # 89 tests organized by feature
 ├── comments/       # Comment syntax tests
+├── control_flow/   # Control flow tests (if, while, for, switch)
 ├── echo/           # Echo statement tests
 ├── errors/         # Error handling tests
 ├── expressions/    # Expression evaluation tests
@@ -246,11 +298,12 @@ Run the test suite:
 vhp test -v
 
 # Output:
-# Running 64 tests...
+# Running 89 tests...
 #   PASS Addition operator
-#   PASS Division by zero error
+#   PASS Basic if statement
+#   PASS For loop with break
 #   ...
-# Tests: 64 total, 63 passed, 0 failed, 0 errors, 1 skipped
+# Tests: 89 total, 88 passed, 0 failed, 0 errors, 1 skipped
 ```
 
 ## Why "Vibe Coding"?
