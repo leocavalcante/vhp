@@ -1,6 +1,6 @@
 <h1 align="center">
   <br>
-  <img src="https://raw.githubusercontent.com/leocavalcante/vhp/main/.github/logo.png" alt="VHP Logo" width="200">
+  <img src="https://raw.githubusercontent.com/leocavalcante/vhp/main/docs/assets/logo.png" alt="VHP Logo" width="200">
   <br>
   VHP
   <br>
