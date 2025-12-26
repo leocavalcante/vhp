@@ -1,0 +1,19 @@
+--TEST--
+Using $this in constructor
+--FILE--
+<?php
+class Person {
+    public $firstName;
+    public $lastName;
+    public $fullName;
+
+    function __construct($first, $last) {
+        $this->firstName = $first;
+        $this->lastName = $last;
+        $this->fullName = $first . " " . $last;
+    }
+}
+$p = new Person("John", "Doe");
+echo $p->fullName;
+--EXPECT--
+John Doe

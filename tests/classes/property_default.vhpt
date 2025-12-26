@@ -1,0 +1,14 @@
+--TEST--
+Property with default value
+--FILE--
+<?php
+class Config {
+    public $debug = true;
+    public $name = "default";
+}
+$c = new Config();
+if ($c->debug) {
+    echo "Debug is on, name is " . $c->name;
+}
+--EXPECT--
+Debug is on, name is default

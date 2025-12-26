@@ -1,0 +1,15 @@
+--TEST--
+Constructor with __construct
+--FILE--
+<?php
+class Person {
+    public $name;
+
+    function __construct($n) {
+        $this->name = $n;
+    }
+}
+$p = new Person("Bob");
+echo $p->name;
+--EXPECT--
+Bob

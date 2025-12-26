@@ -1,0 +1,11 @@
+--TEST--
+Object instantiation with new keyword
+--FILE--
+<?php
+class Person {
+    public $name;
+}
+$p = new Person();
+echo "Created";
+--EXPECT--
+Created

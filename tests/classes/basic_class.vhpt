@@ -1,0 +1,10 @@
+--TEST--
+Basic class declaration
+--FILE--
+<?php
+class Person {
+    public $name;
+}
+echo "Class declared";
+--EXPECT--
+Class declared

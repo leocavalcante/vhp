@@ -1,0 +1,19 @@
+--TEST--
+Method call on object
+--FILE--
+<?php
+class Greeter {
+    public $name;
+
+    function __construct($n) {
+        $this->name = $n;
+    }
+
+    function greet() {
+        echo "Hello, " . $this->name;
+    }
+}
+$g = new Greeter("World");
+$g->greet();
+--EXPECT--
+Hello, World

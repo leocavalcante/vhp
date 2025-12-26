@@ -1,0 +1,12 @@
+--TEST--
+Property access and assignment
+--FILE--
+<?php
+class Person {
+    public $name;
+}
+$p = new Person();
+$p->name = "Alice";
+echo $p->name;
+--EXPECT--
+Alice

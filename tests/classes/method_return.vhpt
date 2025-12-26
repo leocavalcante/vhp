@@ -1,0 +1,19 @@
+--TEST--
+Method with return value
+--FILE--
+<?php
+class Calculator {
+    public $value;
+
+    function __construct($v) {
+        $this->value = $v;
+    }
+
+    function double() {
+        return $this->value * 2;
+    }
+}
+$c = new Calculator(21);
+echo $c->double();
+--EXPECT--
+42

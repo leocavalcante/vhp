@@ -1,0 +1,12 @@
+--TEST--
+Static method call
+--FILE--
+<?php
+class Math {
+    function square($n) {
+        return $n * $n;
+    }
+}
+echo Math::square(5);
+--EXPECT--
+25

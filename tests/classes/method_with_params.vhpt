@@ -1,0 +1,13 @@
+--TEST--
+Method with parameters
+--FILE--
+<?php
+class Adder {
+    function add($a, $b) {
+        return $a + $b;
+    }
+}
+$adder = new Adder();
+echo $adder->add(3, 4);
+--EXPECT--
+7

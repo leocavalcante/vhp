@@ -1,0 +1,16 @@
+--TEST--
+Multiple objects of same class
+--FILE--
+<?php
+class Box {
+    public $value;
+
+    function __construct($v) {
+        $this->value = $v;
+    }
+}
+$a = new Box(10);
+$b = new Box(20);
+echo $a->value . ", " . $b->value;
+--EXPECT--
+10, 20
