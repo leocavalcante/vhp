@@ -25,6 +25,7 @@ pub enum TokenKind {
     Do,           // do
     Function,     // function
     Return,       // return
+    Match,        // match (PHP 8.0)
 
     // OOP Keywords
     Class,        // class

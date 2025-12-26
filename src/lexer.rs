@@ -187,6 +187,7 @@ impl Lexer {
             "continue" => TokenKind::Continue,
             "function" => TokenKind::Function,
             "return" => TokenKind::Return,
+            "match" => TokenKind::Match,
             "class" => TokenKind::Class,
             "new" => TokenKind::New,
             "public" => TokenKind::Public,
