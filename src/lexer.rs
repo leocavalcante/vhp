@@ -187,6 +187,12 @@ impl Lexer {
             "continue" => TokenKind::Continue,
             "function" => TokenKind::Function,
             "return" => TokenKind::Return,
+            "class" => TokenKind::Class,
+            "new" => TokenKind::New,
+            "public" => TokenKind::Public,
+            "private" => TokenKind::Private,
+            "protected" => TokenKind::Protected,
+            "extends" => TokenKind::Extends,
             _ => TokenKind::Identifier(ident.to_string()),
         }
     }
@@ -323,7 +329,12 @@ impl Lexer {
                     }
                     ':' => {
                         self.advance();
-                        TokenKind::Colon
+                        if self.current() == Some(':') {
+                            self.advance();
+                            TokenKind::DoubleColon
+                        } else {
+                            TokenKind::Colon
+                        }
                     }
 
                     // Operators - multi-character first
@@ -347,6 +358,9 @@ impl Lexer {
                         } else if self.current() == Some('=') {
                             self.advance();
                             TokenKind::MinusAssign
+                        } else if self.current() == Some('>') {
+                            self.advance();
+                            TokenKind::Arrow
                         } else {
                             TokenKind::Minus
                         }

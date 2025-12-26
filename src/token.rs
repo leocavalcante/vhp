@@ -26,6 +26,14 @@ pub enum TokenKind {
     Function,     // function
     Return,       // return
 
+    // OOP Keywords
+    Class,        // class
+    New,          // new
+    Public,       // public
+    Private,      // private
+    Protected,    // protected
+    Extends,      // extends
+
     // Identifiers and Variables
     Variable(String),  // $name
     Identifier(String), // function names, etc.
@@ -89,6 +97,8 @@ pub enum TokenKind {
     Colon,             // :
     NullCoalesce,      // ??
     DoubleArrow,       // =>
+    Arrow,             // ->
+    DoubleColon,       // ::
 
     // Special
     Html(String),      // Raw HTML outside PHP tags
