@@ -1,0 +1,16 @@
+--TEST--
+pow and sqrt
+--FILE--
+<?php
+echo pow(2, 3);
+echo "\n";
+echo pow(2, 10);
+echo "\n";
+echo sqrt(16);
+echo "\n";
+echo sqrt(2);
+--EXPECT--
+8
+1024
+4
+1.4142135623730951

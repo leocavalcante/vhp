@@ -1,0 +1,10 @@
+--TEST--
+strrev reverses string
+--FILE--
+<?php
+echo strrev("hello");
+echo "\n";
+echo strrev("12345");
+--EXPECT--
+olleh
+54321

@@ -1,0 +1,13 @@
+--TEST--
+sprintf formats strings
+--FILE--
+<?php
+echo sprintf("Hello %s", "World");
+echo "\n";
+echo sprintf("Number: %d", 42);
+echo "\n";
+echo sprintf("%s is %d", "Answer", 42);
+--EXPECT--
+Hello World
+Number: 42
+Answer is 42

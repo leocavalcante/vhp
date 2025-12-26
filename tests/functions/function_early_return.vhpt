@@ -1,0 +1,16 @@
+--TEST--
+Function with early return
+--FILE--
+<?php
+function isPositive($n) {
+    if ($n > 0) {
+        return true;
+    }
+    return false;
+}
+echo isPositive(5) ? "yes" : "no";
+echo "\n";
+echo isPositive(-3) ? "yes" : "no";
+--EXPECT--
+yes
+no

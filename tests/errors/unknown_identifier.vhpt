@@ -6,4 +6,4 @@ Tests that bare identifiers (not variables or keywords) produce an error
 <?php
 unknown;
 --EXPECT_ERROR--
-Unexpected token Identifier
+Unexpected identifier

@@ -1,0 +1,13 @@
+--TEST--
+ucfirst, lcfirst, ucwords
+--FILE--
+<?php
+echo ucfirst("hello world");
+echo "\n";
+echo lcfirst("Hello World");
+echo "\n";
+echo ucwords("hello world");
+--EXPECT--
+Hello world
+hello World
+Hello World

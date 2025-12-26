@@ -1,0 +1,7 @@
+--TEST--
+Calling undefined function produces error
+--FILE--
+<?php
+nonExistentFunction();
+--EXPECT_ERROR--
+undefined function

@@ -1,0 +1,11 @@
+--TEST--
+Function with no return returns null
+--FILE--
+<?php
+function noReturn() {
+    $x = 1;
+}
+$result = noReturn();
+echo is_null($result) ? "null" : "not null";
+--EXPECT--
+null

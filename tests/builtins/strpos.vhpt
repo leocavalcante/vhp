@@ -1,0 +1,13 @@
+--TEST--
+strpos finds position
+--FILE--
+<?php
+echo strpos("Hello World", "World");
+echo "\n";
+echo strpos("Hello World", "o");
+echo "\n";
+echo strpos("Hello", "x") === false ? "not found" : "found";
+--EXPECT--
+6
+4
+not found

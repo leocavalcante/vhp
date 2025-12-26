@@ -1,0 +1,16 @@
+--TEST--
+ceil, floor, round
+--FILE--
+<?php
+echo ceil(4.3);
+echo "\n";
+echo floor(4.7);
+echo "\n";
+echo round(4.5);
+echo "\n";
+echo round(4.4);
+--EXPECT--
+5
+4
+5
+4

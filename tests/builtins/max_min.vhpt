@@ -1,0 +1,16 @@
+--TEST--
+max and min
+--FILE--
+<?php
+echo max(1, 5, 3);
+echo "\n";
+echo min(1, 5, 3);
+echo "\n";
+echo max(10, 20);
+echo "\n";
+echo min(10, 20);
+--EXPECT--
+5
+1
+20
+10

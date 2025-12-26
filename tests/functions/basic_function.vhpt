@@ -1,0 +1,10 @@
+--TEST--
+Basic function declaration and call
+--FILE--
+<?php
+function greet() {
+    echo "Hello";
+}
+greet();
+--EXPECT--
+Hello

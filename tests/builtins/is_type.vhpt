@@ -1,0 +1,25 @@
+--TEST--
+is_* type checking functions
+--FILE--
+<?php
+echo is_null(null) ? "yes" : "no";
+echo "\n";
+echo is_bool(true) ? "yes" : "no";
+echo "\n";
+echo is_int(42) ? "yes" : "no";
+echo "\n";
+echo is_float(3.14) ? "yes" : "no";
+echo "\n";
+echo is_string("hello") ? "yes" : "no";
+echo "\n";
+echo is_numeric("42") ? "yes" : "no";
+echo "\n";
+echo is_numeric("hello") ? "yes" : "no";
+--EXPECT--
+yes
+yes
+yes
+yes
+yes
+yes
+no

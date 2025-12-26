@@ -1,0 +1,16 @@
+--TEST--
+intval, floatval, strval
+--FILE--
+<?php
+echo intval("42");
+echo "\n";
+echo intval(3.9);
+echo "\n";
+echo floatval("3.14");
+echo "\n";
+echo strval(42);
+--EXPECT--
+42
+3
+3.14
+42

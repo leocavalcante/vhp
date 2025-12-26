@@ -1,0 +1,10 @@
+--TEST--
+str_replace
+--FILE--
+<?php
+echo str_replace("world", "VHP", "Hello world");
+echo "\n";
+echo str_replace("o", "0", "Hello World");
+--EXPECT--
+Hello VHP
+Hell0 W0rld

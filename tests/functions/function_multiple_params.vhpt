@@ -1,0 +1,10 @@
+--TEST--
+Function with multiple parameters
+--FILE--
+<?php
+function calc($a, $b, $c) {
+    return $a * $b + $c;
+}
+echo calc(2, 3, 4);
+--EXPECT--
+10

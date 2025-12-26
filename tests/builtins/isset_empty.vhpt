@@ -1,0 +1,22 @@
+--TEST--
+isset and empty
+--FILE--
+<?php
+$x = 5;
+$y = null;
+$z = "";
+echo isset($x) ? "yes" : "no";
+echo "\n";
+echo isset($y) ? "yes" : "no";
+echo "\n";
+echo isset($undefined) ? "yes" : "no";
+echo "\n";
+echo empty($z) ? "yes" : "no";
+echo "\n";
+echo empty($x) ? "yes" : "no";
+--EXPECT--
+yes
+no
+no
+yes
+no

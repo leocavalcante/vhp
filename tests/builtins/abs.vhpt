@@ -1,0 +1,13 @@
+--TEST--
+abs returns absolute value
+--FILE--
+<?php
+echo abs(-5);
+echo "\n";
+echo abs(5);
+echo "\n";
+echo abs(-3.14);
+--EXPECT--
+5
+5
+3.14

@@ -1,0 +1,7 @@
+--TEST--
+str_repeat
+--FILE--
+<?php
+echo str_repeat("ab", 3);
+--EXPECT--
+ababab

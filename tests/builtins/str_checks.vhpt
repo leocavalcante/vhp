@@ -1,0 +1,16 @@
+--TEST--
+str_contains, str_starts_with, str_ends_with
+--FILE--
+<?php
+echo str_contains("Hello World", "World") ? "yes" : "no";
+echo "\n";
+echo str_starts_with("Hello World", "Hello") ? "yes" : "no";
+echo "\n";
+echo str_ends_with("Hello World", "World") ? "yes" : "no";
+echo "\n";
+echo str_contains("Hello World", "xyz") ? "yes" : "no";
+--EXPECT--
+yes
+yes
+yes
+no

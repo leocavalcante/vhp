@@ -1,0 +1,16 @@
+--TEST--
+chr and ord
+--FILE--
+<?php
+echo chr(65);
+echo "\n";
+echo chr(97);
+echo "\n";
+echo ord("A");
+echo "\n";
+echo ord("hello");
+--EXPECT--
+A
+a
+65
+104

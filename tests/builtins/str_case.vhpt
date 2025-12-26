@@ -1,0 +1,10 @@
+--TEST--
+strtoupper and strtolower
+--FILE--
+<?php
+echo strtoupper("hello");
+echo "\n";
+echo strtolower("WORLD");
+--EXPECT--
+HELLO
+world

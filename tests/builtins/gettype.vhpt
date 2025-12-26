@@ -1,0 +1,19 @@
+--TEST--
+gettype returns type names
+--FILE--
+<?php
+echo gettype(null);
+echo "\n";
+echo gettype(true);
+echo "\n";
+echo gettype(42);
+echo "\n";
+echo gettype(3.14);
+echo "\n";
+echo gettype("hello");
+--EXPECT--
+NULL
+boolean
+integer
+double
+string

@@ -1,0 +1,13 @@
+--TEST--
+trim, ltrim, rtrim
+--FILE--
+<?php
+echo ">" . trim("  hello  ") . "<";
+echo "\n";
+echo ">" . ltrim("  hello  ") . "<";
+echo "\n";
+echo ">" . rtrim("  hello  ") . "<";
+--EXPECT--
+>hello<
+>hello  <
+>  hello<

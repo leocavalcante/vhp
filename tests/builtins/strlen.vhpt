@@ -1,0 +1,13 @@
+--TEST--
+strlen returns string length
+--FILE--
+<?php
+echo strlen("hello");
+echo "\n";
+echo strlen("");
+echo "\n";
+echo strlen("VHP rocks!");
+--EXPECT--
+5
+0
+10

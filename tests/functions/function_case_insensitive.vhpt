@@ -1,0 +1,11 @@
+--TEST--
+Function names are case-insensitive
+--FILE--
+<?php
+function MyFunc() {
+    return "called";
+}
+echo myfunc();
+echo MYFUNC();
+--EXPECT--
+calledcalled

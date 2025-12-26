@@ -1,0 +1,13 @@
+--TEST--
+print function
+--FILE--
+<?php
+print("Hello");
+echo "\n";
+$result = print("World");
+echo "\n";
+echo $result;
+--EXPECT--
+Hello
+World
+1

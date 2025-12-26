@@ -1,0 +1,13 @@
+--TEST--
+substr extracts substring
+--FILE--
+<?php
+echo substr("Hello World", 0, 5);
+echo "\n";
+echo substr("Hello World", 6);
+echo "\n";
+echo substr("Hello World", -5);
+--EXPECT--
+Hello
+World
+World

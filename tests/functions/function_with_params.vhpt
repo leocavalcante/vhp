@@ -1,0 +1,10 @@
+--TEST--
+Function with parameters
+--FILE--
+<?php
+function greet($name) {
+    echo "Hello, " . $name;
+}
+greet("VHP");
+--EXPECT--
+Hello, VHP
