@@ -502,6 +502,7 @@ impl<'a> StmtParser<'a> {
                     name: param_name,
                     default,
                     by_ref,
+                    promoted: None,
                 });
 
                 if !self.check(&TokenKind::Comma) {
@@ -618,6 +619,17 @@ impl<'a> StmtParser<'a> {
         let mut params = Vec::new();
         if !self.check(&TokenKind::RightParen) {
             loop {
+                // Check for visibility modifier (constructor property promotion)
+                let promoted = if self.check(&TokenKind::Public)
+                    || self.check(&TokenKind::Protected)
+                    || self.check(&TokenKind::Private)
+                {
+                    let visibility = self.parse_visibility();
+                    Some(visibility)
+                } else {
+                    None
+                };
+
                 let by_ref = if let TokenKind::Identifier(s) = &self.current().kind {
                     if s == "&" {
                         self.advance();
@@ -652,6 +664,7 @@ impl<'a> StmtParser<'a> {
                     name: param_name,
                     default,
                     by_ref,
+                    promoted,
                 });
 
                 if !self.check(&TokenKind::Comma) {

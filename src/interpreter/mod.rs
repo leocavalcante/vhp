@@ -1129,6 +1129,15 @@ impl<W: Write> Interpreter<W> {
             } else {
                 Value::Null
             };
+            
+            // If this is a promoted property (constructor property promotion),
+            // assign it to the object's properties
+            if let Some(_visibility) = param.promoted {
+                if let Some(ref mut obj) = self.current_object {
+                    obj.properties.insert(param.name.clone(), value.clone());
+                }
+            }
+            
             self.variables.insert(param.name.clone(), value);
         }
 

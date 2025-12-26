@@ -1,0 +1,27 @@
+--TEST--
+Constructor property promotion with constructor body
+--FILE--
+<?php
+class Rectangle {
+    private $area;
+    
+    public function __construct(
+        public $width,
+        public $height
+    ) {
+        $this->area = $this->width * $this->height;
+    }
+    
+    public function getArea() {
+        return $this->area;
+    }
+}
+
+$rect = new Rectangle(10, 5);
+echo $rect->width . "\n";
+echo $rect->height . "\n";
+echo $rect->getArea() . "\n";
+--EXPECT--
+10
+5
+50

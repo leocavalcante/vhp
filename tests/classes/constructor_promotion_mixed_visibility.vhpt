@@ -1,0 +1,28 @@
+--TEST--
+Constructor property promotion with different visibility modifiers
+--FILE--
+<?php
+class Account {
+    public function __construct(
+        public $username,
+        private $password,
+        protected $email
+    ) {}
+    
+    public function getPassword() {
+        return $this->password;
+    }
+    
+    public function getEmail() {
+        return $this->email;
+    }
+}
+
+$acc = new Account("user1", "secret123", "user@test.com");
+echo $acc->username . "\n";
+echo $acc->getPassword() . "\n";
+echo $acc->getEmail() . "\n";
+--EXPECT--
+user1
+secret123
+user@test.com
