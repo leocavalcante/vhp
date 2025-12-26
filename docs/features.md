@@ -210,18 +210,18 @@ echo max(1, 5, 3);                 // 5
 echo sprintf("Name: %s, Age: %d", "John", 25);
 ```
 
-#### String Functions
+#### String Functions (24)
 
-`strlen`, `substr`, `strtoupper`, `strtolower`, `trim`, `ltrim`, `rtrim`, `str_repeat`, `str_replace`, `strpos`, `stripos`, `strrev`, `ucfirst`, `lcfirst`, `ucwords`, `str_starts_with`, `str_ends_with`, `str_contains`, `str_pad`, `sprintf`, `chr`, `ord`
+`strlen`, `substr`, `strtoupper`, `strtolower`, `trim`, `ltrim`, `rtrim`, `str_repeat`, `str_replace`, `strpos`, `strrev`, `ucfirst`, `lcfirst`, `ucwords`, `str_starts_with`, `str_ends_with`, `str_contains`, `str_pad`, `explode`, `implode`/`join`, `sprintf`, `chr`, `ord`
 
-#### Math Functions
+#### Math Functions (9)
 
-`abs`, `ceil`, `floor`, `round`, `max`, `min`, `pow`, `sqrt`, `rand`
+`abs`, `ceil`, `floor`, `round`, `max`, `min`, `pow`, `sqrt`, `rand`/`mt_rand`
 
-#### Type Functions
+#### Type Functions (13)
 
-`intval`, `floatval`, `strval`, `boolval`, `gettype`, `is_null`, `is_bool`, `is_int`, `is_integer`, `is_long`, `is_float`, `is_double`, `is_real`, `is_string`, `is_numeric`
+`intval`, `floatval`/`doubleval`, `strval`, `boolval`, `gettype`, `is_null`, `is_bool`, `is_int`/`is_integer`/`is_long`, `is_float`/`is_double`/`is_real`, `is_string`, `is_numeric`, `isset`, `empty`
 
-#### Variable Functions
+#### Output Functions (4)
 
-`isset`, `empty`, `var_dump`, `print_r`, `print`
+`print`, `var_dump`, `print_r`, `printf`

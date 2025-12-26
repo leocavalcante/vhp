@@ -280,13 +280,29 @@ echo "Timeout: $timeout";  // Output: Timeout: 30
 
 ```
 src/
-├── main.rs         # CLI entry point
-├── token.rs        # Token definitions
-├── lexer.rs        # Lexical analysis (source → tokens)
-├── ast.rs          # Abstract Syntax Tree definitions
-├── parser.rs       # Pratt parser (tokens → AST)
-├── interpreter.rs  # Tree-walking interpreter
-└── test_runner.rs  # .vhpt test framework
+├── main.rs              # CLI entry point
+├── token.rs             # Token definitions
+├── lexer.rs             # Lexical analysis (source → tokens)
+├── test_runner.rs       # .vhpt test framework
+├── ast/                 # Abstract Syntax Tree (modularized)
+│   ├── mod.rs           # Module exports
+│   ├── expr.rs          # Expression AST nodes
+│   ├── stmt.rs          # Statement AST nodes
+│   └── ops.rs           # Operator definitions
+├── parser/              # Pratt parser (modularized)
+│   ├── mod.rs           # Module exports
+│   ├── expr.rs          # Expression parsing
+│   ├── stmt.rs          # Statement parsing
+│   └── precedence.rs    # Operator precedence
+└── interpreter/         # Tree-walking interpreter (modularized)
+    ├── mod.rs           # Main interpreter logic
+    ├── value.rs         # Value type and coercion
+    └── builtins/        # Built-in function modules
+        ├── mod.rs       # Module exports
+        ├── string.rs    # String functions
+        ├── math.rs      # Math functions
+        ├── types.rs     # Type functions
+        └── output.rs    # Output functions
 
 tests/              # 120 tests organized by feature
 ├── builtins/       # Built-in function tests

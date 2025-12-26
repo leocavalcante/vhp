@@ -19,35 +19,51 @@ VHP follows a classic interpreter pipeline with three main stages.
 ```
 
 1. **Lexer** (`lexer.rs`): Converts source text into tokens, handles PHP/HTML mode switching
-2. **Parser** (`parser.rs`): Builds AST from tokens using recursive descent with Pratt parsing for operator precedence
-3. **Interpreter** (`interpreter.rs`): Tree-walking interpreter with variable storage and PHP-compatible type coercion
+2. **Parser** (`parser/`): Builds AST from tokens using recursive descent with Pratt parsing for operator precedence
+3. **Interpreter** (`interpreter/`): Tree-walking interpreter with variable storage and PHP-compatible type coercion
 
 ## Project Structure
 
 ```
 src/
-├── main.rs         # CLI entry point
-├── token.rs        # Token definitions
-├── lexer.rs        # Lexical analysis (source → tokens)
-├── ast.rs          # Abstract Syntax Tree definitions
-├── parser.rs       # Pratt parser (tokens → AST)
-├── interpreter.rs  # Tree-walking interpreter
-└── test_runner.rs  # .vhpt test framework
+├── main.rs              # CLI entry point
+├── token.rs             # Token definitions
+├── lexer.rs             # Lexical analysis (source → tokens)
+├── test_runner.rs       # .vhpt test framework
+├── ast/                 # Abstract Syntax Tree (modularized)
+│   ├── mod.rs           # Module exports
+│   ├── expr.rs          # Expression AST nodes
+│   ├── stmt.rs          # Statement AST nodes
+│   └── ops.rs           # Operator definitions
+├── parser/              # Pratt parser (modularized)
+│   ├── mod.rs           # Module exports
+│   ├── expr.rs          # Expression parsing
+│   ├── stmt.rs          # Statement parsing
+│   └── precedence.rs    # Operator precedence
+└── interpreter/         # Tree-walking interpreter (modularized)
+    ├── mod.rs           # Main interpreter logic
+    ├── value.rs         # Value type and coercion
+    └── builtins/        # Built-in function modules
+        ├── mod.rs       # Module exports
+        ├── string.rs    # String functions (24)
+        ├── math.rs      # Math functions (9)
+        ├── types.rs     # Type functions (13)
+        └── output.rs    # Output functions (4)
 
-tests/              # 120 tests organized by feature
-├── builtins/       # Built-in function tests
-├── comments/       # Comment syntax tests
-├── control_flow/   # Control flow tests (if, while, for, switch)
-├── echo/           # Echo statement tests
-├── errors/         # Error handling tests
-├── expressions/    # Expression evaluation tests
-├── functions/      # User-defined function tests
-├── html/           # HTML passthrough tests
-├── numbers/        # Numeric literal tests
-├── operators/      # Operator tests
-├── strings/        # String literal tests
-├── tags/           # PHP tag tests
-└── variables/      # Variable tests
+tests/                   # 120 tests organized by feature
+├── builtins/            # Built-in function tests (21)
+├── comments/            # Comment syntax tests (4)
+├── control_flow/        # Control flow tests (25)
+├── echo/                # Echo statement tests (6)
+├── errors/              # Error handling tests (3)
+├── expressions/         # Expression evaluation tests (6)
+├── functions/           # User-defined function tests (10)
+├── html/                # HTML passthrough tests (3)
+├── numbers/             # Numeric literal tests (5)
+├── operators/           # Operator tests (23)
+├── strings/             # String literal tests (6)
+├── tags/                # PHP tag tests (3)
+└── variables/           # Variable tests (5)
 ```
 
 ## Components
@@ -82,45 +98,56 @@ Converts source code into a stream of tokens:
 - Tracks line and column positions for error reporting
 - Supports escape sequences in strings
 
-### AST (`ast.rs`)
+### AST (`ast/`)
 
-Defines the abstract syntax tree structure:
+Defines the abstract syntax tree structure in separate modules:
 
 ```rust
+// ast/expr.rs - Expression nodes
 pub enum Expr {
     String(String),
     Integer(i64),
     Variable(String),
-    BinaryOp { left: Box<Expr>, op: Operator, right: Box<Expr> },
+    Binary { left: Box<Expr>, op: BinaryOp, right: Box<Expr> },
     FunctionCall { name: String, args: Vec<Expr> },
     // ... and more
 }
 
+// ast/stmt.rs - Statement nodes
 pub enum Stmt {
     Echo(Vec<Expr>),
     If { condition: Expr, then_branch: Vec<Stmt>, else_branch: Option<Vec<Stmt>> },
     While { condition: Expr, body: Vec<Stmt> },
-    Function { name: String, params: Vec<Param>, body: Vec<Stmt> },
+    Function { name: String, params: Vec<FunctionParam>, body: Vec<Stmt> },
     // ... and more
 }
+
+// ast/ops.rs - Operator definitions
+pub enum BinaryOp { Add, Sub, Mul, Div, ... }
+pub enum UnaryOp { Neg, Not, PreInc, PreDec, ... }
+pub enum AssignOp { Assign, AddAssign, SubAssign, ... }
 ```
 
-### Parser (`parser.rs`)
+### Parser (`parser/`)
 
 Builds AST from tokens using:
 
-- **Recursive descent** for statements
-- **Pratt parsing** for operator precedence in expressions
+- **Recursive descent** for statements (in `parser/stmt.rs`)
+- **Pratt parsing** for operator precedence in expressions (in `parser/expr.rs` and `parser/precedence.rs`)
 - Error recovery with meaningful messages
 
-### Interpreter (`interpreter.rs`)
+### Interpreter (`interpreter/`)
 
 Executes the AST:
 
-- Tree-walking evaluation
+- Tree-walking evaluation (in `interpreter/mod.rs`)
 - Variable storage in hash maps
-- PHP-compatible type coercion
-- Built-in function implementations
+- PHP-compatible type coercion (in `interpreter/value.rs`)
+- Built-in function implementations organized by category:
+  - `builtins/string.rs` - String manipulation functions
+  - `builtins/math.rs` - Mathematical functions
+  - `builtins/types.rs` - Type checking and conversion
+  - `builtins/output.rs` - Output and debugging functions
 - Control flow handling (break, continue, return)
 
 ## Design Principles
