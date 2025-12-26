@@ -1,6 +1,6 @@
 //! Statement parsing
 
-use crate::ast::{Expr, FunctionParam, Stmt, SwitchCase};
+use crate::ast::{Expr, FunctionParam, Method, Property, Stmt, SwitchCase, Visibility};
 use crate::token::{Token, TokenKind};
 use super::expr::ExprParser;
 use super::precedence::Precedence;
@@ -546,6 +546,206 @@ impl<'a> StmtParser<'a> {
         Ok(Stmt::Return(value))
     }
 
+    /// Parse visibility modifier
+    fn parse_visibility(&mut self) -> Visibility {
+        match &self.current().kind {
+            TokenKind::Public => {
+                self.advance();
+                Visibility::Public
+            }
+            TokenKind::Protected => {
+                self.advance();
+                Visibility::Protected
+            }
+            TokenKind::Private => {
+                self.advance();
+                Visibility::Private
+            }
+            _ => Visibility::Public, // Default visibility is public
+        }
+    }
+
+    /// Parse class property
+    fn parse_property(&mut self, visibility: Visibility) -> Result<Property, String> {
+        let name = if let TokenKind::Variable(name) = &self.current().kind {
+            let name = name.clone();
+            self.advance();
+            name
+        } else {
+            return Err(format!(
+                "Expected property name at line {}, column {}",
+                self.current().line,
+                self.current().column
+            ));
+        };
+
+        let default = if self.check(&TokenKind::Assign) {
+            self.advance();
+            Some(self.parse_expression(Precedence::None)?)
+        } else {
+            None
+        };
+
+        if self.check(&TokenKind::Semicolon) {
+            self.advance();
+        }
+
+        Ok(Property {
+            name,
+            visibility,
+            default,
+        })
+    }
+
+    /// Parse class method
+    fn parse_method(&mut self, visibility: Visibility) -> Result<Method, String> {
+        self.advance(); // consume 'function'
+
+        let name = if let TokenKind::Identifier(name) = &self.current().kind {
+            let name = name.clone();
+            self.advance();
+            name
+        } else {
+            return Err(format!(
+                "Expected method name at line {}, column {}",
+                self.current().line,
+                self.current().column
+            ));
+        };
+
+        self.consume(TokenKind::LeftParen, "Expected '(' after method name")?;
+
+        let mut params = Vec::new();
+        if !self.check(&TokenKind::RightParen) {
+            loop {
+                let by_ref = if let TokenKind::Identifier(s) = &self.current().kind {
+                    if s == "&" {
+                        self.advance();
+                        true
+                    } else {
+                        false
+                    }
+                } else {
+                    false
+                };
+
+                let param_name = if let TokenKind::Variable(name) = &self.current().kind {
+                    let name = name.clone();
+                    self.advance();
+                    name
+                } else {
+                    return Err(format!(
+                        "Expected parameter name at line {}, column {}",
+                        self.current().line,
+                        self.current().column
+                    ));
+                };
+
+                let default = if self.check(&TokenKind::Assign) {
+                    self.advance();
+                    Some(self.parse_expression(Precedence::None)?)
+                } else {
+                    None
+                };
+
+                params.push(FunctionParam {
+                    name: param_name,
+                    default,
+                    by_ref,
+                });
+
+                if !self.check(&TokenKind::Comma) {
+                    break;
+                }
+                self.advance();
+            }
+        }
+
+        self.consume(TokenKind::RightParen, "Expected ')' after parameters")?;
+        self.consume(TokenKind::LeftBrace, "Expected '{' before method body")?;
+
+        let mut body = Vec::new();
+        while !self.check(&TokenKind::RightBrace) && !self.check(&TokenKind::Eof) {
+            if let Some(stmt) = self.parse_statement()? {
+                body.push(stmt);
+            }
+        }
+
+        self.consume(TokenKind::RightBrace, "Expected '}' after method body")?;
+
+        Ok(Method {
+            name,
+            visibility,
+            params,
+            body,
+        })
+    }
+
+    /// Parse class declaration
+    pub fn parse_class(&mut self) -> Result<Stmt, String> {
+        self.advance(); // consume 'class'
+
+        let name = if let TokenKind::Identifier(name) = &self.current().kind {
+            let name = name.clone();
+            self.advance();
+            name
+        } else {
+            return Err(format!(
+                "Expected class name at line {}, column {}",
+                self.current().line,
+                self.current().column
+            ));
+        };
+
+        // Check for extends
+        let parent = if self.check(&TokenKind::Extends) {
+            self.advance();
+            if let TokenKind::Identifier(parent_name) = &self.current().kind {
+                let parent_name = parent_name.clone();
+                self.advance();
+                Some(parent_name)
+            } else {
+                return Err(format!(
+                    "Expected parent class name after 'extends' at line {}, column {}",
+                    self.current().line,
+                    self.current().column
+                ));
+            }
+        } else {
+            None
+        };
+
+        self.consume(TokenKind::LeftBrace, "Expected '{' after class name")?;
+
+        let mut properties = Vec::new();
+        let mut methods = Vec::new();
+
+        while !self.check(&TokenKind::RightBrace) && !self.check(&TokenKind::Eof) {
+            let visibility = self.parse_visibility();
+
+            if self.check(&TokenKind::Function) {
+                methods.push(self.parse_method(visibility)?);
+            } else if self.check(&TokenKind::Variable(String::new())) {
+                properties.push(self.parse_property(visibility)?);
+            } else {
+                return Err(format!(
+                    "Expected property or method in class at line {}, column {}",
+                    self.current().line,
+                    self.current().column
+                ));
+            }
+        }
+
+        self.consume(TokenKind::RightBrace, "Expected '}' after class body")?;
+
+        Ok(Stmt::Class {
+            name,
+            parent,
+            properties,
+            methods,
+        })
+    }
+
     /// Parse expression statement
     pub fn parse_expression_statement(&mut self) -> Result<Stmt, String> {
         let expr = self.parse_expression(Precedence::None)?;
@@ -584,6 +784,7 @@ impl<'a> StmtParser<'a> {
             TokenKind::Break => Ok(Some(self.parse_break()?)),
             TokenKind::Continue => Ok(Some(self.parse_continue()?)),
             TokenKind::Function => Ok(Some(self.parse_function()?)),
+            TokenKind::Class => Ok(Some(self.parse_class()?)),
             TokenKind::Return => Ok(Some(self.parse_return()?)),
             TokenKind::Html(html) => {
                 self.advance();
@@ -602,7 +803,8 @@ impl<'a> StmtParser<'a> {
             | TokenKind::Not
             | TokenKind::Increment
             | TokenKind::Decrement
-            | TokenKind::Identifier(_) => Ok(Some(self.parse_expression_statement()?)),
+            | TokenKind::Identifier(_)
+            | TokenKind::New => Ok(Some(self.parse_expression_statement()?)),
             _ => Err(format!(
                 "Unexpected token {:?} at line {}, column {}",
                 token.kind, token.line, token.column

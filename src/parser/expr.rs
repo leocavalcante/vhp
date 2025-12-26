@@ -91,7 +91,7 @@ impl<'a> ExprParser<'a> {
         Ok(Expr::Array(elements))
     }
 
-    /// Parse postfix operations (array access, increment/decrement)
+    /// Parse postfix operations (array access, property access, method calls, increment/decrement)
     fn parse_postfix(&mut self, mut expr: Expr) -> Result<Expr, String> {
         loop {
             match &self.current().kind {
@@ -113,6 +113,47 @@ impl<'a> ExprParser<'a> {
                         expr = Expr::ArrayAccess {
                             array: Box::new(expr),
                             index: Box::new(index),
+                        };
+                    }
+                }
+                TokenKind::Arrow => {
+                    self.advance(); // consume '->'
+                    let member = if let TokenKind::Identifier(name) = &self.current().kind {
+                        let name = name.clone();
+                        self.advance();
+                        name
+                    } else {
+                        return Err(format!(
+                            "Expected property or method name after '->' at line {}, column {}",
+                            self.current().line,
+                            self.current().column
+                        ));
+                    };
+
+                    // Check if it's a method call or property access
+                    if self.check(&TokenKind::LeftParen) {
+                        self.advance(); // consume '('
+                        let mut args = Vec::new();
+
+                        if !self.check(&TokenKind::RightParen) {
+                            args.push(self.parse_expression(Precedence::None)?);
+
+                            while self.check(&TokenKind::Comma) {
+                                self.advance();
+                                args.push(self.parse_expression(Precedence::None)?);
+                            }
+                        }
+
+                        self.consume(TokenKind::RightParen, "Expected ')' after method arguments")?;
+                        expr = Expr::MethodCall {
+                            object: Box::new(expr),
+                            method: member,
+                            args,
+                        };
+                    } else {
+                        expr = Expr::PropertyAccess {
+                            object: Box::new(expr),
+                            property: member,
                         };
                     }
                 }
@@ -183,7 +224,12 @@ impl<'a> ExprParser<'a> {
             TokenKind::Variable(name) => {
                 let name = name.clone();
                 self.advance();
-                let expr = Expr::Variable(name);
+                // $this is a special reference
+                let expr = if name == "this" {
+                    Expr::This
+                } else {
+                    Expr::Variable(name)
+                };
                 self.parse_postfix(expr)
             }
             TokenKind::LeftParen => {
@@ -248,8 +294,42 @@ impl<'a> ExprParser<'a> {
                 let name = name.clone();
                 self.advance();
 
-                // Check for function call
-                if self.check(&TokenKind::LeftParen) {
+                // Check for static method call (ClassName::method())
+                if self.check(&TokenKind::DoubleColon) {
+                    self.advance(); // consume '::'
+                    let method = if let TokenKind::Identifier(method_name) = &self.current().kind {
+                        let method_name = method_name.clone();
+                        self.advance();
+                        method_name
+                    } else {
+                        return Err(format!(
+                            "Expected method name after '::' at line {}, column {}",
+                            self.current().line,
+                            self.current().column
+                        ));
+                    };
+
+                    self.consume(TokenKind::LeftParen, "Expected '(' after static method name")?;
+                    let mut args = Vec::new();
+
+                    if !self.check(&TokenKind::RightParen) {
+                        args.push(self.parse_expression(Precedence::None)?);
+
+                        while self.check(&TokenKind::Comma) {
+                            self.advance();
+                            args.push(self.parse_expression(Precedence::None)?);
+                        }
+                    }
+
+                    self.consume(TokenKind::RightParen, "Expected ')' after static method arguments")?;
+                    let call = Expr::StaticMethodCall {
+                        class_name: name,
+                        method,
+                        args,
+                    };
+                    self.parse_postfix(call)
+                } else if self.check(&TokenKind::LeftParen) {
+                    // Regular function call
                     self.advance(); // consume '('
                     let mut args = Vec::new();
 
@@ -271,6 +351,39 @@ impl<'a> ExprParser<'a> {
                         name, token.line, token.column
                     ))
                 }
+            }
+            TokenKind::New => {
+                self.advance(); // consume 'new'
+                let class_name = if let TokenKind::Identifier(name) = &self.current().kind {
+                    let name = name.clone();
+                    self.advance();
+                    name
+                } else {
+                    return Err(format!(
+                        "Expected class name after 'new' at line {}, column {}",
+                        self.current().line,
+                        self.current().column
+                    ));
+                };
+
+                let mut args = Vec::new();
+                if self.check(&TokenKind::LeftParen) {
+                    self.advance(); // consume '('
+
+                    if !self.check(&TokenKind::RightParen) {
+                        args.push(self.parse_expression(Precedence::None)?);
+
+                        while self.check(&TokenKind::Comma) {
+                            self.advance();
+                            args.push(self.parse_expression(Precedence::None)?);
+                        }
+                    }
+
+                    self.consume(TokenKind::RightParen, "Expected ')' after constructor arguments")?;
+                }
+
+                let new_expr = Expr::New { class_name, args };
+                self.parse_postfix(new_expr)
             }
             _ => Err(format!(
                 "Expected expression but found {:?} at line {}, column {}",
@@ -443,9 +556,26 @@ impl<'a> ExprParser<'a> {
                         };
                         continue;
                     }
+                    Expr::PropertyAccess { object, property } => {
+                        // Only support simple assignment for properties
+                        if !matches!(assign_op, AssignOp::Assign) {
+                            return Err(format!(
+                                "Compound assignment not supported for properties at line {}, column {}",
+                                op_token.line, op_token.column
+                            ));
+                        }
+                        self.advance();
+                        let right = self.parse_expression(Precedence::None)?;
+                        left = Expr::PropertyAssign {
+                            object: object.clone(),
+                            property: property.clone(),
+                            value: Box::new(right),
+                        };
+                        continue;
+                    }
                     _ => {
                         return Err(format!(
-                            "Left side of assignment must be a variable or array element at line {}, column {}",
+                            "Left side of assignment must be a variable, array element, or property at line {}, column {}",
                             op_token.line, op_token.column
                         ));
                     }
