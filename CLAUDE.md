@@ -9,7 +9,11 @@ VHP is a PHP superset built entirely in Rust with minimal external dependencies.
 ## Quick Reference
 
 ```bash
-# Build
+# Build (using Make)
+make build              # Debug build
+make release            # Release build
+
+# Build (using Cargo directly)
 cargo build --release
 
 # Run PHP file
@@ -19,8 +23,13 @@ cargo build --release
 ./target/release/vhp -r 'echo "Hello";'
 
 # Run tests
+make test               # Build and run tests (compact output)
+make test-verbose       # Build and run tests (verbose output)
 ./target/release/vhp test        # Compact output
 ./target/release/vhp test -v     # Verbose output
+
+# Lint
+make lint               # Run clippy with warnings as errors
 ```
 
 ## Architecture
@@ -65,6 +74,8 @@ tests/                   # Test suite organized by feature (120 tests)
 ├── strings/             # String literal and escape sequence tests (6)
 ├── tags/                # PHP tag tests (3)
 └── variables/           # Variable assignment and scope tests (5)
+
+Makefile                 # Build automation (build, lint, test targets)
 ```
 
 ## Implementation Pipeline

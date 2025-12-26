@@ -182,7 +182,7 @@ echo sprintf("Name: %s, Age: %d", "John", 25);
 ```bash
 git clone https://github.com/leocavalcante/vhp.git
 cd vhp
-cargo build --release
+make release
 ```
 
 The binary will be at `./target/release/vhp`
@@ -210,6 +210,17 @@ vhp test mydir     # Custom test directory
 
 # Help
 vhp --help
+```
+
+### Using Make
+
+```bash
+make build          # Debug build
+make release        # Release build
+make lint           # Run clippy with warnings as errors
+make test           # Build and run test suite
+make test-verbose   # Run tests with verbose output
+make clean          # Clean build artifacts
 ```
 
 ## Examples
@@ -318,6 +329,8 @@ tests/              # 120 tests organized by feature
 ├── strings/        # String literal tests
 ├── tags/           # PHP tag tests
 └── variables/      # Variable tests
+
+Makefile            # Build automation (build, lint, test targets)
 ```
 
 ## Testing
