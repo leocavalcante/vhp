@@ -162,6 +162,57 @@ for ($i = 0; $i < 10; $i++) {
 }
 ```
 
+## Arrays
+
+### Array Literals
+
+```php
+<?php
+$numbers = [1, 2, 3, 4, 5];
+$mixed = ["hello", 42, true, null];
+$empty = [];
+```
+
+### Associative Arrays
+
+```php
+<?php
+$person = [
+    "name" => "John",
+    "age" => 30,
+    "city" => "NYC"
+];
+echo $person["name"];  // John
+```
+
+### Array Access and Modification
+
+```php
+<?php
+$arr = [10, 20, 30];
+echo $arr[0];          // 10
+$arr[1] = 25;          // Modify
+$arr[] = 40;           // Append
+```
+
+### Foreach Loop
+
+```php
+<?php
+$colors = ["red", "green", "blue"];
+
+// Value only
+foreach ($colors as $color) {
+    echo $color . "\n";
+}
+
+// Key and value
+$prices = ["apple" => 1.50, "banana" => 0.75];
+foreach ($prices as $fruit => $price) {
+    echo "$fruit: \$$price\n";
+}
+```
+
 ## PHP-Compatible Type Coercion
 
 ```php
@@ -210,7 +261,7 @@ function factorial($n) {
 echo factorial(5); // 120
 ```
 
-### Built-in Functions (50+)
+### Built-in Functions (65+)
 
 ```php
 <?php
@@ -221,6 +272,7 @@ echo str_repeat("ab", 3);          // ababab
 echo abs(-42);                     // 42
 echo round(3.7);                   // 4
 echo max(1, 5, 3);                 // 5
+echo count([1, 2, 3]);             // 3
 echo sprintf("Name: %s, Age: %d", "John", 25);
 ```
 
@@ -232,9 +284,13 @@ echo sprintf("Name: %s, Age: %d", "John", 25);
 
 `abs`, `ceil`, `floor`, `round`, `max`, `min`, `pow`, `sqrt`, `rand`/`mt_rand`
 
-#### Type Functions (13)
+#### Array Functions (13)
 
-`intval`, `floatval`/`doubleval`, `strval`, `boolval`, `gettype`, `is_null`, `is_bool`, `is_int`/`is_integer`/`is_long`, `is_float`/`is_double`/`is_real`, `is_string`, `is_numeric`, `isset`, `empty`
+`count`/`sizeof`, `array_push`, `array_pop`, `array_shift`, `array_unshift`, `array_keys`, `array_values`, `in_array`, `array_search`, `array_reverse`, `array_merge`, `array_key_exists`, `range`
+
+#### Type Functions (14)
+
+`intval`, `floatval`/`doubleval`, `strval`, `boolval`, `gettype`, `is_null`, `is_bool`, `is_int`/`is_integer`/`is_long`, `is_float`/`is_double`/`is_real`, `is_string`, `is_array`, `is_numeric`, `isset`, `empty`
 
 #### Output Functions (4)
 

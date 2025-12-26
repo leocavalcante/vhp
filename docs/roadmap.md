@@ -15,9 +15,9 @@ VHP is being developed incrementally, with each phase adding new capabilities wh
 | **1. Variables & Operators** | ✅ Complete | Variables, assignment, arithmetic, comparison, logical, ternary, null coalescing |
 | **2. Control Flow** | ✅ Complete | `if`/`else`, `while`, `for`, `do-while`, `switch`, `break`/`continue` |
 | **3. Functions** | ✅ Complete | Declarations, calls, returns, parameters, 50+ built-ins |
-| **4. Arrays** | 🚧 Next | Literals, access, modification, `foreach` iteration |
-| **5. Classes & Objects** | 📋 Planned | Classes, properties, methods, inheritance, interfaces |
-| **6. VHP Extensions** | 💡 Future | Type inference, pattern matching, async/await |
+| **4. Arrays** | ✅ Complete | Literals, access, modification, `foreach`, 13 array functions |
+| **5. Classes & Objects** | 🚧 Next | Classes, properties, methods, inheritance, interfaces |
+| **6. VHP Extensions** | 📋 Planned | Type inference, pattern matching, async/await |
 
 ## Phase Details
 
@@ -52,15 +52,16 @@ VHP is being developed incrementally, with each phase adding new capabilities wh
 - Default parameter values
 - 50+ built-in functions
 
-### Phase 4: Arrays 🚧
+### Phase 4: Arrays ✅
 
-- Array literals (`[]`, `array()`)
+- Array literals (`[1, 2, 3]`)
+- Associative arrays (`["key" => "value"]`)
 - Array access (`$arr[0]`, `$arr['key']`)
-- Array modification
-- `foreach` with arrays
-- Array functions (`array_push`, `array_pop`, `count`, etc.)
+- Array modification and append (`$arr[] = value`)
+- `foreach` with arrays (value only and key-value)
+- 13 array functions (`count`, `array_push`, `array_pop`, `in_array`, `array_keys`, `array_values`, `array_merge`, `array_reverse`, `array_search`, `array_key_exists`, `range`, etc.)
 
-### Phase 5: Classes & Objects 📋
+### Phase 5: Classes & Objects 🚧
 
 - Class declarations
 - Properties and methods

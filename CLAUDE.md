@@ -57,10 +57,12 @@ src/
         ├── mod.rs       # Module exports
         ├── string.rs    # String functions (24)
         ├── math.rs      # Math functions (9)
-        ├── types.rs     # Type checking/conversion functions (13)
+        ├── array.rs     # Array functions (13)
+        ├── types.rs     # Type checking/conversion functions (14)
         └── output.rs    # Output functions (4)
 
-tests/                   # Test suite organized by feature (120 tests)
+tests/                   # Test suite organized by feature (166 tests)
+├── arrays/              # Array tests (18)
 ├── builtins/            # Built-in function tests (21)
 ├── comments/            # Comment syntax tests (4)
 ├── control_flow/        # Control flow tests (25)
@@ -125,10 +127,21 @@ Source Code → Lexer → Tokens → Parser → AST → Interpreter → Output
 - [x] `while` loops
 - [x] `do`...`while` loops
 - [x] `for` loops with optional init/condition/update
+- [x] `foreach` loops with arrays
 - [x] `switch`/`case`/`default` with fall-through
 - [x] `break` statement
 - [x] `continue` statement
 - [x] Nested loop support with proper break/continue scoping
+
+### Arrays
+- [x] Array literals (`[1, 2, 3]`)
+- [x] Associative arrays (`["key" => "value"]`)
+- [x] Array access (`$arr[0]`, `$arr["key"]`)
+- [x] Array modification (`$arr[0] = value`)
+- [x] Array append (`$arr[] = value`)
+- [x] Nested arrays
+- [x] `foreach` with value only (`foreach ($arr as $val)`)
+- [x] `foreach` with key-value (`foreach ($arr as $key => $val)`)
 
 ### Functions
 - [x] Function declarations with `function` keyword
@@ -140,10 +153,11 @@ Source Code → Lexer → Tokens → Parser → AST → Interpreter → Output
 - [x] Case-insensitive function names (PHP-compatible)
 - [x] Local scope (function variables don't leak to global)
 
-### Built-in Functions (50+)
+### Built-in Functions (65+)
 - [x] **String** (24): `strlen`, `substr`, `strtoupper`, `strtolower`, `trim`, `ltrim`, `rtrim`, `str_repeat`, `str_replace`, `strpos`, `strrev`, `ucfirst`, `lcfirst`, `ucwords`, `str_starts_with`, `str_ends_with`, `str_contains`, `str_pad`, `explode`, `implode`/`join`, `sprintf`, `chr`, `ord`
 - [x] **Math** (9): `abs`, `ceil`, `floor`, `round`, `max`, `min`, `pow`, `sqrt`, `rand`/`mt_rand`
-- [x] **Type** (13): `intval`, `floatval`/`doubleval`, `strval`, `boolval`, `gettype`, `is_null`, `is_bool`, `is_int`/`is_integer`/`is_long`, `is_float`/`is_double`/`is_real`, `is_string`, `is_numeric`, `isset`, `empty`
+- [x] **Array** (13): `count`/`sizeof`, `array_push`, `array_pop`, `array_shift`, `array_unshift`, `array_keys`, `array_values`, `in_array`, `array_search`, `array_reverse`, `array_merge`, `array_key_exists`, `range`
+- [x] **Type** (14): `intval`, `floatval`/`doubleval`, `strval`, `boolval`, `gettype`, `is_null`, `is_bool`, `is_int`/`is_integer`/`is_long`, `is_float`/`is_double`/`is_real`, `is_string`, `is_array`, `is_numeric`, `isset`, `empty`
 - [x] **Output** (4): `print`, `var_dump`, `print_r`, `printf`
 
 ### Type Coercion (PHP-compatible)
@@ -314,13 +328,15 @@ partial error message to match
 - [x] Default parameter values
 - [x] Built-in functions (`strlen`, `substr`, `strtoupper`, `abs`, `ceil`, `floor`, `round`, `max`, `min`, `pow`, `sqrt`, `rand`/`mt_rand`, `intval`, `floatval`/`doubleval`, `strval`, `gettype`, `is_*`, `isset`, `empty`, `var_dump`, `print`, `print_r`, `printf`, `sprintf`, `chr`, `ord`, `explode`, `implode`/`join`, etc.)
 
-### Phase 4: Arrays (Next)
-- [ ] Array literals (`[]`, `array()`)
-- [ ] Array access (`$arr[0]`, `$arr['key']`)
-- [ ] Array modification
-- [ ] `foreach` with arrays
+### Phase 4: Arrays ✅ Complete
+- [x] Array literals (`[]`)
+- [x] Associative arrays (`["key" => "value"]`)
+- [x] Array access (`$arr[0]`, `$arr['key']`)
+- [x] Array modification and append
+- [x] `foreach` with arrays (value only and key-value)
+- [x] Built-in array functions (`count`, `array_push`, `array_pop`, `in_array`, `array_keys`, `array_values`, `array_merge`, `array_reverse`, `array_search`, `array_key_exists`, `range`, etc.)
 
-### Phase 5: Classes & Objects
+### Phase 5: Classes & Objects (Next)
 - [ ] Class declarations
 - [ ] Properties and methods
 - [ ] Constructors

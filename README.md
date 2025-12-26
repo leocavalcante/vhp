@@ -59,9 +59,10 @@ cargo build --release
 
 - ✅ PHP tags (`<?php`, `?>`, `<?=`)
 - ✅ Variables, operators, and expressions
-- ✅ Control flow (`if`/`else`, `while`, `for`, `switch`)
+- ✅ Control flow (`if`/`else`, `while`, `for`, `foreach`, `switch`)
+- ✅ Arrays (indexed, associative, nested)
 - ✅ User-defined and recursive functions
-- ✅ 50+ built-in functions (string, math, type, output)
+- ✅ 65+ built-in functions (string, math, array, type, output)
 - ✅ PHP-compatible type coercion
 - ✅ Mixed HTML/PHP support
 
