@@ -1,45 +1,22 @@
-use crate::ast::{AssignOp, BinaryOp, Expr, FunctionParam, Program, Stmt, SwitchCase, UnaryOp};
+//! Statement parsing
+
+use crate::ast::{Expr, FunctionParam, Stmt, SwitchCase};
 use crate::token::{Token, TokenKind};
+use super::expr::ExprParser;
+use super::precedence::Precedence;
 
-/// Operator precedence levels (higher = binds tighter)
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-enum Precedence {
-    None = 0,
-    Assignment = 1,    // = += -= etc.
-    Ternary = 2,       // ?:
-    NullCoalesce = 3,  // ??
-    Or = 4,            // || or
-    And = 5,           // && and
-    Xor = 6,           // xor
-    Equality = 7,      // == === != !==
-    Comparison = 8,    // < > <= >= <=>
-    Concat = 9,        // .
-    AddSub = 10,       // + -
-    MulDiv = 11,       // * / %
-    Pow = 12,          // ** (right associative)
-    Unary = 13,        // ! - ++ --
+pub struct StmtParser<'a> {
+    tokens: &'a [Token],
+    pos: &'a mut usize,
 }
 
-pub struct Parser {
-    tokens: Vec<Token>,
-    pos: usize,
-}
-
-impl Parser {
-    pub fn new(tokens: Vec<Token>) -> Self {
-        Self { tokens, pos: 0 }
+impl<'a> StmtParser<'a> {
+    pub fn new(tokens: &'a [Token], pos: &'a mut usize) -> Self {
+        Self { tokens, pos }
     }
 
     fn current(&self) -> &Token {
-        self.tokens.get(self.pos).unwrap_or(&Token {
-            kind: TokenKind::Eof,
-            line: 0,
-            column: 0,
-        })
-    }
-
-    fn peek(&self, offset: usize) -> &Token {
-        self.tokens.get(self.pos + offset).unwrap_or(&Token {
+        self.tokens.get(*self.pos).unwrap_or(&Token {
             kind: TokenKind::Eof,
             line: 0,
             column: 0,
@@ -48,8 +25,8 @@ impl Parser {
 
     fn advance(&mut self) -> Token {
         let token = self.current().clone();
-        if self.pos < self.tokens.len() {
-            self.pos += 1;
+        if *self.pos < self.tokens.len() {
+            *self.pos += 1;
         }
         token
     }
@@ -72,385 +49,13 @@ impl Parser {
         }
     }
 
-    /// Get precedence for binary operators
-    fn get_precedence(&self, kind: &TokenKind) -> Precedence {
-        match kind {
-            TokenKind::Assign
-            | TokenKind::PlusAssign
-            | TokenKind::MinusAssign
-            | TokenKind::MulAssign
-            | TokenKind::DivAssign
-            | TokenKind::ModAssign
-            | TokenKind::ConcatAssign => Precedence::Assignment,
-
-            TokenKind::QuestionMark => Precedence::Ternary,
-            TokenKind::NullCoalesce => Precedence::NullCoalesce,
-
-            TokenKind::Or => Precedence::Or,
-            TokenKind::And => Precedence::And,
-            TokenKind::Xor => Precedence::Xor,
-
-            TokenKind::Equal
-            | TokenKind::Identical
-            | TokenKind::NotEqual
-            | TokenKind::NotIdentical => Precedence::Equality,
-
-            TokenKind::LessThan
-            | TokenKind::GreaterThan
-            | TokenKind::LessEqual
-            | TokenKind::GreaterEqual
-            | TokenKind::Spaceship => Precedence::Comparison,
-
-            TokenKind::Concat => Precedence::Concat,
-            TokenKind::Plus | TokenKind::Minus => Precedence::AddSub,
-            TokenKind::Mul | TokenKind::Div | TokenKind::Mod => Precedence::MulDiv,
-            TokenKind::Pow => Precedence::Pow,
-
-            _ => Precedence::None,
-        }
-    }
-
-    /// Check if operator is right-associative
-    fn is_right_assoc(&self, kind: &TokenKind) -> bool {
-        matches!(
-            kind,
-            TokenKind::Pow
-                | TokenKind::Assign
-                | TokenKind::PlusAssign
-                | TokenKind::MinusAssign
-                | TokenKind::MulAssign
-                | TokenKind::DivAssign
-                | TokenKind::ModAssign
-                | TokenKind::ConcatAssign
-                | TokenKind::NullCoalesce
-        )
-    }
-
-    /// Parse primary expression (literals, variables, grouped expressions)
-    fn parse_primary(&mut self) -> Result<Expr, String> {
-        let token = self.current().clone();
-
-        match &token.kind {
-            TokenKind::Integer(n) => {
-                let n = *n;
-                self.advance();
-                Ok(Expr::Integer(n))
-            }
-            TokenKind::Float(n) => {
-                let n = *n;
-                self.advance();
-                Ok(Expr::Float(n))
-            }
-            TokenKind::String(s) => {
-                let s = s.clone();
-                self.advance();
-                Ok(Expr::String(s))
-            }
-            TokenKind::True => {
-                self.advance();
-                Ok(Expr::Bool(true))
-            }
-            TokenKind::False => {
-                self.advance();
-                Ok(Expr::Bool(false))
-            }
-            TokenKind::Null => {
-                self.advance();
-                Ok(Expr::Null)
-            }
-            TokenKind::Variable(name) => {
-                let name = name.clone();
-                self.advance();
-
-                // Check for postfix increment/decrement
-                match &self.current().kind {
-                    TokenKind::Increment => {
-                        self.advance();
-                        Ok(Expr::Unary {
-                            op: UnaryOp::PostInc,
-                            expr: Box::new(Expr::Variable(name)),
-                        })
-                    }
-                    TokenKind::Decrement => {
-                        self.advance();
-                        Ok(Expr::Unary {
-                            op: UnaryOp::PostDec,
-                            expr: Box::new(Expr::Variable(name)),
-                        })
-                    }
-                    _ => Ok(Expr::Variable(name)),
-                }
-            }
-            TokenKind::LeftParen => {
-                self.advance();
-                let expr = self.parse_expression(Precedence::None)?;
-                self.consume(TokenKind::RightParen, "Expected ')' after expression")?;
-                Ok(Expr::Grouped(Box::new(expr)))
-            }
-            // Unary operators
-            TokenKind::Minus => {
-                self.advance();
-                let expr = self.parse_unary()?;
-                Ok(Expr::Unary {
-                    op: UnaryOp::Neg,
-                    expr: Box::new(expr),
-                })
-            }
-            TokenKind::Not => {
-                self.advance();
-                let expr = self.parse_unary()?;
-                Ok(Expr::Unary {
-                    op: UnaryOp::Not,
-                    expr: Box::new(expr),
-                })
-            }
-            TokenKind::Increment => {
-                self.advance();
-                if let TokenKind::Variable(name) = &self.current().kind {
-                    let name = name.clone();
-                    self.advance();
-                    Ok(Expr::Unary {
-                        op: UnaryOp::PreInc,
-                        expr: Box::new(Expr::Variable(name)),
-                    })
-                } else {
-                    Err(format!(
-                        "Expected variable after '++' at line {}, column {}",
-                        self.current().line,
-                        self.current().column
-                    ))
-                }
-            }
-            TokenKind::Decrement => {
-                self.advance();
-                if let TokenKind::Variable(name) = &self.current().kind {
-                    let name = name.clone();
-                    self.advance();
-                    Ok(Expr::Unary {
-                        op: UnaryOp::PreDec,
-                        expr: Box::new(Expr::Variable(name)),
-                    })
-                } else {
-                    Err(format!(
-                        "Expected variable after '--' at line {}, column {}",
-                        self.current().line,
-                        self.current().column
-                    ))
-                }
-            }
-            TokenKind::Identifier(name) => {
-                let name = name.clone();
-                self.advance();
-
-                // Check for function call
-                if self.check(&TokenKind::LeftParen) {
-                    self.advance(); // consume '('
-                    let mut args = Vec::new();
-
-                    if !self.check(&TokenKind::RightParen) {
-                        args.push(self.parse_expression(Precedence::None)?);
-
-                        while self.check(&TokenKind::Comma) {
-                            self.advance();
-                            args.push(self.parse_expression(Precedence::None)?);
-                        }
-                    }
-
-                    self.consume(TokenKind::RightParen, "Expected ')' after function arguments")?;
-                    Ok(Expr::FunctionCall { name, args })
-                } else {
-                    // Just an identifier - could be a constant, treat as undefined for now
-                    Err(format!(
-                        "Unexpected identifier '{}' at line {}, column {}",
-                        name, token.line, token.column
-                    ))
-                }
-            }
-            _ => Err(format!(
-                "Expected expression but found {:?} at line {}, column {}",
-                token.kind, token.line, token.column
-            )),
-        }
-    }
-
-    /// Parse unary expression
-    fn parse_unary(&mut self) -> Result<Expr, String> {
-        match &self.current().kind {
-            TokenKind::Minus => {
-                self.advance();
-                let expr = self.parse_unary()?;
-                Ok(Expr::Unary {
-                    op: UnaryOp::Neg,
-                    expr: Box::new(expr),
-                })
-            }
-            TokenKind::Not => {
-                self.advance();
-                let expr = self.parse_unary()?;
-                Ok(Expr::Unary {
-                    op: UnaryOp::Not,
-                    expr: Box::new(expr),
-                })
-            }
-            TokenKind::Increment => {
-                self.advance();
-                if let TokenKind::Variable(name) = &self.current().kind {
-                    let name = name.clone();
-                    self.advance();
-                    Ok(Expr::Unary {
-                        op: UnaryOp::PreInc,
-                        expr: Box::new(Expr::Variable(name)),
-                    })
-                } else {
-                    Err(format!(
-                        "Expected variable after '++' at line {}, column {}",
-                        self.current().line,
-                        self.current().column
-                    ))
-                }
-            }
-            TokenKind::Decrement => {
-                self.advance();
-                if let TokenKind::Variable(name) = &self.current().kind {
-                    let name = name.clone();
-                    self.advance();
-                    Ok(Expr::Unary {
-                        op: UnaryOp::PreDec,
-                        expr: Box::new(Expr::Variable(name)),
-                    })
-                } else {
-                    Err(format!(
-                        "Expected variable after '--' at line {}, column {}",
-                        self.current().line,
-                        self.current().column
-                    ))
-                }
-            }
-            _ => self.parse_primary(),
-        }
-    }
-
-    /// Convert token to binary operator
-    fn token_to_binop(&self, kind: &TokenKind) -> Option<BinaryOp> {
-        match kind {
-            TokenKind::Plus => Some(BinaryOp::Add),
-            TokenKind::Minus => Some(BinaryOp::Sub),
-            TokenKind::Mul => Some(BinaryOp::Mul),
-            TokenKind::Div => Some(BinaryOp::Div),
-            TokenKind::Mod => Some(BinaryOp::Mod),
-            TokenKind::Pow => Some(BinaryOp::Pow),
-            TokenKind::Concat => Some(BinaryOp::Concat),
-            TokenKind::Equal => Some(BinaryOp::Equal),
-            TokenKind::Identical => Some(BinaryOp::Identical),
-            TokenKind::NotEqual => Some(BinaryOp::NotEqual),
-            TokenKind::NotIdentical => Some(BinaryOp::NotIdentical),
-            TokenKind::LessThan => Some(BinaryOp::LessThan),
-            TokenKind::GreaterThan => Some(BinaryOp::GreaterThan),
-            TokenKind::LessEqual => Some(BinaryOp::LessEqual),
-            TokenKind::GreaterEqual => Some(BinaryOp::GreaterEqual),
-            TokenKind::Spaceship => Some(BinaryOp::Spaceship),
-            TokenKind::And => Some(BinaryOp::And),
-            TokenKind::Or => Some(BinaryOp::Or),
-            TokenKind::Xor => Some(BinaryOp::Xor),
-            TokenKind::NullCoalesce => Some(BinaryOp::NullCoalesce),
-            _ => None,
-        }
-    }
-
-    /// Convert token to assignment operator
-    fn token_to_assignop(&self, kind: &TokenKind) -> Option<AssignOp> {
-        match kind {
-            TokenKind::Assign => Some(AssignOp::Assign),
-            TokenKind::PlusAssign => Some(AssignOp::AddAssign),
-            TokenKind::MinusAssign => Some(AssignOp::SubAssign),
-            TokenKind::MulAssign => Some(AssignOp::MulAssign),
-            TokenKind::DivAssign => Some(AssignOp::DivAssign),
-            TokenKind::ModAssign => Some(AssignOp::ModAssign),
-            TokenKind::ConcatAssign => Some(AssignOp::ConcatAssign),
-            _ => None,
-        }
-    }
-
-    /// Pratt parser for expressions with precedence
     fn parse_expression(&mut self, min_prec: Precedence) -> Result<Expr, String> {
-        let mut left = self.parse_unary()?;
-
-        loop {
-            let op_token = self.current().clone();
-            let prec = self.get_precedence(&op_token.kind);
-
-            // Stop if current operator has lower or equal precedence than minimum
-            if prec == Precedence::None || prec <= min_prec {
-                break;
-            }
-
-            // Handle ternary operator
-            if matches!(op_token.kind, TokenKind::QuestionMark) {
-                self.advance();
-                let then_expr = self.parse_expression(Precedence::None)?;
-                self.consume(TokenKind::Colon, "Expected ':' in ternary expression")?;
-                // Ternary is right-associative, so use same precedence minus one
-                let else_expr = self.parse_expression(Precedence::Assignment)?;
-                left = Expr::Ternary {
-                    condition: Box::new(left),
-                    then_expr: Box::new(then_expr),
-                    else_expr: Box::new(else_expr),
-                };
-                continue;
-            }
-
-            // Handle assignment operators
-            if let Some(assign_op) = self.token_to_assignop(&op_token.kind) {
-                // Left side must be a variable
-                if let Expr::Variable(name) = left {
-                    self.advance();
-                    // Assignment is right-associative, so use same precedence minus one
-                    let right = self.parse_expression(Precedence::None)?;
-                    left = Expr::Assign {
-                        var: name,
-                        op: assign_op,
-                        value: Box::new(right),
-                    };
-                    continue;
-                } else {
-                    return Err(format!(
-                        "Left side of assignment must be a variable at line {}, column {}",
-                        op_token.line, op_token.column
-                    ));
-                }
-            }
-
-            // Handle binary operators
-            if let Some(bin_op) = self.token_to_binop(&op_token.kind) {
-                self.advance();
-                // For right-associative operators, use (prec - 1) to allow same-precedence operators on the right
-                // For left-associative operators, use prec to prevent same-precedence operators on the right
-                let right = self.parse_expression(if self.is_right_assoc(&op_token.kind) {
-                    // Decrement precedence by one for right-associative
-                    match prec {
-                        Precedence::Pow => Precedence::MulDiv,
-                        Precedence::NullCoalesce => Precedence::Or,
-                        _ => prec,
-                    }
-                } else {
-                    prec
-                })?;
-                left = Expr::Binary {
-                    left: Box::new(left),
-                    op: bin_op,
-                    right: Box::new(right),
-                };
-                continue;
-            }
-
-            break;
-        }
-
-        Ok(left)
+        let mut expr_parser = ExprParser::new(self.tokens, self.pos);
+        expr_parser.parse_expression(min_prec)
     }
 
     /// Parse echo statement
-    fn parse_echo(&mut self) -> Result<Stmt, String> {
+    pub fn parse_echo(&mut self) -> Result<Stmt, String> {
         self.advance(); // consume 'echo'
         let mut expressions = Vec::new();
 
@@ -476,7 +81,7 @@ impl Parser {
     }
 
     /// Parse a block of statements enclosed in braces or a single statement
-    fn parse_block(&mut self) -> Result<Vec<Stmt>, String> {
+    pub fn parse_block(&mut self) -> Result<Vec<Stmt>, String> {
         if self.check(&TokenKind::LeftBrace) {
             self.advance(); // consume '{'
             let mut statements = Vec::new();
@@ -495,7 +100,6 @@ impl Parser {
             let mut statements = Vec::new();
 
             while !self.check(&TokenKind::Eof) {
-                // Check for endif, endwhile, endfor, endforeach, endswitch, else, elseif, case, default
                 match &self.current().kind {
                     TokenKind::Identifier(s)
                         if s.to_lowercase() == "endif"
@@ -524,13 +128,12 @@ impl Parser {
     }
 
     /// Parse if statement
-    fn parse_if(&mut self) -> Result<Stmt, String> {
+    pub fn parse_if(&mut self) -> Result<Stmt, String> {
         self.advance(); // consume 'if'
         self.consume(TokenKind::LeftParen, "Expected '(' after 'if'")?;
         let condition = self.parse_expression(Precedence::None)?;
         self.consume(TokenKind::RightParen, "Expected ')' after if condition")?;
 
-        // Check if using alternative syntax
         let using_alt_syntax = self.check(&TokenKind::Colon);
         let then_branch = self.parse_block()?;
 
@@ -539,7 +142,7 @@ impl Parser {
 
         // Parse elseif clauses
         while self.check(&TokenKind::Elseif) {
-            self.advance(); // consume 'elseif'
+            self.advance();
             self.consume(TokenKind::LeftParen, "Expected '(' after 'elseif'")?;
             let elseif_condition = self.parse_expression(Precedence::None)?;
             self.consume(TokenKind::RightParen, "Expected ')' after elseif condition")?;
@@ -549,11 +152,10 @@ impl Parser {
 
         // Parse else clause
         if self.check(&TokenKind::Else) {
-            self.advance(); // consume 'else'
+            self.advance();
 
             // Check for else if (two separate tokens)
             if self.check(&TokenKind::If) {
-                // Parse as nested if and wrap in else branch
                 let nested_if = self.parse_if()?;
                 else_branch = Some(vec![nested_if]);
             } else {
@@ -565,7 +167,7 @@ impl Parser {
         if using_alt_syntax {
             if let TokenKind::Identifier(s) = &self.current().kind {
                 if s.to_lowercase() == "endif" {
-                    self.advance(); // consume 'endif'
+                    self.advance();
                     if self.check(&TokenKind::Semicolon) {
                         self.advance();
                     }
@@ -582,7 +184,7 @@ impl Parser {
     }
 
     /// Parse while statement
-    fn parse_while(&mut self) -> Result<Stmt, String> {
+    pub fn parse_while(&mut self) -> Result<Stmt, String> {
         self.advance(); // consume 'while'
         self.consume(TokenKind::LeftParen, "Expected '(' after 'while'")?;
         let condition = self.parse_expression(Precedence::None)?;
@@ -591,11 +193,10 @@ impl Parser {
         let using_alt_syntax = self.check(&TokenKind::Colon);
         let body = self.parse_block()?;
 
-        // Handle endwhile for alternative syntax
         if using_alt_syntax {
             if let TokenKind::Identifier(s) = &self.current().kind {
                 if s.to_lowercase() == "endwhile" {
-                    self.advance(); // consume 'endwhile'
+                    self.advance();
                     if self.check(&TokenKind::Semicolon) {
                         self.advance();
                     }
@@ -607,7 +208,7 @@ impl Parser {
     }
 
     /// Parse do-while statement
-    fn parse_do_while(&mut self) -> Result<Stmt, String> {
+    pub fn parse_do_while(&mut self) -> Result<Stmt, String> {
         self.advance(); // consume 'do'
         let body = self.parse_block()?;
         self.consume(TokenKind::While, "Expected 'while' after do block")?;
@@ -623,11 +224,10 @@ impl Parser {
     }
 
     /// Parse for statement
-    fn parse_for(&mut self) -> Result<Stmt, String> {
+    pub fn parse_for(&mut self) -> Result<Stmt, String> {
         self.advance(); // consume 'for'
         self.consume(TokenKind::LeftParen, "Expected '(' after 'for'")?;
 
-        // Parse init expression (optional)
         let init = if !self.check(&TokenKind::Semicolon) {
             Some(self.parse_expression(Precedence::None)?)
         } else {
@@ -635,7 +235,6 @@ impl Parser {
         };
         self.consume(TokenKind::Semicolon, "Expected ';' after for init")?;
 
-        // Parse condition (optional)
         let condition = if !self.check(&TokenKind::Semicolon) {
             Some(self.parse_expression(Precedence::None)?)
         } else {
@@ -643,7 +242,6 @@ impl Parser {
         };
         self.consume(TokenKind::Semicolon, "Expected ';' after for condition")?;
 
-        // Parse update expression (optional)
         let update = if !self.check(&TokenKind::RightParen) {
             Some(self.parse_expression(Precedence::None)?)
         } else {
@@ -654,11 +252,10 @@ impl Parser {
         let using_alt_syntax = self.check(&TokenKind::Colon);
         let body = self.parse_block()?;
 
-        // Handle endfor for alternative syntax
         if using_alt_syntax {
             if let TokenKind::Identifier(s) = &self.current().kind {
                 if s.to_lowercase() == "endfor" {
-                    self.advance(); // consume 'endfor'
+                    self.advance();
                     if self.check(&TokenKind::Semicolon) {
                         self.advance();
                     }
@@ -675,14 +272,13 @@ impl Parser {
     }
 
     /// Parse foreach statement
-    fn parse_foreach(&mut self) -> Result<Stmt, String> {
+    pub fn parse_foreach(&mut self) -> Result<Stmt, String> {
         self.advance(); // consume 'foreach'
         self.consume(TokenKind::LeftParen, "Expected '(' after 'foreach'")?;
 
         let array = self.parse_expression(Precedence::None)?;
         self.consume(TokenKind::As, "Expected 'as' in foreach")?;
 
-        // Parse key => value or just value
         let first_var = if let TokenKind::Variable(name) = &self.current().kind {
             let name = name.clone();
             self.advance();
@@ -696,10 +292,9 @@ impl Parser {
         };
 
         let (key, value) = if self.check(&TokenKind::Identifier(String::new())) {
-            // Check for => (arrow)
             if let TokenKind::Identifier(s) = &self.current().kind {
                 if s == "=>" {
-                    self.advance(); // consume '=>'
+                    self.advance();
 
                     if let TokenKind::Variable(val_name) = &self.current().kind {
                         let val_name = val_name.clone();
@@ -727,11 +322,10 @@ impl Parser {
         let using_alt_syntax = self.check(&TokenKind::Colon);
         let body = self.parse_block()?;
 
-        // Handle endforeach for alternative syntax
         if using_alt_syntax {
             if let TokenKind::Identifier(s) = &self.current().kind {
                 if s.to_lowercase() == "endforeach" {
-                    self.advance(); // consume 'endforeach'
+                    self.advance();
                     if self.check(&TokenKind::Semicolon) {
                         self.advance();
                     }
@@ -748,7 +342,7 @@ impl Parser {
     }
 
     /// Parse switch statement
-    fn parse_switch(&mut self) -> Result<Stmt, String> {
+    pub fn parse_switch(&mut self) -> Result<Stmt, String> {
         self.advance(); // consume 'switch'
         self.consume(TokenKind::LeftParen, "Expected '(' after 'switch'")?;
         let expr = self.parse_expression(Precedence::None)?;
@@ -757,7 +351,7 @@ impl Parser {
         let using_alt_syntax = self.check(&TokenKind::Colon);
 
         if using_alt_syntax {
-            self.advance(); // consume ':'
+            self.advance();
         } else {
             self.consume(TokenKind::LeftBrace, "Expected '{' or ':' after switch")?;
         }
@@ -766,7 +360,6 @@ impl Parser {
         let mut default = None;
 
         while !self.check(&TokenKind::RightBrace) && !self.check(&TokenKind::Eof) {
-            // Check for endswitch in alternative syntax
             if using_alt_syntax {
                 if let TokenKind::Identifier(s) = &self.current().kind {
                     if s.to_lowercase() == "endswitch" {
@@ -776,7 +369,7 @@ impl Parser {
             }
 
             if self.check(&TokenKind::Case) {
-                self.advance(); // consume 'case'
+                self.advance();
                 let value = self.parse_expression(Precedence::None)?;
                 self.consume(TokenKind::Colon, "Expected ':' after case value")?;
 
@@ -786,7 +379,6 @@ impl Parser {
                     && !self.check(&TokenKind::RightBrace)
                     && !self.check(&TokenKind::Eof)
                 {
-                    // Check for endswitch
                     if let TokenKind::Identifier(s) = &self.current().kind {
                         if s.to_lowercase() == "endswitch" {
                             break;
@@ -800,7 +392,7 @@ impl Parser {
 
                 cases.push(SwitchCase { value, body });
             } else if self.check(&TokenKind::Default) {
-                self.advance(); // consume 'default'
+                self.advance();
                 self.consume(TokenKind::Colon, "Expected ':' after 'default'")?;
 
                 let mut body = Vec::new();
@@ -808,7 +400,6 @@ impl Parser {
                     && !self.check(&TokenKind::RightBrace)
                     && !self.check(&TokenKind::Eof)
                 {
-                    // Check for endswitch
                     if let TokenKind::Identifier(s) = &self.current().kind {
                         if s.to_lowercase() == "endswitch" {
                             break;
@@ -829,7 +420,7 @@ impl Parser {
         if using_alt_syntax {
             if let TokenKind::Identifier(s) = &self.current().kind {
                 if s.to_lowercase() == "endswitch" {
-                    self.advance(); // consume 'endswitch'
+                    self.advance();
                     if self.check(&TokenKind::Semicolon) {
                         self.advance();
                     }
@@ -847,8 +438,8 @@ impl Parser {
     }
 
     /// Parse break statement
-    fn parse_break(&mut self) -> Result<Stmt, String> {
-        self.advance(); // consume 'break'
+    pub fn parse_break(&mut self) -> Result<Stmt, String> {
+        self.advance();
         if self.check(&TokenKind::Semicolon) {
             self.advance();
         }
@@ -856,8 +447,8 @@ impl Parser {
     }
 
     /// Parse continue statement
-    fn parse_continue(&mut self) -> Result<Stmt, String> {
-        self.advance(); // consume 'continue'
+    pub fn parse_continue(&mut self) -> Result<Stmt, String> {
+        self.advance();
         if self.check(&TokenKind::Semicolon) {
             self.advance();
         }
@@ -865,10 +456,9 @@ impl Parser {
     }
 
     /// Parse function declaration
-    fn parse_function(&mut self) -> Result<Stmt, String> {
+    pub fn parse_function(&mut self) -> Result<Stmt, String> {
         self.advance(); // consume 'function'
 
-        // Get function name
         let name = if let TokenKind::Identifier(name) = &self.current().kind {
             let name = name.clone();
             self.advance();
@@ -883,11 +473,9 @@ impl Parser {
 
         self.consume(TokenKind::LeftParen, "Expected '(' after function name")?;
 
-        // Parse parameters
         let mut params = Vec::new();
         if !self.check(&TokenKind::RightParen) {
             loop {
-                // Check for by-reference parameter
                 let by_ref = if let TokenKind::Identifier(s) = &self.current().kind {
                     if s == "&" {
                         self.advance();
@@ -899,7 +487,6 @@ impl Parser {
                     false
                 };
 
-                // Get parameter name
                 let param_name = if let TokenKind::Variable(name) = &self.current().kind {
                     let name = name.clone();
                     self.advance();
@@ -912,7 +499,6 @@ impl Parser {
                     ));
                 };
 
-                // Check for default value
                 let default = if self.check(&TokenKind::Assign) {
                     self.advance();
                     Some(self.parse_expression(Precedence::None)?)
@@ -936,7 +522,6 @@ impl Parser {
         self.consume(TokenKind::RightParen, "Expected ')' after parameters")?;
         self.consume(TokenKind::LeftBrace, "Expected '{' before function body")?;
 
-        // Parse function body
         let mut body = Vec::new();
         while !self.check(&TokenKind::RightBrace) && !self.check(&TokenKind::Eof) {
             if let Some(stmt) = self.parse_statement()? {
@@ -950,10 +535,9 @@ impl Parser {
     }
 
     /// Parse return statement
-    fn parse_return(&mut self) -> Result<Stmt, String> {
-        self.advance(); // consume 'return'
+    pub fn parse_return(&mut self) -> Result<Stmt, String> {
+        self.advance();
 
-        // Check if there's a value to return
         let value = if self.check(&TokenKind::Semicolon)
             || self.check(&TokenKind::CloseTag)
             || self.check(&TokenKind::Eof)
@@ -971,7 +555,7 @@ impl Parser {
     }
 
     /// Parse expression statement
-    fn parse_expression_statement(&mut self) -> Result<Stmt, String> {
+    pub fn parse_expression_statement(&mut self) -> Result<Stmt, String> {
         let expr = self.parse_expression(Precedence::None)?;
 
         if self.check(&TokenKind::Semicolon) {
@@ -987,7 +571,7 @@ impl Parser {
         Ok(Stmt::Expression(expr))
     }
 
-    fn parse_statement(&mut self) -> Result<Option<Stmt>, String> {
+    pub fn parse_statement(&mut self) -> Result<Option<Stmt>, String> {
         let token = self.current().clone();
         match token.kind {
             TokenKind::OpenTag => {
@@ -1014,7 +598,6 @@ impl Parser {
                 Ok(Some(Stmt::Html(html)))
             }
             TokenKind::Eof => Ok(None),
-            // Everything else is an expression statement
             TokenKind::Variable(_)
             | TokenKind::Integer(_)
             | TokenKind::Float(_)
@@ -1033,17 +616,5 @@ impl Parser {
                 token.kind, token.line, token.column
             )),
         }
-    }
-
-    pub fn parse(&mut self) -> Result<Program, String> {
-        let mut statements = Vec::new();
-
-        while !self.check(&TokenKind::Eof) {
-            if let Some(stmt) = self.parse_statement()? {
-                statements.push(stmt);
-            }
-        }
-
-        Ok(Program { statements })
     }
 }
