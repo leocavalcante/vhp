@@ -1,0 +1,13 @@
+--TEST--
+Inheritance with missing parent class
+--DESCRIPTION--
+Test that extending a non-existent class produces an error
+--FILE--
+<?php
+class Dog extends Animal {
+    public function speak() {
+        return "Woof";
+    }
+}
+--EXPECT_ERROR--
+Parent class 'Animal' not found
