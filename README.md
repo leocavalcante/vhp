@@ -141,6 +141,40 @@ echo 0 === "0" ? "yes" : "no";    // no
 echo 0 === false ? "yes" : "no";  // no
 ```
 
+### Functions
+```php
+<?php
+// User-defined functions
+function greet($name) {
+    return "Hello, " . $name . "!";
+}
+echo greet("World");  // Hello, World!
+
+// Default parameters
+function power($base, $exp = 2) {
+    return $base ** $exp;
+}
+echo power(3);     // 9
+echo power(2, 10); // 1024
+
+// Recursive functions
+function factorial($n) {
+    if ($n <= 1) return 1;
+    return $n * factorial($n - 1);
+}
+echo factorial(5); // 120
+
+// Built-in functions (50+)
+echo strlen("Hello");              // 5
+echo strtoupper("hello");          // HELLO
+echo substr("Hello World", 0, 5);  // Hello
+echo str_repeat("ab", 3);          // ababab
+echo abs(-42);                     // 42
+echo round(3.7);                   // 4
+echo max(1, 5, 3);                 // 5
+echo sprintf("Name: %s, Age: %d", "John", 25);
+```
+
 ## Installation
 
 ### Build from source
@@ -227,8 +261,8 @@ echo "Timeout: $timeout";  // Output: Timeout: 30
 |-------|--------|----------|
 | **1. Variables & Operators** | ✅ Complete | Variables, assignment, arithmetic, comparison, logical, ternary, null coalescing |
 | **2. Control Flow** | ✅ Complete | `if`/`else`, `while`, `for`, `do-while`, `switch`, `break`/`continue` |
-| **3. Functions** | 🚧 Next | Declarations, calls, returns, parameters, built-ins |
-| **4. Arrays** | 📋 Planned | Literals, access, modification, `foreach` iteration |
+| **3. Functions** | ✅ Complete | Declarations, calls, returns, parameters, 50+ built-ins |
+| **4. Arrays** | 🚧 Next | Literals, access, modification, `foreach` iteration |
 | **5. Classes & Objects** | 📋 Planned | Classes, properties, methods, inheritance, interfaces |
 | **6. VHP Extensions** | 💡 Future | Type inference, pattern matching, async/await |
 
@@ -254,12 +288,14 @@ src/
 ├── interpreter.rs  # Tree-walking interpreter
 └── test_runner.rs  # .vhpt test framework
 
-tests/              # 89 tests organized by feature
+tests/              # 120 tests organized by feature
+├── builtins/       # Built-in function tests
 ├── comments/       # Comment syntax tests
 ├── control_flow/   # Control flow tests (if, while, for, switch)
 ├── echo/           # Echo statement tests
 ├── errors/         # Error handling tests
 ├── expressions/    # Expression evaluation tests
+├── functions/      # User-defined function tests
 ├── html/           # HTML passthrough tests
 ├── numbers/        # Numeric literal tests
 ├── operators/      # Operator tests
@@ -298,12 +334,14 @@ Run the test suite:
 vhp test -v
 
 # Output:
-# Running 89 tests...
+# Running 120 tests...
 #   PASS Addition operator
 #   PASS Basic if statement
 #   PASS For loop with break
+#   PASS User-defined function
+#   PASS Built-in strlen
 #   ...
-# Tests: 89 total, 88 passed, 0 failed, 0 errors, 1 skipped
+# Tests: 120 total, 119 passed, 0 failed, 0 errors, 1 skipped
 ```
 
 ## Why "Vibe Coding"?

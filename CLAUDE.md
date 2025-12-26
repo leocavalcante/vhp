@@ -35,12 +35,14 @@ src/
 ├── interpreter.rs  # Tree-walking interpreter (AST → output)
 └── test_runner.rs  # .vhpt test framework
 
-tests/              # Test suite organized by feature (89 tests)
+tests/              # Test suite organized by feature (120 tests)
+├── builtins/       # Built-in function tests
 ├── comments/       # Comment syntax tests
 ├── control_flow/   # Control flow tests (if, while, for, switch, break, continue)
 ├── echo/           # Echo statement tests
 ├── errors/         # Error handling tests
 ├── expressions/    # Expression evaluation tests
+├── functions/      # User-defined function tests
 ├── html/           # HTML passthrough tests
 ├── numbers/        # Numeric literal tests
 ├── operators/      # Operator tests (arithmetic, comparison, logical)
@@ -100,6 +102,22 @@ Source Code → Lexer → Tokens → Parser → AST → Interpreter → Output
 - [x] `break` statement
 - [x] `continue` statement
 - [x] Nested loop support with proper break/continue scoping
+
+### Functions
+- [x] Function declarations with `function` keyword
+- [x] Function calls (user-defined and built-in)
+- [x] Return statements with optional values
+- [x] Parameters (by value and by reference with `&`)
+- [x] Default parameter values
+- [x] Recursive functions
+- [x] Case-insensitive function names (PHP-compatible)
+- [x] Local scope (function variables don't leak to global)
+
+### Built-in Functions (50+)
+- [x] **String**: `strlen`, `substr`, `strtoupper`, `strtolower`, `trim`, `ltrim`, `rtrim`, `str_repeat`, `str_replace`, `strpos`, `stripos`, `strrev`, `ucfirst`, `lcfirst`, `ucwords`, `str_starts_with`, `str_ends_with`, `str_contains`, `str_pad`, `sprintf`, `chr`, `ord`
+- [x] **Math**: `abs`, `ceil`, `floor`, `round`, `max`, `min`, `pow`, `sqrt`, `rand`
+- [x] **Type**: `intval`, `floatval`, `strval`, `boolval`, `gettype`, `is_null`, `is_bool`, `is_int`, `is_integer`, `is_long`, `is_float`, `is_double`, `is_real`, `is_string`, `is_numeric`
+- [x] **Variable**: `isset`, `empty`, `var_dump`, `print_r`, `print`
 
 ### Type Coercion (PHP-compatible)
 - [x] Loose equality (`==`) with type coercion
@@ -251,15 +269,15 @@ partial error message to match
 - [x] `switch`/`case`/`default`
 - [x] `break`/`continue`
 
-### Phase 3: Functions (Next)
-- [ ] Function declarations
-- [ ] Function calls
-- [ ] Return statements
-- [ ] Parameters (by value, by reference)
-- [ ] Default parameter values
-- [ ] Built-in functions (`strlen`, `substr`, `array_*`, etc.)
+### Phase 3: Functions ✅ Complete
+- [x] Function declarations
+- [x] Function calls
+- [x] Return statements
+- [x] Parameters (by value, by reference)
+- [x] Default parameter values
+- [x] Built-in functions (`strlen`, `substr`, `strtoupper`, `abs`, `ceil`, `floor`, `round`, `max`, `min`, `pow`, `sqrt`, `rand`, `intval`, `floatval`, `strval`, `gettype`, `is_*`, `isset`, `empty`, `var_dump`, `print`, `sprintf`, `chr`, `ord`, etc.)
 
-### Phase 4: Arrays
+### Phase 4: Arrays (Next)
 - [ ] Array literals (`[]`, `array()`)
 - [ ] Array access (`$arr[0]`, `$arr['key']`)
 - [ ] Array modification
