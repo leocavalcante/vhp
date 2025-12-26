@@ -7,6 +7,6 @@ mod expr;
 mod ops;
 mod stmt;
 
-pub use expr::{ArrayElement, Expr};
+pub use expr::{ArrayElement, Expr, MatchArm};
 pub use ops::{AssignOp, BinaryOp, UnaryOp};
 pub use stmt::{FunctionParam, Method, Program, Property, Stmt, SwitchCase, Visibility};

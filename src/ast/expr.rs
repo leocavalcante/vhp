@@ -7,6 +7,13 @@ pub struct ArrayElement {
     pub value: Box<Expr>,
 }
 
+/// Match arm for match expressions (PHP 8.0)
+#[derive(Debug, Clone)]
+pub struct MatchArm {
+    pub conditions: Vec<Expr>, // Multiple conditions separated by comma
+    pub result: Box<Expr>,
+}
+
 /// Expressions
 #[derive(Debug, Clone)]
 pub enum Expr {
@@ -102,5 +109,12 @@ pub enum Expr {
         class_name: String,
         method: String,
         args: Vec<Expr>,
+    },
+
+    // Match expression (PHP 8.0)
+    Match {
+        expr: Box<Expr>,
+        arms: Vec<MatchArm>,
+        default: Option<Box<Expr>>,
     },
 }
