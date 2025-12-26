@@ -1,0 +1,15 @@
+--TEST--
+Named arguments with default values
+--FILE--
+<?php
+function build($name, $type = "user", $active = true) {
+    echo $name . ":" . $type . ":" . ($active ? "yes" : "no") . "\n";
+}
+
+build(name: "Alice");
+build(name: "Bob", active: false);
+build(type: "admin", name: "Charlie");
+--EXPECT--
+Alice:user:yes
+Bob:user:no
+Charlie:admin:yes

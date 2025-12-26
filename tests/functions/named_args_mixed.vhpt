@@ -1,0 +1,15 @@
+--TEST--
+Named arguments - mixed with positional
+--FILE--
+<?php
+function calc($a, $b, $c = 10, $d = 20) {
+    echo $a + $b + $c + $d . "\n";
+}
+
+calc(1, 2);
+calc(1, 2, d: 30);
+calc(1, 2, 5, 10);
+--EXPECT--
+33
+43
+18

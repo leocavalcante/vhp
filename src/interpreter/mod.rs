@@ -9,7 +9,7 @@ mod value;
 pub use value::{ArrayKey, ObjectInstance, Value};
 
 use crate::ast::{
-    AssignOp, BinaryOp, Expr, FunctionParam, MatchArm, Program, Property, Stmt, SwitchCase,
+    AssignOp, BinaryOp, Expr, FunctionArg, FunctionParam, MatchArm, Program, Property, Stmt, SwitchCase,
     UnaryOp, Visibility,
 };
 use std::collections::HashMap;
@@ -378,11 +378,74 @@ impl<W: Write> Interpreter<W> {
         }
     }
 
-    fn call_function(&mut self, name: &str, args: &[Expr]) -> Result<Value, String> {
-        // Evaluate arguments
+    /// Resolve function arguments (supports PHP 8.0 named arguments)
+    /// Returns a Vec of Values in the correct parameter order
+    fn resolve_function_args(
+        &mut self,
+        args: &[FunctionArg],
+        params: &[FunctionParam],
+    ) -> Result<Vec<Value>, String> {
+        let mut resolved = vec![Value::Null; params.len()];
+        let mut positional_idx = 0;
+        let mut named_provided = std::collections::HashSet::new();
+        let mut provided = vec![false; params.len()];
+        
+        // First pass: handle all arguments (positional and named)
+        for arg in args {
+            match arg {
+                FunctionArg::Positional(expr) => {
+                    if positional_idx >= params.len() {
+                        return Err("Too many arguments".to_string());
+                    }
+                    resolved[positional_idx] = self.eval_expr(expr)?;
+                    provided[positional_idx] = true;
+                    positional_idx += 1;
+                }
+                FunctionArg::Named { name, value } => {
+                    // Find parameter with this name
+                    if let Some(param_idx) = params.iter().position(|p| &p.name == name) {
+                        if named_provided.contains(&param_idx) {
+                            return Err(format!("Named parameter '{}' already specified", name));
+                        }
+                        resolved[param_idx] = self.eval_expr(value)?;
+                        named_provided.insert(param_idx);
+                        provided[param_idx] = true;
+                    } else {
+                        return Err(format!("Unknown named parameter: {}", name));
+                    }
+                }
+            }
+        }
+        
+        // Second pass: fill in defaults for unspecified parameters
+        for (i, param) in params.iter().enumerate() {
+            if !provided[i] {
+                if let Some(ref default_expr) = param.default {
+                    resolved[i] = self.eval_expr(default_expr)?;
+                } else {
+                    // Required parameter not provided
+                    return Err(format!("Missing required argument ${}", param.name));
+                }
+            }
+        }
+        
+        Ok(resolved)
+    }
+
+    fn call_function(&mut self, name: &str, args: &[FunctionArg]) -> Result<Value, String> {
+        // For built-in functions, we only support positional arguments
+        // Evaluate all arguments to values
         let mut arg_values = Vec::new();
         for arg in args {
-            arg_values.push(self.eval_expr(arg)?);
+            match arg {
+                FunctionArg::Positional(expr) => {
+                    arg_values.push(self.eval_expr(expr)?);
+                }
+                FunctionArg::Named { name: _, value } => {
+                    // For built-ins, treat named args as positional in order
+                    arg_values.push(self.eval_expr(value)?);
+                }
+            }
         }
 
         // Check for built-in functions first (case-insensitive)
@@ -471,7 +534,9 @@ impl<W: Write> Interpreter<W> {
                     .map(|(_, v)| v.clone());
 
                 if let Some(func) = func {
-                    self.call_user_function(&func, &arg_values)
+                    // Resolve arguments with named argument support
+                    let resolved_args = self.resolve_function_args(args, &func.params)?;
+                    self.call_user_function(&func, &resolved_args)
                 } else {
                     Err(format!("Call to undefined function {}()", name))
                 }
@@ -813,7 +878,7 @@ impl<W: Write> Interpreter<W> {
     }
 
     /// Evaluate object instantiation (new ClassName(...))
-    fn eval_new(&mut self, class_name: &str, args: &[Expr]) -> Result<Value, String> {
+    fn eval_new(&mut self, class_name: &str, args: &[FunctionArg]) -> Result<Value, String> {
         let class_name_lower = class_name.to_lowercase();
 
         // Check if class exists
@@ -839,11 +904,8 @@ impl<W: Write> Interpreter<W> {
 
         // Check for constructor (__construct)
         if let Some((constructor, declaring_class)) = self.find_method(class_name, "__construct") {
-            // Evaluate constructor arguments
-            let mut arg_values = Vec::new();
-            for arg in args {
-                arg_values.push(self.eval_expr(arg)?);
-            }
+            // Resolve constructor arguments (supports named arguments)
+            let arg_values = self.resolve_function_args(args, &constructor.params)?;
 
             // Call constructor with $this bound
             self.call_method_on_object(&mut instance, &constructor, &arg_values, declaring_class)?;
@@ -876,7 +938,7 @@ impl<W: Write> Interpreter<W> {
         &mut self,
         object: &Expr,
         method: &str,
-        args: &[Expr],
+        args: &[FunctionArg],
     ) -> Result<Value, String> {
         // Get the variable name if object is a variable, so we can update it after the method call
         let var_name = match object {
@@ -900,11 +962,8 @@ impl<W: Write> Interpreter<W> {
                         )
                     })?;
 
-                // Evaluate arguments
-                let mut arg_values = Vec::new();
-                for arg in args {
-                    arg_values.push(self.eval_expr(arg)?);
-                }
+                // Resolve arguments (supports named arguments)
+                let arg_values = self.resolve_function_args(args, &method_func.params)?;
 
                 // Call method with $this bound
                 let result = self.call_method_on_object(&mut instance, &method_func, &arg_values, declaring_class)?;
@@ -979,7 +1038,7 @@ impl<W: Write> Interpreter<W> {
         &mut self,
         class_name: &str,
         method: &str,
-        args: &[Expr],
+        args: &[FunctionArg],
     ) -> Result<Value, String> {
         let class_name_lower = class_name.to_lowercase();
 
@@ -1014,11 +1073,8 @@ impl<W: Write> Interpreter<W> {
                 )
             })?;
 
-        // Evaluate arguments
-        let mut arg_values = Vec::new();
-        for arg in args {
-            arg_values.push(self.eval_expr(arg)?);
-        }
+        // Resolve arguments (supports named arguments)
+        let arg_values = self.resolve_function_args(args, &method_func.params)?;
 
         // Call method without $this (static call), but set current_class
         // Save current state
@@ -1031,20 +1087,9 @@ impl<W: Write> Interpreter<W> {
         // Clear variables and set parameters
         self.variables.clear();
 
-        // Bind arguments to parameters
+        // Bind arguments to parameters (already resolved)
         for (i, param) in method_func.params.iter().enumerate() {
-            let value = if i < args.len() {
-                arg_values[i].clone()
-            } else if let Some(ref default_expr) = param.default {
-                self.eval_expr(default_expr)?
-            } else {
-                return Err(format!(
-                    "Missing argument {} for parameter ${}",
-                    i + 1,
-                    param.name
-                ));
-            };
-            self.variables.insert(param.name.clone(), value);
+            self.variables.insert(param.name.clone(), arg_values[i].clone());
         }
 
         // Execute method body

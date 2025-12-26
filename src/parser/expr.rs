@@ -1,6 +1,6 @@
 //! Expression parsing
 
-use crate::ast::{ArrayElement, AssignOp, BinaryOp, Expr, MatchArm, UnaryOp};
+use crate::ast::{ArrayElement, AssignOp, BinaryOp, Expr, FunctionArg, MatchArm, UnaryOp};
 use crate::token::{Token, TokenKind};
 use super::precedence::{Precedence, get_precedence, is_right_assoc};
 
@@ -208,17 +208,7 @@ impl<'a> ExprParser<'a> {
                     // Check if it's a method call or property access
                     if self.check(&TokenKind::LeftParen) {
                         self.advance(); // consume '('
-                        let mut args = Vec::new();
-
-                        if !self.check(&TokenKind::RightParen) {
-                            args.push(self.parse_expression(Precedence::None)?);
-
-                            while self.check(&TokenKind::Comma) {
-                                self.advance();
-                                args.push(self.parse_expression(Precedence::None)?);
-                            }
-                        }
-
+                        let args = self.parse_function_args()?;
                         self.consume(TokenKind::RightParen, "Expected ')' after method arguments")?;
                         expr = Expr::MethodCall {
                             object: Box::new(expr),
@@ -385,17 +375,7 @@ impl<'a> ExprParser<'a> {
                     };
 
                     self.consume(TokenKind::LeftParen, "Expected '(' after static method name")?;
-                    let mut args = Vec::new();
-
-                    if !self.check(&TokenKind::RightParen) {
-                        args.push(self.parse_expression(Precedence::None)?);
-
-                        while self.check(&TokenKind::Comma) {
-                            self.advance();
-                            args.push(self.parse_expression(Precedence::None)?);
-                        }
-                    }
-
+                    let args = self.parse_function_args()?;
                     self.consume(TokenKind::RightParen, "Expected ')' after static method arguments")?;
                     let call = Expr::StaticMethodCall {
                         class_name: name,
@@ -406,17 +386,7 @@ impl<'a> ExprParser<'a> {
                 } else if self.check(&TokenKind::LeftParen) {
                     // Regular function call
                     self.advance(); // consume '('
-                    let mut args = Vec::new();
-
-                    if !self.check(&TokenKind::RightParen) {
-                        args.push(self.parse_expression(Precedence::None)?);
-
-                        while self.check(&TokenKind::Comma) {
-                            self.advance();
-                            args.push(self.parse_expression(Precedence::None)?);
-                        }
-                    }
-
+                    let args = self.parse_function_args()?;
                     self.consume(TokenKind::RightParen, "Expected ')' after function arguments")?;
                     let call = Expr::FunctionCall { name, args };
                     self.parse_postfix(call)
@@ -446,17 +416,7 @@ impl<'a> ExprParser<'a> {
                     };
 
                     self.consume(TokenKind::LeftParen, "Expected '(' after parent method name")?;
-                    let mut args = Vec::new();
-
-                    if !self.check(&TokenKind::RightParen) {
-                        args.push(self.parse_expression(Precedence::None)?);
-
-                        while self.check(&TokenKind::Comma) {
-                            self.advance();
-                            args.push(self.parse_expression(Precedence::None)?);
-                        }
-                    }
-
+                    let args = self.parse_function_args()?;
                     self.consume(TokenKind::RightParen, "Expected ')' after parent method arguments")?;
                     let call = Expr::StaticMethodCall {
                         class_name: "parent".to_string(),
@@ -489,16 +449,7 @@ impl<'a> ExprParser<'a> {
                 let mut args = Vec::new();
                 if self.check(&TokenKind::LeftParen) {
                     self.advance(); // consume '('
-
-                    if !self.check(&TokenKind::RightParen) {
-                        args.push(self.parse_expression(Precedence::None)?);
-
-                        while self.check(&TokenKind::Comma) {
-                            self.advance();
-                            args.push(self.parse_expression(Precedence::None)?);
-                        }
-                    }
-
+                    args = self.parse_function_args()?;
                     self.consume(TokenKind::RightParen, "Expected ')' after constructor arguments")?;
                 }
 
@@ -730,5 +681,55 @@ impl<'a> ExprParser<'a> {
         }
 
         Ok(left)
+    }
+
+    /// Parse function call arguments (supporting PHP 8.0 named arguments)
+    pub fn parse_function_args(&mut self) -> Result<Vec<FunctionArg>, String> {
+        let mut args = Vec::new();
+        
+        if self.check(&TokenKind::RightParen) {
+            return Ok(args);
+        }
+        
+        loop {
+            // Check if this is a named argument (identifier: value)
+            if let TokenKind::Identifier(name) = &self.current().kind {
+                let name_clone = name.clone();
+                
+                // Look ahead to see if there's a colon
+                if self.peek_ahead(1).map(|t| &t.kind) == Some(&TokenKind::Colon) {
+                    // This is a named argument
+                    self.advance(); // consume identifier
+                    self.advance(); // consume ':'
+                    let value = self.parse_expression(Precedence::None)?;
+                    args.push(FunctionArg::Named { name: name_clone, value });
+                } else {
+                    // Parse as positional
+                    let expr = self.parse_expression(Precedence::None)?;
+                    args.push(FunctionArg::Positional(expr));
+                }
+            } else {
+                // Positional argument
+                let expr = self.parse_expression(Precedence::None)?;
+                args.push(FunctionArg::Positional(expr));
+            }
+            
+            if !self.check(&TokenKind::Comma) {
+                break;
+            }
+            self.advance(); // consume comma
+        }
+        
+        Ok(args)
+    }
+    
+    /// Peek ahead n tokens without consuming
+    fn peek_ahead(&self, n: usize) -> Option<&Token> {
+        let target_pos = *self.pos + n;
+        if target_pos < self.tokens.len() {
+            Some(&self.tokens[target_pos])
+        } else {
+            None
+        }
     }
 }

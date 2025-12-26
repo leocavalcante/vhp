@@ -1,0 +1,13 @@
+--TEST--
+Named arguments - basic usage
+--FILE--
+<?php
+function greet($name, $greeting = "Hello") {
+    echo $greeting . ", " . $name . "!\n";
+}
+
+greet(name: "Alice");
+greet(name: "Bob", greeting: "Hi");
+--EXPECT--
+Hello, Alice!
+Hi, Bob!
