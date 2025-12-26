@@ -1,0 +1,48 @@
+--TEST--
+Class Inheritance
+--DESCRIPTION--
+Test basic class inheritance with properties and methods
+--FILE--
+<?php
+class Animal {
+    public $name = "Unknown";
+    
+    public function speak() {
+        return "Noise";
+    }
+
+    public function getName() {
+        return $this->name;
+    }
+}
+
+class Dog extends Animal {
+    public function speak() {
+        return "Woof";
+    }
+}
+
+class Cat extends Animal {
+    // Inherits speak()
+}
+
+$dog = new Dog();
+$dog->name = "Rex";
+echo $dog->getName() . "\n";
+echo $dog->speak() . "\n";
+
+$cat = new Cat();
+$cat->name = "Whiskers";
+echo $cat->getName() . "\n";
+echo $cat->speak() . "\n";
+
+// Test property inheritance
+$animal = new Animal();
+echo $animal->name . "\n";
+--EXPECT--
+Rex
+Woof
+Whiskers
+Noise
+Unknown
+

@@ -1,0 +1,22 @@
+--TEST--
+Parent Method Call
+--DESCRIPTION--
+Test calling parent methods using parent::
+--FILE--
+<?php
+class Animal {
+    public function speak() {
+        return "Noise";
+    }
+}
+
+class Dog extends Animal {
+    public function speak() {
+        return "Woof " . parent::speak();
+    }
+}
+
+$dog = new Dog();
+echo $dog->speak();
+--EXPECT--
+Woof Noise

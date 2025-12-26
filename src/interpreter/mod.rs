@@ -49,6 +49,7 @@ pub struct Interpreter<W: Write> {
     functions: HashMap<String, UserFunction>,
     classes: HashMap<String, ClassDefinition>,
     current_object: Option<ObjectInstance>,
+    current_class: Option<String>,
 }
 
 impl<W: Write> Interpreter<W> {
@@ -59,6 +60,7 @@ impl<W: Write> Interpreter<W> {
             functions: HashMap::new(),
             classes: HashMap::new(),
             current_object: None,
+            current_class: None,
         }
     }
 
@@ -484,6 +486,8 @@ impl<W: Write> Interpreter<W> {
     ) -> Result<Value, String> {
         // Save current variables (for scoping)
         let saved_variables = self.variables.clone();
+        // Clear current class context for global functions
+        let saved_current_class = self.current_class.take();
 
         // Bind parameters
         for (i, param) in func.params.iter().enumerate() {
@@ -513,8 +517,9 @@ impl<W: Write> Interpreter<W> {
             }
         }
 
-        // Restore variables
+        // Restore variables and class context
         self.variables = saved_variables;
+        self.current_class = saved_current_class;
 
         Ok(return_value)
     }
@@ -793,11 +798,11 @@ impl<W: Write> Interpreter<W> {
     }
 
     /// Find method in class hierarchy
-    fn find_method(&self, class_name: &str, method_name: &str) -> Option<UserFunction> {
+    fn find_method(&self, class_name: &str, method_name: &str) -> Option<(UserFunction, String)> {
         let class_def = self.classes.get(&class_name.to_lowercase())?;
         
         if let Some(method) = class_def.methods.get(&method_name.to_lowercase()) {
-            return Some(method.clone());
+            return Some((method.clone(), class_def.name.clone()));
         }
 
         if let Some(parent) = &class_def.parent {
@@ -833,7 +838,7 @@ impl<W: Write> Interpreter<W> {
         }
 
         // Check for constructor (__construct)
-        if let Some(constructor) = self.find_method(class_name, "__construct") {
+        if let Some((constructor, declaring_class)) = self.find_method(class_name, "__construct") {
             // Evaluate constructor arguments
             let mut arg_values = Vec::new();
             for arg in args {
@@ -841,7 +846,7 @@ impl<W: Write> Interpreter<W> {
             }
 
             // Call constructor with $this bound
-            self.call_method_on_object(&mut instance, &constructor, &arg_values)?;
+            self.call_method_on_object(&mut instance, &constructor, &arg_values, declaring_class)?;
         }
 
         Ok(Value::Object(instance))
@@ -886,7 +891,7 @@ impl<W: Write> Interpreter<W> {
                 let class_name = instance.class_name.clone();
 
                 // Look up method in hierarchy
-                let method_func = self
+                let (method_func, declaring_class) = self
                     .find_method(&class_name, method)
                     .ok_or_else(|| {
                         format!(
@@ -902,7 +907,7 @@ impl<W: Write> Interpreter<W> {
                 }
 
                 // Call method with $this bound
-                let result = self.call_method_on_object(&mut instance, &method_func, &arg_values)?;
+                let result = self.call_method_on_object(&mut instance, &method_func, &arg_values, declaring_class)?;
 
                 // Write back the modified instance to the variable if applicable
                 if let Some(name) = var_name {
@@ -976,13 +981,36 @@ impl<W: Write> Interpreter<W> {
         method: &str,
         args: &[Expr],
     ) -> Result<Value, String> {
+        let class_name_lower = class_name.to_lowercase();
+
+        let target_class = if class_name_lower == "parent" {
+            if let Some(current_class_name) = &self.current_class {
+                let current_class_def = self.classes.get(&current_class_name.to_lowercase()).unwrap();
+                if let Some(parent) = &current_class_def.parent {
+                    parent.clone()
+                } else {
+                    return Err(format!("Class '{}' has no parent", current_class_name));
+                }
+            } else {
+                return Err("Cannot use 'parent' outside of class context".to_string());
+            }
+        } else if class_name_lower == "self" {
+            if let Some(current_class_name) = &self.current_class {
+                current_class_name.clone()
+            } else {
+                return Err("Cannot use 'self' outside of class context".to_string());
+            }
+        } else {
+            class_name.to_string()
+        };
+
         // Look up method in hierarchy
-        let method_func = self
-            .find_method(class_name, method)
+        let (method_func, declaring_class) = self
+            .find_method(&target_class, method)
             .ok_or_else(|| {
                 format!(
                     "Call to undefined method {}::{}()",
-                    class_name, method
+                    target_class, method
                 )
             })?;
 
@@ -992,8 +1020,52 @@ impl<W: Write> Interpreter<W> {
             arg_values.push(self.eval_expr(arg)?);
         }
 
-        // Call method without $this (static call)
-        self.call_user_function(&method_func, &arg_values)
+        // Call method without $this (static call), but set current_class
+        // Save current state
+        let saved_variables = self.variables.clone();
+        let saved_current_class = self.current_class.take();
+
+        // Set current class to where the method is defined
+        self.current_class = Some(declaring_class);
+
+        // Clear variables and set parameters
+        self.variables.clear();
+
+        // Bind arguments to parameters
+        for (i, param) in method_func.params.iter().enumerate() {
+            let value = if i < args.len() {
+                arg_values[i].clone()
+            } else if let Some(ref default_expr) = param.default {
+                self.eval_expr(default_expr)?
+            } else {
+                return Err(format!(
+                    "Missing argument {} for parameter ${}",
+                    i + 1,
+                    param.name
+                ));
+            };
+            self.variables.insert(param.name.clone(), value);
+        }
+
+        // Execute method body
+        let mut return_value = Value::Null;
+        for stmt in &method_func.body {
+            let cf = self.execute_stmt(stmt).map_err(|e| e.to_string())?;
+            match cf {
+                ControlFlow::Return(v) => {
+                    return_value = v;
+                    break;
+                }
+                ControlFlow::Break | ControlFlow::Continue => break,
+                ControlFlow::None => {}
+            }
+        }
+
+        // Restore previous state
+        self.variables = saved_variables;
+        self.current_class = saved_current_class;
+
+        Ok(return_value)
     }
 
     /// Evaluate match expression (PHP 8.0)
@@ -1034,13 +1106,16 @@ impl<W: Write> Interpreter<W> {
         instance: &mut ObjectInstance,
         method: &UserFunction,
         args: &[Value],
+        declaring_class: String,
     ) -> Result<Value, String> {
         // Save current state
         let saved_variables = self.variables.clone();
         let saved_current_object = self.current_object.take();
+        let saved_current_class = self.current_class.take();
 
         // Set current object to this instance
         self.current_object = Some(instance.clone());
+        self.current_class = Some(declaring_class);
 
         // Clear variables and set parameters
         self.variables.clear();
@@ -1079,6 +1154,7 @@ impl<W: Write> Interpreter<W> {
         // Restore previous state
         self.variables = saved_variables;
         self.current_object = saved_current_object;
+        self.current_class = saved_current_class;
 
         Ok(return_value)
     }
