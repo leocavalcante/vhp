@@ -14,6 +14,16 @@ VHP is built entirely in Rust with zero external dependencies.
 
 ## Build from Source
 
+### Using Make (Recommended)
+
+```bash
+git clone https://github.com/leocavalcante/vhp.git
+cd vhp
+make release
+```
+
+### Using Cargo
+
 ```bash
 git clone https://github.com/leocavalcante/vhp.git
 cd vhp
@@ -21,6 +31,17 @@ cargo build --release
 ```
 
 The binary will be at `./target/release/vhp`
+
+## Make Targets
+
+| Target | Description |
+|--------|-------------|
+| `make build` | Debug build |
+| `make release` | Release build (optimized) |
+| `make lint` | Run clippy with warnings as errors |
+| `make test` | Build and run test suite |
+| `make test-verbose` | Run tests with verbose output |
+| `make clean` | Clean build artifacts |
 
 ## Add to PATH (Optional)
 

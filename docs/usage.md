@@ -38,6 +38,17 @@ vhp test mydir
 vhp test path/to/test.vhpt
 ```
 
+## Using Make
+
+```bash
+make build          # Debug build
+make release        # Release build
+make lint           # Run clippy with warnings as errors
+make test           # Build and run test suite
+make test-verbose   # Run tests with verbose output
+make clean          # Clean build artifacts
+```
+
 ## Command Reference
 
 ```

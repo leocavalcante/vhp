@@ -52,6 +52,20 @@ echo 1 === "1" ? "loose" : "strict";  // strict
 
 Supported: `==`, `===`, `!=`, `!==`, `<`, `>`, `<=`, `>=`, `<=>` (spaceship)
 
+### Logical Operators
+
+```php
+<?php
+$a = true && false;   // false
+$b = true || false;   // true
+$c = !true;           // false
+$d = true and false;  // false (lower precedence)
+$e = true or false;   // true (lower precedence)
+$f = true xor true;   // false
+```
+
+Supported: `&&`, `||`, `!`, `and`, `or`, `xor`
+
 ### Null Coalescing
 
 ```php

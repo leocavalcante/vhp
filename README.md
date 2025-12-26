@@ -13,12 +13,11 @@
 </p>
 
 <p align="center">
-  <a href="#features">Features</a> •
-  <a href="#installation">Installation</a> •
-  <a href="#usage">Usage</a> •
-  <a href="#examples">Examples</a> •
-  <a href="#roadmap">Roadmap</a> •
-  <a href="#architecture">Architecture</a>
+  <a href="https://leocavalcante.github.io/vhp/features">Features</a> •
+  <a href="https://leocavalcante.github.io/vhp/installation">Installation</a> •
+  <a href="https://leocavalcante.github.io/vhp/usage">Usage</a> •
+  <a href="https://leocavalcante.github.io/vhp/examples">Examples</a> •
+  <a href="https://leocavalcante.github.io/vhp/roadmap">Roadmap</a>
 </p>
 
 ---
@@ -35,343 +34,32 @@
 - **PHP 8.x Compatible** — Run existing PHP code with zero modifications
 - **Progressive** — New features added incrementally with comprehensive tests
 
-## Features
-
-### Basic Syntax
-- PHP tags: `<?php`, `?>`, `<?=` (short echo)
-- `echo` statement with comma-separated expressions
-- String literals (single/double quoted) with escape sequences
-- Integer, float, boolean, and null literals
-- Comments: `//`, `/* */`, `#`
-- HTML passthrough (mixed PHP/HTML)
-
-### Variables & Assignment
-```php
-<?php
-$name = "VHP";
-$count = 42;
-$count += 8;  // Compound assignment
-echo "$name: $count";  // Output: VHP: 50
-```
-
-### Operators
-```php
-<?php
-// Arithmetic
-echo 2 + 3 * 4;      // 14 (correct precedence!)
-echo 2 ** 10;        // 1024 (power operator)
-
-// Comparison
-echo 1 == "1" ? "loose" : "strict";   // loose
-echo 1 === "1" ? "loose" : "strict";  // strict
-
-// Null coalescing
-$user = $name ?? "Anonymous";
-
-// Ternary
-echo $age >= 18 ? "adult" : "minor";
-
-// Increment/decrement
-$i = 0;
-echo ++$i;  // 1 (pre-increment)
-echo $i++;  // 1 (post-increment, $i is now 2)
-```
-
-### Control Flow
-```php
-<?php
-// If-elseif-else
-$score = 85;
-if ($score >= 90) {
-    echo "A";
-} elseif ($score >= 80) {
-    echo "B";
-} else {
-    echo "C";
-}
-
-// While loop
-$i = 0;
-while ($i < 5) {
-    echo $i++;
-}
-
-// For loop
-for ($i = 0; $i < 5; $i++) {
-    echo $i;
-}
-
-// Do-while loop
-$i = 0;
-do {
-    echo $i++;
-} while ($i < 3);
-
-// Switch statement
-$day = 1;
-switch ($day) {
-    case 1:
-        echo "Monday";
-        break;
-    case 2:
-        echo "Tuesday";
-        break;
-    default:
-        echo "Other day";
-}
-
-// Break and continue
-for ($i = 0; $i < 10; $i++) {
-    if ($i == 3) continue;  // Skip 3
-    if ($i == 7) break;     // Stop at 7
-    echo $i;
-}
-```
-
-### PHP-Compatible Type Coercion
-```php
-<?php
-// Loose equality with type juggling
-echo 0 == "0" ? "yes" : "no";     // yes
-echo 0 == "" ? "yes" : "no";      // yes
-echo 0 == false ? "yes" : "no";   // yes
-
-// Strict equality (no coercion)
-echo 0 === "0" ? "yes" : "no";    // no
-echo 0 === false ? "yes" : "no";  // no
-```
-
-### Functions
-```php
-<?php
-// User-defined functions
-function greet($name) {
-    return "Hello, " . $name . "!";
-}
-echo greet("World");  // Hello, World!
-
-// Default parameters
-function power($base, $exp = 2) {
-    return $base ** $exp;
-}
-echo power(3);     // 9
-echo power(2, 10); // 1024
-
-// Recursive functions
-function factorial($n) {
-    if ($n <= 1) return 1;
-    return $n * factorial($n - 1);
-}
-echo factorial(5); // 120
-
-// Built-in functions (50+)
-echo strlen("Hello");              // 5
-echo strtoupper("hello");          // HELLO
-echo substr("Hello World", 0, 5);  // Hello
-echo str_repeat("ab", 3);          // ababab
-echo abs(-42);                     // 42
-echo round(3.7);                   // 4
-echo max(1, 5, 3);                 // 5
-echo sprintf("Name: %s, Age: %d", "John", 25);
-```
-
-## Installation
-
-### Build from source
+## Quick Start
 
 ```bash
+# Build
 git clone https://github.com/leocavalcante/vhp.git
 cd vhp
-make release
-```
+cargo build --release
 
-The binary will be at `./target/release/vhp`
-
-### Run directly with Cargo
-
-```bash
-cargo run --release -- script.php
-cargo run --release -- -r 'echo "Hello!";'
-```
-
-## Usage
-
-```bash
-# Run a PHP file
-vhp script.php
+# Run a file
+./target/release/vhp script.php
 
 # Run inline code
-vhp -r 'echo "Hello, World!";'
-
-# Run tests
-vhp test           # Compact output
-vhp test -v        # Verbose output
-vhp test mydir     # Custom test directory
-
-# Help
-vhp --help
+./target/release/vhp -r 'echo "Hello, VHP!";'
 ```
 
-### Using Make
+## Features at a Glance
 
-```bash
-make build          # Debug build
-make release        # Release build
-make lint           # Run clippy with warnings as errors
-make test           # Build and run test suite
-make test-verbose   # Run tests with verbose output
-make clean          # Clean build artifacts
-```
+- ✅ PHP tags (`<?php`, `?>`, `<?=`)
+- ✅ Variables, operators, and expressions
+- ✅ Control flow (`if`/`else`, `while`, `for`, `switch`)
+- ✅ User-defined and recursive functions
+- ✅ 50+ built-in functions (string, math, type, output)
+- ✅ PHP-compatible type coercion
+- ✅ Mixed HTML/PHP support
 
-## Examples
-
-### Hello World
-
-```php
-<?php
-echo "Hello, VHP!\n";
-```
-
-### Variables and Math
-
-```php
-<?php
-$a = 10;
-$b = 5;
-$c = ($a + $b) * 2 - $a / $b;
-echo $c;  // Output: 28
-```
-
-### Mixed HTML/PHP
-
-```php
-<!DOCTYPE html>
-<html>
-<body>
-    <h1><?= "Welcome to VHP!" ?></h1>
-    <?php
-    $items = 3;
-    echo "<p>You have $items items.</p>";
-    ?>
-</body>
-</html>
-```
-
-### Null Safety
-
-```php
-<?php
-$config = null;
-$timeout = $config ?? 30;
-echo "Timeout: $timeout";  // Output: Timeout: 30
-```
-
-## Roadmap
-
-| Phase | Status | Features |
-|-------|--------|----------|
-| **1. Variables & Operators** | ✅ Complete | Variables, assignment, arithmetic, comparison, logical, ternary, null coalescing |
-| **2. Control Flow** | ✅ Complete | `if`/`else`, `while`, `for`, `do-while`, `switch`, `break`/`continue` |
-| **3. Functions** | ✅ Complete | Declarations, calls, returns, parameters, 50+ built-ins |
-| **4. Arrays** | 🚧 Next | Literals, access, modification, `foreach` iteration |
-| **5. Classes & Objects** | 📋 Planned | Classes, properties, methods, inheritance, interfaces |
-| **6. VHP Extensions** | 💡 Future | Type inference, pattern matching, async/await |
-
-## Architecture
-
-```
-┌─────────────┐    ┌─────────┐    ┌────────┐    ┌─────────────┐
-│ Source Code │───▶│  Lexer  │───▶│ Parser │───▶│ Interpreter │───▶ Output
-└─────────────┘    └─────────┘    └────────┘    └─────────────┘
-                       │              │               │
-                   Tokens          AST           Execute
-```
-
-### Project Structure
-
-```
-src/
-├── main.rs              # CLI entry point
-├── token.rs             # Token definitions
-├── lexer.rs             # Lexical analysis (source → tokens)
-├── test_runner.rs       # .vhpt test framework
-├── ast/                 # Abstract Syntax Tree (modularized)
-│   ├── mod.rs           # Module exports
-│   ├── expr.rs          # Expression AST nodes
-│   ├── stmt.rs          # Statement AST nodes
-│   └── ops.rs           # Operator definitions
-├── parser/              # Pratt parser (modularized)
-│   ├── mod.rs           # Module exports
-│   ├── expr.rs          # Expression parsing
-│   ├── stmt.rs          # Statement parsing
-│   └── precedence.rs    # Operator precedence
-└── interpreter/         # Tree-walking interpreter (modularized)
-    ├── mod.rs           # Main interpreter logic
-    ├── value.rs         # Value type and coercion
-    └── builtins/        # Built-in function modules
-        ├── mod.rs       # Module exports
-        ├── string.rs    # String functions
-        ├── math.rs      # Math functions
-        ├── types.rs     # Type functions
-        └── output.rs    # Output functions
-
-tests/              # 120 tests organized by feature
-├── builtins/       # Built-in function tests
-├── comments/       # Comment syntax tests
-├── control_flow/   # Control flow tests (if, while, for, switch)
-├── echo/           # Echo statement tests
-├── errors/         # Error handling tests
-├── expressions/    # Expression evaluation tests
-├── functions/      # User-defined function tests
-├── html/           # HTML passthrough tests
-├── numbers/        # Numeric literal tests
-├── operators/      # Operator tests
-├── strings/        # String literal tests
-├── tags/           # PHP tag tests
-└── variables/      # Variable tests
-
-Makefile            # Build automation (build, lint, test targets)
-```
-
-## Testing
-
-VHP uses `.vhpt` files (inspired by PHP's `.phpt` format):
-
-```
---TEST--
-Addition operator
---FILE--
-<?php
-echo 2 + 3;
---EXPECT--
-5
-```
-
-For error testing:
-```
---TEST--
-Division by zero
---FILE--
-<?php
-echo 10 / 0;
---EXPECT_ERROR--
-Division by zero
-```
-
-Run the test suite:
-```bash
-vhp test -v
-
-# Output:
-# Running 120 tests...
-#   PASS Addition operator
-#   PASS Basic if statement
-#   PASS For loop with break
-#   PASS User-defined function
-#   PASS Built-in strlen
-#   ...
-# Tests: 120 total, 119 passed, 0 failed, 0 errors, 1 skipped
-```
+See the [full features documentation](https://leocavalcante.github.io/vhp/features) for details.
 
 ## Why "Vibe Coding"?
 
