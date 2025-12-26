@@ -502,6 +502,8 @@ impl<'a> StmtParser<'a> {
                     name: param_name,
                     default,
                     by_ref,
+                    promoted: None,
+                    promoted_readonly: false,
                 });
 
                 if !self.check(&TokenKind::Comma) {
@@ -566,7 +568,7 @@ impl<'a> StmtParser<'a> {
     }
 
     /// Parse class property
-    fn parse_property(&mut self, visibility: Visibility) -> Result<Property, String> {
+    fn parse_property(&mut self, visibility: Visibility, readonly: bool) -> Result<Property, String> {
         let name = if let TokenKind::Variable(name) = &self.current().kind {
             let name = name.clone();
             self.advance();
@@ -594,6 +596,7 @@ impl<'a> StmtParser<'a> {
             name,
             visibility,
             default,
+            readonly,
         })
     }
 
@@ -618,6 +621,22 @@ impl<'a> StmtParser<'a> {
         let mut params = Vec::new();
         if !self.check(&TokenKind::RightParen) {
             loop {
+                // Disallow visibility/readonly modifiers on parameters here to avoid
+                // accepting constructor property promotion syntax in non-constructors.
+                if self.check(&TokenKind::Public)
+                    || self.check(&TokenKind::Protected)
+                    || self.check(&TokenKind::Private)
+                    || self.check(&TokenKind::Readonly)
+                {
+                    return Err(format!(
+                        "Visibility and readonly modifiers are only allowed on constructor parameters at line {}, column {}",
+                        self.current().line,
+                        self.current().column
+                    ));
+                }
+
+                let promoted = None;
+                let promoted_readonly = false;
                 let by_ref = if let TokenKind::Identifier(s) = &self.current().kind {
                     if s == "&" {
                         self.advance();
@@ -652,6 +671,8 @@ impl<'a> StmtParser<'a> {
                     name: param_name,
                     default,
                     by_ref,
+                    promoted,
+                    promoted_readonly,
                 });
 
                 if !self.check(&TokenKind::Comma) {
@@ -722,11 +743,19 @@ impl<'a> StmtParser<'a> {
 
         while !self.check(&TokenKind::RightBrace) && !self.check(&TokenKind::Eof) {
             let visibility = self.parse_visibility();
+            
+            // Check for readonly modifier (PHP 8.1)
+            let readonly = if self.check(&TokenKind::Readonly) {
+                self.advance();
+                true
+            } else {
+                false
+            };
 
             if self.check(&TokenKind::Function) {
                 methods.push(self.parse_method(visibility)?);
             } else if self.check(&TokenKind::Variable(String::new())) {
-                properties.push(self.parse_property(visibility)?);
+                properties.push(self.parse_property(visibility, readonly)?);
             } else {
                 return Err(format!(
                     "Expected property or method in class at line {}, column {}",

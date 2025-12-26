@@ -62,8 +62,11 @@ cargo build --release
 - ✅ Control flow (`if`/`else`, `while`, `for`, `foreach`, `switch`)
 - ✅ Arrays (indexed, associative, nested)
 - ✅ User-defined and recursive functions
-- ✅ Classes & Objects (properties, methods, constructors, `$this`, static calls)
+- ✅ Classes & Objects (properties, methods, constructors, `$this`, static calls, inheritance)
 - ✅ Match expressions (PHP 8.0)
+- ✅ Named arguments (PHP 8.0)
+- ✅ Constructor property promotion (PHP 8.0)
+- ✅ Readonly properties (PHP 8.1)
 - ✅ 65+ built-in functions (string, math, array, type, output)
 - ✅ PHP-compatible type coercion
 - ✅ Mixed HTML/PHP support

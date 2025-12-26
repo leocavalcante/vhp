@@ -195,6 +195,8 @@ impl Lexer {
             "protected" => TokenKind::Protected,
             "extends" => TokenKind::Extends,
             "parent" => TokenKind::Parent,
+            "enum" => TokenKind::Enum,
+            "readonly" => TokenKind::Readonly,
             _ => TokenKind::Identifier(ident.to_string()),
         }
     }

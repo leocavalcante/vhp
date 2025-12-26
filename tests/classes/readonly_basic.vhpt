@@ -1,0 +1,23 @@
+--TEST--
+Readonly properties - basic usage
+--FILE--
+<?php
+class User {
+    public readonly $id;
+    public $name;
+    
+    public function __construct($id, $name) {
+        $this->id = $id;
+        $this->name = $name;
+    }
+}
+
+$user = new User(123, "Alice");
+echo $user->id . "\n";
+echo $user->name . "\n";
+$user->name = "Bob";
+echo $user->name . "\n";
+--EXPECT--
+123
+Alice
+Bob

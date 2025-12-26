@@ -16,8 +16,8 @@ VHP is being developed incrementally, with each phase adding new capabilities wh
 | **2. Control Flow** | ✅ Complete | `if`/`else`, `while`, `for`, `do-while`, `switch`, `break`/`continue` |
 | **3. Functions** | ✅ Complete | Declarations, calls, returns, parameters, 50+ built-ins |
 | **4. Arrays** | ✅ Complete | Literals, access, modification, `foreach`, 13 array functions |
-| **5. Classes & Objects** | ✅ Complete | Classes, properties, methods, constructors, `$this`, static calls |
-| **6. Modern PHP 8.x Features** | 🚧 In Progress | Match Expressions ✅, Named Arguments, Enums, Fibers, Pipe Operator |
+| **5. Classes & Objects** | ✅ Complete | Classes, properties, methods, constructors, `$this`, static calls, inheritance, constructor promotion, readonly |
+| **6. Modern PHP 8.x Features** | 🚧 In Progress | Match Expressions ✅, Named Arguments ✅, Enums, Fibers, Pipe Operator |
 
 ## Phase Details
 
@@ -74,11 +74,12 @@ VHP is being developed incrementally, with each phase adding new capabilities wh
 - Default property values
 - Multiple objects from same class
 - Inheritance (`extends`) with property/method inheritance and `parent::` calls
+- Constructor Property Promotion (PHP 8.0)
+- Readonly Properties (PHP 8.1)
 
 **Remaining for Phase 5:**
 - Interfaces and traits
-- Constructor Property Promotion (PHP 8.0)
-- Readonly Properties (PHP 8.1) & Classes (PHP 8.2)
+- Readonly Classes (PHP 8.2)
 - "Clone with" functionality (PHP 8.5)
 
 ### Phase 6: Modern PHP 8.x Features 🚧
@@ -86,7 +87,7 @@ VHP is being developed incrementally, with each phase adding new capabilities wh
 This phase focuses on catching up with major features introduced in PHP 8.0 and beyond.
 
 - ✅ **Match Expressions** (PHP 8.0) - A more powerful and safer alternative to `switch`.
-- **Named Arguments** (PHP 8.0) - Pass arguments to functions based on parameter names.
+- ✅ **Named Arguments** (PHP 8.0) - Pass arguments to functions based on parameter names.
 - **Attributes** (PHP 8.0) - Structured metadata for classes, methods, and functions.
 - **Enums** (PHP 8.1) - Support for strongly-typed enumerations.
 - **Fibers** (PHP 8.1) - The foundation for lightweight, cooperative concurrency (async/await).

@@ -15,6 +15,7 @@ pub struct Property {
     #[allow(dead_code)] // Will be used for visibility enforcement
     pub visibility: Visibility,
     pub default: Option<Expr>,
+    pub readonly: bool, // PHP 8.1 readonly property
 }
 
 /// Class method definition
@@ -96,6 +97,11 @@ pub struct FunctionParam {
     /// By-reference parameter (will be used when reference semantics are implemented)
     #[allow(dead_code)]
     pub by_ref: bool,
+    /// Visibility for constructor property promotion (PHP 8.0)
+    /// If Some(visibility), this parameter is promoted to a property
+    pub promoted: Option<Visibility>,
+    /// Readonly modifier for promoted properties (PHP 8.1)
+    pub promoted_readonly: bool,
 }
 
 /// Program root

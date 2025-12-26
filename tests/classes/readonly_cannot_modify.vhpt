@@ -1,0 +1,23 @@
+--TEST--
+Readonly properties - cannot modify after construction
+--FILE--
+<?php
+class Account {
+    public readonly $id;
+    public $balance;
+    
+    public function __construct($id) {
+        $this->id = $id;
+        $this->balance = 0;
+    }
+    
+    public function changeId($newId) {
+        $this->id = $newId;
+    }
+}
+
+$acc = new Account(100);
+echo $acc->id . "\n";
+$acc->changeId(200);
+--EXPECT_ERROR--
+Cannot modify readonly property

@@ -1,0 +1,28 @@
+--TEST--
+Constructor property promotion mixed with regular parameters
+--FILE--
+<?php
+class User {
+    private $created;
+    
+    public function __construct(
+        public $username,
+        public $email,
+        $timestamp
+    ) {
+        $this->created = $timestamp;
+    }
+    
+    public function getCreated() {
+        return $this->created;
+    }
+}
+
+$user = new User("alice", "alice@test.com", 123456);
+echo $user->username . "\n";
+echo $user->email . "\n";
+echo $user->getCreated() . "\n";
+--EXPECT--
+alice
+alice@test.com
+123456

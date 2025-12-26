@@ -1,0 +1,20 @@
+--TEST--
+Readonly properties with constructor property promotion
+--FILE--
+<?php
+class Person {
+    public function __construct(
+        public readonly $id,
+        public $name
+    ) {}
+}
+
+$person = new Person(456, "Charlie");
+echo $person->id . "\n";
+echo $person->name . "\n";
+$person->name = "David";
+echo $person->name . "\n";
+--EXPECT--
+456
+Charlie
+David

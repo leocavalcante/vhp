@@ -1,0 +1,18 @@
+--TEST--
+Named arguments with methods
+--FILE--
+<?php
+class Calculator {
+    function add($a, $b, $c = 0) {
+        return $a + $b + $c;
+    }
+}
+
+$calc = new Calculator();
+echo $calc->add(a: 10, b: 20) . "\n";
+echo $calc->add(c: 5, a: 10, b: 20) . "\n";
+echo $calc->add(10, 20, c: 30) . "\n";
+--EXPECT--
+30
+35
+60

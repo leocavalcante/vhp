@@ -1,0 +1,30 @@
+--TEST--
+Constructor property promotion with default values
+--FILE--
+<?php
+class User {
+    public function __construct(
+        public $username,
+        public $active = true,
+        public $role = "user"
+    ) {}
+}
+
+$u1 = new User("john");
+echo $u1->username . "\n";
+echo $u1->active ? "yes" : "no";
+echo "\n";
+echo $u1->role . "\n";
+
+$u2 = new User("admin", false, "admin");
+echo $u2->username . "\n";
+echo $u2->active ? "yes" : "no";
+echo "\n";
+echo $u2->role . "\n";
+--EXPECT--
+john
+yes
+user
+admin
+no
+admin

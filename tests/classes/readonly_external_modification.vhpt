@@ -1,0 +1,17 @@
+--TEST--
+Readonly properties - cannot modify from outside
+--FILE--
+<?php
+class Data {
+    public readonly $value;
+    
+    public function __construct($val) {
+        $this->value = $val;
+    }
+}
+
+$data = new Data(42);
+echo $data->value . "\n";
+$data->value = 100;
+--EXPECT_ERROR--
+Cannot modify readonly property
