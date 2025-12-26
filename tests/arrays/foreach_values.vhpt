@@ -1,0 +1,12 @@
+--TEST--
+Foreach loop with array values
+--FILE--
+<?php
+$arr = [10, 20, 30];
+foreach ($arr as $value) {
+    echo $value, "\n";
+}
+--EXPECT--
+10
+20
+30

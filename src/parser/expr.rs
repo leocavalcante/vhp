@@ -1,6 +1,6 @@
 //! Expression parsing
 
-use crate::ast::{AssignOp, BinaryOp, Expr, UnaryOp};
+use crate::ast::{ArrayElement, AssignOp, BinaryOp, Expr, UnaryOp};
 use crate::token::{Token, TokenKind};
 use super::precedence::{Precedence, get_precedence, is_right_assoc};
 
@@ -48,6 +48,102 @@ impl<'a> ExprParser<'a> {
         }
     }
 
+    /// Parse array literal: [elem1, elem2] or [key => value, ...]
+    fn parse_array_literal(&mut self) -> Result<Expr, String> {
+        self.advance(); // consume '['
+        let mut elements = Vec::new();
+
+        if !self.check(&TokenKind::RightBracket) {
+            loop {
+                // Parse first expression (could be key or value)
+                let first = self.parse_expression(Precedence::None)?;
+
+                // Check for => (key => value syntax)
+                if self.check(&TokenKind::DoubleArrow) {
+                    self.advance(); // consume '=>'
+                    let value = self.parse_expression(Precedence::None)?;
+                    elements.push(ArrayElement {
+                        key: Some(Box::new(first)),
+                        value: Box::new(value),
+                    });
+                } else {
+                    // Just a value, no explicit key
+                    elements.push(ArrayElement {
+                        key: None,
+                        value: Box::new(first),
+                    });
+                }
+
+                // Check for comma or end
+                if self.check(&TokenKind::Comma) {
+                    self.advance();
+                    // Allow trailing comma
+                    if self.check(&TokenKind::RightBracket) {
+                        break;
+                    }
+                } else {
+                    break;
+                }
+            }
+        }
+
+        self.consume(TokenKind::RightBracket, "Expected ']' after array elements")?;
+        Ok(Expr::Array(elements))
+    }
+
+    /// Parse postfix operations (array access, increment/decrement)
+    fn parse_postfix(&mut self, mut expr: Expr) -> Result<Expr, String> {
+        loop {
+            match &self.current().kind {
+                TokenKind::LeftBracket => {
+                    self.advance(); // consume '['
+
+                    // Check for empty brackets (append syntax: $arr[] = ...)
+                    if self.check(&TokenKind::RightBracket) {
+                        self.advance(); // consume ']'
+                        // This creates an ArrayAccess with a special marker
+                        // The assignment handling will recognize this
+                        expr = Expr::ArrayAccess {
+                            array: Box::new(expr),
+                            index: Box::new(Expr::Null), // Placeholder for append
+                        };
+                    } else {
+                        let index = self.parse_expression(Precedence::None)?;
+                        self.consume(TokenKind::RightBracket, "Expected ']' after array index")?;
+                        expr = Expr::ArrayAccess {
+                            array: Box::new(expr),
+                            index: Box::new(index),
+                        };
+                    }
+                }
+                TokenKind::Increment => {
+                    if let Expr::Variable(_) = &expr {
+                        self.advance();
+                        expr = Expr::Unary {
+                            op: UnaryOp::PostInc,
+                            expr: Box::new(expr),
+                        };
+                    } else {
+                        break;
+                    }
+                }
+                TokenKind::Decrement => {
+                    if let Expr::Variable(_) = &expr {
+                        self.advance();
+                        expr = Expr::Unary {
+                            op: UnaryOp::PostDec,
+                            expr: Box::new(expr),
+                        };
+                    } else {
+                        break;
+                    }
+                }
+                _ => break,
+            }
+        }
+        Ok(expr)
+    }
+
     /// Parse primary expression (literals, variables, grouped expressions)
     pub fn parse_primary(&mut self) -> Result<Expr, String> {
         let token = self.current().clone();
@@ -56,58 +152,46 @@ impl<'a> ExprParser<'a> {
             TokenKind::Integer(n) => {
                 let n = *n;
                 self.advance();
-                Ok(Expr::Integer(n))
+                self.parse_postfix(Expr::Integer(n))
             }
             TokenKind::Float(n) => {
                 let n = *n;
                 self.advance();
-                Ok(Expr::Float(n))
+                self.parse_postfix(Expr::Float(n))
             }
             TokenKind::String(s) => {
                 let s = s.clone();
                 self.advance();
-                Ok(Expr::String(s))
+                self.parse_postfix(Expr::String(s))
             }
             TokenKind::True => {
                 self.advance();
-                Ok(Expr::Bool(true))
+                self.parse_postfix(Expr::Bool(true))
             }
             TokenKind::False => {
                 self.advance();
-                Ok(Expr::Bool(false))
+                self.parse_postfix(Expr::Bool(false))
             }
             TokenKind::Null => {
                 self.advance();
-                Ok(Expr::Null)
+                self.parse_postfix(Expr::Null)
+            }
+            TokenKind::LeftBracket => {
+                let arr = self.parse_array_literal()?;
+                self.parse_postfix(arr)
             }
             TokenKind::Variable(name) => {
                 let name = name.clone();
                 self.advance();
-
-                // Check for postfix increment/decrement
-                match &self.current().kind {
-                    TokenKind::Increment => {
-                        self.advance();
-                        Ok(Expr::Unary {
-                            op: UnaryOp::PostInc,
-                            expr: Box::new(Expr::Variable(name)),
-                        })
-                    }
-                    TokenKind::Decrement => {
-                        self.advance();
-                        Ok(Expr::Unary {
-                            op: UnaryOp::PostDec,
-                            expr: Box::new(Expr::Variable(name)),
-                        })
-                    }
-                    _ => Ok(Expr::Variable(name)),
-                }
+                let expr = Expr::Variable(name);
+                self.parse_postfix(expr)
             }
             TokenKind::LeftParen => {
                 self.advance();
                 let expr = self.parse_expression(Precedence::None)?;
                 self.consume(TokenKind::RightParen, "Expected ')' after expression")?;
-                Ok(Expr::Grouped(Box::new(expr)))
+                let grouped = Expr::Grouped(Box::new(expr));
+                self.parse_postfix(grouped)
             }
             // Unary operators
             TokenKind::Minus => {
@@ -179,7 +263,8 @@ impl<'a> ExprParser<'a> {
                     }
 
                     self.consume(TokenKind::RightParen, "Expected ')' after function arguments")?;
-                    Ok(Expr::FunctionCall { name, args })
+                    let call = Expr::FunctionCall { name, args };
+                    self.parse_postfix(call)
                 } else {
                     Err(format!(
                         "Unexpected identifier '{}' at line {}, column {}",
@@ -292,6 +377,15 @@ impl<'a> ExprParser<'a> {
         }
     }
 
+    /// Check if expression is an array access for append ($arr[])
+    fn is_array_append(&self, expr: &Expr) -> bool {
+        if let Expr::ArrayAccess { index, .. } = expr {
+            matches!(**index, Expr::Null)
+        } else {
+            false
+        }
+    }
+
     /// Pratt parser for expressions with precedence
     pub fn parse_expression(&mut self, min_prec: Precedence) -> Result<Expr, String> {
         let mut left = self.parse_unary()?;
@@ -321,20 +415,40 @@ impl<'a> ExprParser<'a> {
 
             // Handle assignment operators
             if let Some(assign_op) = self.token_to_assignop(&op_token.kind) {
-                if let Expr::Variable(name) = left {
-                    self.advance();
-                    let right = self.parse_expression(Precedence::None)?;
-                    left = Expr::Assign {
-                        var: name,
-                        op: assign_op,
-                        value: Box::new(right),
-                    };
-                    continue;
-                } else {
-                    return Err(format!(
-                        "Left side of assignment must be a variable at line {}, column {}",
-                        op_token.line, op_token.column
-                    ));
+                match &left {
+                    Expr::Variable(name) => {
+                        self.advance();
+                        let right = self.parse_expression(Precedence::None)?;
+                        left = Expr::Assign {
+                            var: name.clone(),
+                            op: assign_op,
+                            value: Box::new(right),
+                        };
+                        continue;
+                    }
+                    Expr::ArrayAccess { array, index } => {
+                        self.advance();
+                        let right = self.parse_expression(Precedence::None)?;
+                        // Check if this is append syntax ($arr[] = ...)
+                        let index_opt = if self.is_array_append(&left) {
+                            None
+                        } else {
+                            Some(index.clone())
+                        };
+                        left = Expr::ArrayAssign {
+                            array: array.clone(),
+                            index: index_opt,
+                            op: assign_op,
+                            value: Box::new(right),
+                        };
+                        continue;
+                    }
+                    _ => {
+                        return Err(format!(
+                            "Left side of assignment must be a variable or array element at line {}, column {}",
+                            op_token.line, op_token.column
+                        ));
+                    }
                 }
             }
 

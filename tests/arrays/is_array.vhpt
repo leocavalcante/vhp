@@ -1,0 +1,14 @@
+--TEST--
+is_array function
+--FILE--
+<?php
+$arr = [1, 2, 3];
+$str = "hello";
+$num = 42;
+echo is_array($arr) ? "yes" : "no", "\n";
+echo is_array($str) ? "yes" : "no", "\n";
+echo is_array($num) ? "yes" : "no";
+--EXPECT--
+yes
+no
+no

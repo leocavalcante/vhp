@@ -1,0 +1,8 @@
+--TEST--
+Mixed array keys
+--FILE--
+<?php
+$arr = [0 => "a", "key" => "b", 1 => "c"];
+echo $arr[0], " ", $arr["key"], " ", $arr[1];
+--EXPECT--
+a b c

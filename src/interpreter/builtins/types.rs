@@ -39,14 +39,7 @@ pub fn gettype(args: &[Value]) -> Result<Value, String> {
     if args.is_empty() {
         return Err("gettype() expects exactly 1 parameter".to_string());
     }
-    let type_name = match &args[0] {
-        Value::Null => "NULL",
-        Value::Bool(_) => "boolean",
-        Value::Integer(_) => "integer",
-        Value::Float(_) => "double",
-        Value::String(_) => "string",
-    };
-    Ok(Value::String(type_name.to_string()))
+    Ok(Value::String(args[0].get_type().to_string()))
 }
 
 /// is_null - Finds whether a variable is null
@@ -87,6 +80,14 @@ pub fn is_string(args: &[Value]) -> Result<Value, String> {
         return Err("is_string() expects exactly 1 parameter".to_string());
     }
     Ok(Value::Bool(matches!(args[0], Value::String(_))))
+}
+
+/// is_array - Finds whether a variable is an array
+pub fn is_array(args: &[Value]) -> Result<Value, String> {
+    if args.is_empty() {
+        return Err("is_array() expects exactly 1 parameter".to_string());
+    }
+    Ok(Value::Bool(args[0].is_array()))
 }
 
 /// is_numeric - Finds whether a variable is a number or numeric string

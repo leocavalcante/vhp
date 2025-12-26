@@ -400,6 +400,9 @@ impl Lexer {
                             } else {
                                 TokenKind::Equal
                             }
+                        } else if self.current() == Some('>') {
+                            self.advance();
+                            TokenKind::DoubleArrow
                         } else {
                             TokenKind::Assign
                         }

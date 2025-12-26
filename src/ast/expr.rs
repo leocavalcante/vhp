@@ -1,5 +1,12 @@
 use super::ops::{AssignOp, BinaryOp, UnaryOp};
 
+/// Array element with optional key
+#[derive(Debug, Clone)]
+pub struct ArrayElement {
+    pub key: Option<Box<Expr>>,
+    pub value: Box<Expr>,
+}
+
 /// Expressions
 #[derive(Debug, Clone)]
 pub enum Expr {
@@ -13,6 +20,15 @@ pub enum Expr {
     // Variable
     Variable(String),
 
+    // Array literal
+    Array(Vec<ArrayElement>),
+
+    // Array access
+    ArrayAccess {
+        array: Box<Expr>,
+        index: Box<Expr>,
+    },
+
     // Operations
     Binary {
         left: Box<Expr>,
@@ -25,6 +41,13 @@ pub enum Expr {
     },
     Assign {
         var: String,
+        op: AssignOp,
+        value: Box<Expr>,
+    },
+    // Array element assignment: $arr[key] = value
+    ArrayAssign {
+        array: Box<Expr>,
+        index: Option<Box<Expr>>, // None for $arr[] = value (append)
         op: AssignOp,
         value: Box<Expr>,
     },

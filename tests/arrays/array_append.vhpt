@@ -1,0 +1,10 @@
+--TEST--
+Array append syntax
+--FILE--
+<?php
+$arr = [1, 2];
+$arr[] = 3;
+$arr[] = 4;
+echo $arr[0], " ", $arr[1], " ", $arr[2], " ", $arr[3];
+--EXPECT--
+1 2 3 4

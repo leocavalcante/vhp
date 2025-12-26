@@ -1,0 +1,11 @@
+--TEST--
+Foreach loop with key and value
+--FILE--
+<?php
+$arr = ["a" => 1, "b" => 2];
+foreach ($arr as $key => $value) {
+    echo $key, ":", $value, "\n";
+}
+--EXPECT--
+a:1
+b:2

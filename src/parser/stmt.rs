@@ -291,27 +291,19 @@ impl<'a> StmtParser<'a> {
             ));
         };
 
-        let (key, value) = if self.check(&TokenKind::Identifier(String::new())) {
-            if let TokenKind::Identifier(s) = &self.current().kind {
-                if s == "=>" {
-                    self.advance();
+        let (key, value) = if self.check(&TokenKind::DoubleArrow) {
+            self.advance(); // consume '=>'
 
-                    if let TokenKind::Variable(val_name) = &self.current().kind {
-                        let val_name = val_name.clone();
-                        self.advance();
-                        (Some(first_var), val_name)
-                    } else {
-                        return Err(format!(
-                            "Expected variable after '=>' at line {}, column {}",
-                            self.current().line,
-                            self.current().column
-                        ));
-                    }
-                } else {
-                    (None, first_var)
-                }
+            if let TokenKind::Variable(val_name) = &self.current().kind {
+                let val_name = val_name.clone();
+                self.advance();
+                (Some(first_var), val_name)
             } else {
-                (None, first_var)
+                return Err(format!(
+                    "Expected variable after '=>' at line {}, column {}",
+                    self.current().line,
+                    self.current().column
+                ));
             }
         } else {
             (None, first_var)

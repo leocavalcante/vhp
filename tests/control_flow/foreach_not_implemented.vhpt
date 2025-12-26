@@ -1,9 +1,0 @@
---TEST--
-Foreach requires array support
---FILE--
-<?php
-foreach ($items as $item) {
-    echo $item;
-}
---EXPECT_ERROR--
-foreach requires array support

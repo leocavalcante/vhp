@@ -1,0 +1,8 @@
+--TEST--
+count function
+--FILE--
+<?php
+$arr = [1, 2, 3, 4, 5];
+echo count($arr);
+--EXPECT--
+5

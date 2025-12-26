@@ -1,0 +1,8 @@
+--TEST--
+Empty array
+--FILE--
+<?php
+$arr = [];
+echo "count:", is_array($arr) ? "yes" : "no";
+--EXPECT--
+count:yes

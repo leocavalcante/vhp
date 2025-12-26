@@ -88,6 +88,7 @@ pub enum TokenKind {
     QuestionMark,      // ?
     Colon,             // :
     NullCoalesce,      // ??
+    DoubleArrow,       // =>
 
     // Special
     Html(String),      // Raw HTML outside PHP tags

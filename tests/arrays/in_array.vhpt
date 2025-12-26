@@ -1,0 +1,12 @@
+--TEST--
+in_array function
+--FILE--
+<?php
+$arr = [1, 2, 3, "hello"];
+echo in_array(2, $arr) ? "yes" : "no", "\n";
+echo in_array("hello", $arr) ? "yes" : "no", "\n";
+echo in_array(5, $arr) ? "yes" : "no";
+--EXPECT--
+yes
+yes
+no

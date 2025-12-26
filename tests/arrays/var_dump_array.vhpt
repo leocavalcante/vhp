@@ -1,0 +1,15 @@
+--TEST--
+var_dump with array
+--FILE--
+<?php
+$arr = [1, "hello", true];
+var_dump($arr);
+--EXPECT--
+array(3) {
+  [0]=>
+  int(1)
+  [1]=>
+  string(5) "hello"
+  [2]=>
+  bool(true)
+}

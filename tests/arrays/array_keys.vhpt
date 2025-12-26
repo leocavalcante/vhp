@@ -1,0 +1,13 @@
+--TEST--
+array_keys function
+--FILE--
+<?php
+$arr = ["a" => 1, "b" => 2, "c" => 3];
+$keys = array_keys($arr);
+foreach ($keys as $key) {
+    echo $key, "\n";
+}
+--EXPECT--
+a
+b
+c

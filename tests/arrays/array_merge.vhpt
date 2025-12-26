@@ -1,0 +1,17 @@
+--TEST--
+array_merge function
+--FILE--
+<?php
+$arr1 = [1, 2, 3];
+$arr2 = [4, 5, 6];
+$merged = array_merge($arr1, $arr2);
+foreach ($merged as $val) {
+    echo $val, "\n";
+}
+--EXPECT--
+1
+2
+3
+4
+5
+6

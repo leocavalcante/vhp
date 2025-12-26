@@ -1,0 +1,10 @@
+--TEST--
+array_key_exists function
+--FILE--
+<?php
+$arr = ["name" => "John", "age" => 30];
+echo array_key_exists("name", $arr) ? "yes" : "no", "\n";
+echo array_key_exists("city", $arr) ? "yes" : "no";
+--EXPECT--
+yes
+no

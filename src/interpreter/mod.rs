@@ -6,7 +6,7 @@
 mod builtins;
 mod value;
 
-pub use value::Value;
+pub use value::{ArrayKey, Value};
 
 use crate::ast::{AssignOp, BinaryOp, Expr, FunctionParam, Program, Stmt, SwitchCase, UnaryOp};
 use std::collections::HashMap;
@@ -57,6 +57,17 @@ impl<W: Write> Interpreter<W> {
                 .cloned()
                 .unwrap_or(Value::Null)),
 
+            Expr::Array(elements) => self.eval_array(elements),
+
+            Expr::ArrayAccess { array, index } => self.eval_array_access(array, index),
+
+            Expr::ArrayAssign {
+                array,
+                index,
+                op,
+                value,
+            } => self.eval_array_assign(array, index, op, value),
+
             Expr::Grouped(inner) => self.eval_expr(inner),
 
             Expr::Unary { op, expr } => self.eval_unary(op, expr),
@@ -79,6 +90,234 @@ impl<W: Write> Interpreter<W> {
             }
 
             Expr::FunctionCall { name, args } => self.call_function(name, args),
+        }
+    }
+
+    fn eval_array(&mut self, elements: &[crate::ast::ArrayElement]) -> Result<Value, String> {
+        let mut arr = Vec::new();
+        let mut next_int_key: i64 = 0;
+
+        for elem in elements {
+            let key = if let Some(key_expr) = &elem.key {
+                let key_val = self.eval_expr(key_expr)?;
+                let key = ArrayKey::from_value(&key_val);
+                // Update next_int_key if this is an integer key
+                if let ArrayKey::Integer(n) = &key {
+                    if *n >= next_int_key {
+                        next_int_key = *n + 1;
+                    }
+                }
+                key
+            } else {
+                let key = ArrayKey::Integer(next_int_key);
+                next_int_key += 1;
+                key
+            };
+
+            let value = self.eval_expr(&elem.value)?;
+            arr.push((key, value));
+        }
+
+        Ok(Value::Array(arr))
+    }
+
+    fn eval_array_access(&mut self, array: &Expr, index: &Expr) -> Result<Value, String> {
+        let array_val = self.eval_expr(array)?;
+        let index_val = self.eval_expr(index)?;
+        let key = ArrayKey::from_value(&index_val);
+
+        match array_val {
+            Value::Array(arr) => {
+                for (k, v) in arr {
+                    if k == key {
+                        return Ok(v);
+                    }
+                }
+                Ok(Value::Null)
+            }
+            Value::String(s) => {
+                // String access by index
+                let idx = index_val.to_int();
+                if idx >= 0 && (idx as usize) < s.len() {
+                    Ok(Value::String(s.chars().nth(idx as usize).unwrap().to_string()))
+                } else {
+                    Ok(Value::String(String::new()))
+                }
+            }
+            _ => Ok(Value::Null),
+        }
+    }
+
+    fn eval_array_assign(
+        &mut self,
+        array_expr: &Expr,
+        index: &Option<Box<Expr>>,
+        op: &AssignOp,
+        value_expr: &Expr,
+    ) -> Result<Value, String> {
+        let new_value = self.eval_expr(value_expr)?;
+
+        // Get the variable name from the array expression
+        let var_name = match array_expr {
+            Expr::Variable(name) => name.clone(),
+            Expr::ArrayAccess { array, .. } => {
+                // Nested array access - get the root variable
+                let mut current: &Expr = array;
+                while let Expr::ArrayAccess { array: inner, .. } = current {
+                    current = inner;
+                }
+                if let Expr::Variable(name) = current {
+                    name.clone()
+                } else {
+                    return Err("Cannot assign to non-variable array".to_string());
+                }
+            }
+            _ => return Err("Cannot assign to non-variable array".to_string()),
+        };
+
+        // Get or create the array
+        let mut arr = match self.variables.get(&var_name).cloned() {
+            Some(Value::Array(a)) => a,
+            Some(_) => return Err("Cannot use array assignment on non-array".to_string()),
+            None => Vec::new(),
+        };
+
+        // For nested access, we need to traverse and update
+        if let Expr::ArrayAccess { index: outer_index, .. } = array_expr {
+            // This is nested: $arr[outer][index] = value
+            // We need to handle this recursively
+            let outer_key = ArrayKey::from_value(&self.eval_expr(outer_index)?);
+
+            // Find or create the inner array
+            let inner_arr_idx = arr.iter().position(|(k, _)| k == &outer_key);
+
+            let inner_arr = if let Some(idx) = inner_arr_idx {
+                if let Value::Array(ref inner) = arr[idx].1 {
+                    inner.clone()
+                } else {
+                    Vec::new()
+                }
+            } else {
+                Vec::new()
+            };
+
+            let mut new_inner = inner_arr;
+
+            // Apply the assignment to the inner array
+            let key = if let Some(idx_expr) = index {
+                ArrayKey::from_value(&self.eval_expr(idx_expr)?)
+            } else {
+                // Append: find max int key + 1
+                let max_key = new_inner
+                    .iter()
+                    .filter_map(|(k, _)| if let ArrayKey::Integer(n) = k { Some(*n) } else { None })
+                    .max()
+                    .unwrap_or(-1);
+                ArrayKey::Integer(max_key + 1)
+            };
+
+            let final_value = self.apply_assign_op(op, &new_inner, &key, new_value.clone())?;
+
+            // Update or add the element
+            let pos = new_inner.iter().position(|(k, _)| k == &key);
+            if let Some(idx) = pos {
+                new_inner[idx].1 = final_value.clone();
+            } else {
+                new_inner.push((key, final_value.clone()));
+            }
+
+            // Update or add the inner array in the outer array
+            if let Some(idx) = inner_arr_idx {
+                arr[idx].1 = Value::Array(new_inner);
+            } else {
+                arr.push((outer_key, Value::Array(new_inner)));
+            }
+
+            self.variables.insert(var_name, Value::Array(arr));
+            return Ok(final_value);
+        }
+
+        // Simple case: $arr[index] = value or $arr[] = value
+        let key = if let Some(idx_expr) = index {
+            ArrayKey::from_value(&self.eval_expr(idx_expr)?)
+        } else {
+            // Append: find max int key + 1
+            let max_key = arr
+                .iter()
+                .filter_map(|(k, _)| if let ArrayKey::Integer(n) = k { Some(*n) } else { None })
+                .max()
+                .unwrap_or(-1);
+            ArrayKey::Integer(max_key + 1)
+        };
+
+        let final_value = self.apply_assign_op(op, &arr, &key, new_value)?;
+
+        // Update or add the element
+        let pos = arr.iter().position(|(k, _)| k == &key);
+        if let Some(idx) = pos {
+            arr[idx].1 = final_value.clone();
+        } else {
+            arr.push((key, final_value.clone()));
+        }
+
+        self.variables.insert(var_name, Value::Array(arr));
+        Ok(final_value)
+    }
+
+    fn apply_assign_op(
+        &self,
+        op: &AssignOp,
+        arr: &[(ArrayKey, Value)],
+        key: &ArrayKey,
+        new_value: Value,
+    ) -> Result<Value, String> {
+        match op {
+            AssignOp::Assign => Ok(new_value),
+            _ => {
+                // Get current value for compound assignment
+                let current = arr
+                    .iter()
+                    .find(|(k, _)| k == key)
+                    .map(|(_, v)| v.clone())
+                    .unwrap_or(Value::Null);
+
+                match op {
+                    AssignOp::AddAssign => {
+                        self.numeric_op(&current, &new_value, |a, b| a + b, |a, b| a + b)
+                    }
+                    AssignOp::SubAssign => {
+                        self.numeric_op(&current, &new_value, |a, b| a - b, |a, b| a - b)
+                    }
+                    AssignOp::MulAssign => {
+                        self.numeric_op(&current, &new_value, |a, b| a * b, |a, b| a * b)
+                    }
+                    AssignOp::DivAssign => {
+                        let right_f = new_value.to_float();
+                        if right_f == 0.0 {
+                            return Err("Division by zero".to_string());
+                        }
+                        let result = current.to_float() / right_f;
+                        if result.fract() == 0.0 {
+                            Ok(Value::Integer(result as i64))
+                        } else {
+                            Ok(Value::Float(result))
+                        }
+                    }
+                    AssignOp::ModAssign => {
+                        let right_i = new_value.to_int();
+                        if right_i == 0 {
+                            return Err("Division by zero".to_string());
+                        }
+                        Ok(Value::Integer(current.to_int() % right_i))
+                    }
+                    AssignOp::ConcatAssign => Ok(Value::String(format!(
+                        "{}{}",
+                        current.to_string_val(),
+                        new_value.to_string_val()
+                    ))),
+                    AssignOp::Assign => unreachable!(),
+                }
+            }
         }
     }
 
@@ -140,6 +379,7 @@ impl<W: Write> Interpreter<W> {
             "is_int" | "is_integer" | "is_long" => builtins::types::is_int(&arg_values),
             "is_float" | "is_double" | "is_real" => builtins::types::is_float(&arg_values),
             "is_string" => builtins::types::is_string(&arg_values),
+            "is_array" => builtins::types::is_array(&arg_values),
             "is_numeric" => builtins::types::is_numeric(&arg_values),
             "isset" => builtins::types::isset(&arg_values),
             "empty" => builtins::types::empty(&arg_values),
@@ -148,6 +388,21 @@ impl<W: Write> Interpreter<W> {
             "print" => builtins::output::print(&mut self.output, &arg_values),
             "var_dump" => builtins::output::var_dump(&mut self.output, &arg_values),
             "print_r" => builtins::output::print_r(&mut self.output, &arg_values),
+
+            // Array functions
+            "count" | "sizeof" => builtins::array::count(&arg_values),
+            "array_push" => builtins::array::array_push(&arg_values),
+            "array_pop" => builtins::array::array_pop(&arg_values),
+            "array_shift" => builtins::array::array_shift(&arg_values),
+            "array_unshift" => builtins::array::array_unshift(&arg_values),
+            "array_keys" => builtins::array::array_keys(&arg_values),
+            "array_values" => builtins::array::array_values(&arg_values),
+            "in_array" => builtins::array::in_array(&arg_values),
+            "array_search" => builtins::array::array_search(&arg_values),
+            "array_reverse" => builtins::array::array_reverse(&arg_values),
+            "array_merge" => builtins::array::array_merge(&arg_values),
+            "array_key_exists" => builtins::array::array_key_exists(&arg_values),
+            "range" => builtins::array::range(&arg_values),
 
             // User-defined function
             _ => {
@@ -650,14 +905,44 @@ impl<W: Write> Interpreter<W> {
                 Ok(ControlFlow::None)
             }
             Stmt::Foreach {
-                array: _,
-                key: _,
-                value: _,
-                body: _,
+                array,
+                key,
+                value,
+                body,
             } => {
-                Err(io::Error::other(
-                    "foreach requires array support (not yet implemented)",
-                ))
+                let array_val = self.eval_expr(array).map_err(|e| {
+                    io::Error::other(e)
+                })?;
+
+                match array_val {
+                    Value::Array(arr) => {
+                        for (k, v) in arr {
+                            // Bind key if specified
+                            if let Some(key_name) = key {
+                                self.variables.insert(key_name.clone(), k.to_value());
+                            }
+
+                            // Bind value
+                            self.variables.insert(value.clone(), v);
+
+                            // Execute body
+                            for stmt in body {
+                                let cf = self.execute_stmt(stmt)?;
+                                match cf {
+                                    ControlFlow::Break => return Ok(ControlFlow::None),
+                                    ControlFlow::Continue => break,
+                                    ControlFlow::Return(v) => return Ok(ControlFlow::Return(v)),
+                                    ControlFlow::None => {}
+                                }
+                            }
+                        }
+                        Ok(ControlFlow::None)
+                    }
+                    _ => {
+                        // PHP would emit a warning here, we just skip
+                        Ok(ControlFlow::None)
+                    }
+                }
             }
             Stmt::Switch {
                 expr,

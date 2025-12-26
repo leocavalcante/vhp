@@ -1,0 +1,14 @@
+--TEST--
+range function
+--FILE--
+<?php
+$arr = range(1, 5);
+foreach ($arr as $num) {
+    echo $num, "\n";
+}
+--EXPECT--
+1
+2
+3
+4
+5

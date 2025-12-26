@@ -1,0 +1,13 @@
+--TEST--
+array_values function
+--FILE--
+<?php
+$arr = ["a" => 10, "b" => 20, "c" => 30];
+$values = array_values($arr);
+foreach ($values as $val) {
+    echo $val, "\n";
+}
+--EXPECT--
+10
+20
+30

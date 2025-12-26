@@ -1,0 +1,8 @@
+--TEST--
+Associative array with string keys
+--FILE--
+<?php
+$arr = ["name" => "John", "age" => 30];
+echo $arr["name"], " is ", $arr["age"];
+--EXPECT--
+John is 30

@@ -1,13 +1,95 @@
 //! Runtime value representation for VHP
 
+use std::fmt;
+use std::hash::{Hash, Hasher};
+
+/// Array key type - PHP arrays support both integer and string keys
+#[derive(Debug, Clone)]
+pub enum ArrayKey {
+    Integer(i64),
+    String(String),
+}
+
+impl PartialEq for ArrayKey {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (ArrayKey::Integer(a), ArrayKey::Integer(b)) => a == b,
+            (ArrayKey::String(a), ArrayKey::String(b)) => a == b,
+            _ => false,
+        }
+    }
+}
+
+impl Eq for ArrayKey {}
+
+impl Hash for ArrayKey {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        match self {
+            ArrayKey::Integer(n) => {
+                0u8.hash(state);
+                n.hash(state);
+            }
+            ArrayKey::String(s) => {
+                1u8.hash(state);
+                s.hash(state);
+            }
+        }
+    }
+}
+
+impl fmt::Display for ArrayKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ArrayKey::Integer(n) => write!(f, "{}", n),
+            ArrayKey::String(s) => write!(f, "{}", s),
+        }
+    }
+}
+
+impl ArrayKey {
+    /// Convert a Value to an ArrayKey following PHP's key coercion rules
+    pub fn from_value(value: &Value) -> ArrayKey {
+        match value {
+            Value::Integer(n) => ArrayKey::Integer(*n),
+            Value::Float(n) => ArrayKey::Integer(*n as i64),
+            Value::Bool(b) => ArrayKey::Integer(if *b { 1 } else { 0 }),
+            Value::Null => ArrayKey::String(String::new()),
+            Value::String(s) => {
+                // PHP converts numeric strings to integer keys
+                if let Ok(n) = s.parse::<i64>() {
+                    ArrayKey::Integer(n)
+                } else {
+                    ArrayKey::String(s.clone())
+                }
+            }
+            Value::Array(_) => ArrayKey::String("Array".to_string()),
+        }
+    }
+
+    /// Convert ArrayKey to a Value
+    pub fn to_value(&self) -> Value {
+        match self {
+            ArrayKey::Integer(n) => Value::Integer(*n),
+            ArrayKey::String(s) => Value::String(s.clone()),
+        }
+    }
+}
+
 /// Runtime value representation
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub enum Value {
     Null,
     Bool(bool),
     Integer(i64),
     Float(f64),
     String(String),
+    Array(Vec<(ArrayKey, Value)>),
+}
+
+impl PartialEq for Value {
+    fn eq(&self, other: &Self) -> bool {
+        self.type_equals(other)
+    }
 }
 
 impl Value {
@@ -31,6 +113,7 @@ impl Value {
                 }
             }
             Value::String(s) => s.clone(),
+            Value::Array(_) => "Array".to_string(),
         }
     }
 
@@ -42,6 +125,7 @@ impl Value {
             Value::Integer(n) => *n != 0,
             Value::Float(n) => *n != 0.0,
             Value::String(s) => !s.is_empty() && s != "0",
+            Value::Array(arr) => !arr.is_empty(),
         }
     }
 
@@ -59,6 +143,13 @@ impl Value {
             Value::Integer(n) => *n,
             Value::Float(n) => *n as i64,
             Value::String(s) => s.parse().unwrap_or(0),
+            Value::Array(arr) => {
+                if arr.is_empty() {
+                    0
+                } else {
+                    1
+                }
+            }
         }
     }
 
@@ -76,6 +167,13 @@ impl Value {
             Value::Integer(n) => *n as f64,
             Value::Float(n) => *n,
             Value::String(s) => s.parse().unwrap_or(0.0),
+            Value::Array(arr) => {
+                if arr.is_empty() {
+                    0.0
+                } else {
+                    1.0
+                }
+            }
         }
     }
 
@@ -99,6 +197,7 @@ impl Value {
                 }
             }
             Value::String(s) => s.clone(),
+            Value::Array(_) => "Array".to_string(),
         }
     }
 
@@ -106,6 +205,11 @@ impl Value {
     #[allow(dead_code)]
     pub fn is_numeric(&self) -> bool {
         matches!(self, Value::Integer(_) | Value::Float(_))
+    }
+
+    /// Check if value is an array
+    pub fn is_array(&self) -> bool {
+        matches!(self, Value::Array(_))
     }
 
     /// Check type equality for === and !==
@@ -116,6 +220,17 @@ impl Value {
             (Value::Integer(a), Value::Integer(b)) => a == b,
             (Value::Float(a), Value::Float(b)) => a == b,
             (Value::String(a), Value::String(b)) => a == b,
+            (Value::Array(a), Value::Array(b)) => {
+                if a.len() != b.len() {
+                    return false;
+                }
+                for ((k1, v1), (k2, v2)) in a.iter().zip(b.iter()) {
+                    if k1 != k2 || !v1.type_equals(v2) {
+                        return false;
+                    }
+                }
+                true
+            }
             _ => false,
         }
     }
@@ -149,7 +264,31 @@ impl Value {
                     false
                 }
             }
+            // Array comparisons
+            (Value::Array(a), Value::Array(b)) => {
+                if a.len() != b.len() {
+                    return false;
+                }
+                for ((k1, v1), (k2, v2)) in a.iter().zip(b.iter()) {
+                    if k1 != k2 || !v1.loose_equals(v2) {
+                        return false;
+                    }
+                }
+                true
+            }
             _ => self.to_bool() == other.to_bool(),
+        }
+    }
+
+    /// Get the PHP type name
+    pub fn get_type(&self) -> &'static str {
+        match self {
+            Value::Null => "NULL",
+            Value::Bool(_) => "boolean",
+            Value::Integer(_) => "integer",
+            Value::Float(_) => "double",
+            Value::String(_) => "string",
+            Value::Array(_) => "array",
         }
     }
 }
