@@ -1473,7 +1473,34 @@ impl<W: Write> Interpreter<W> {
                 // Build methods map
                 let mut methods_map = HashMap::new();
                 let mut visibility_map = HashMap::new();
+                let mut all_properties = Vec::new();
 
+                // If there's a parent class, inherit its properties and methods
+                if let Some(parent_name) = parent {
+                    let parent_name_lower = parent_name.to_lowercase();
+                    if let Some(parent_class) = self.classes.get(&parent_name_lower).cloned() {
+                        // Inherit parent properties
+                        all_properties.extend(parent_class.properties.clone());
+
+                        // Inherit parent methods
+                        for (method_name, method_func) in parent_class.methods.iter() {
+                            methods_map.insert(method_name.clone(), method_func.clone());
+                        }
+                        for (method_name, visibility) in parent_class.method_visibility.iter() {
+                            visibility_map.insert(method_name.clone(), *visibility);
+                        }
+                    } else {
+                        return Err(io::Error::new(
+                            io::ErrorKind::Other,
+                            format!("Parent class '{}' not found", parent_name),
+                        ));
+                    }
+                }
+
+                // Add current class properties (can override parent properties)
+                all_properties.extend(properties.clone());
+
+                // Add current class methods (can override parent methods)
                 for method in methods {
                     let func = UserFunction {
                         params: method.params.clone(),
@@ -1487,7 +1514,7 @@ impl<W: Write> Interpreter<W> {
                 let class_def = ClassDefinition {
                     name: name.clone(),
                     parent: parent.clone(),
-                    properties: properties.clone(),
+                    properties: all_properties,
                     methods: methods_map,
                     method_visibility: visibility_map,
                 };
