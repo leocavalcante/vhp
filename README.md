@@ -73,6 +73,14 @@ See the [full features documentation](https://leocavalcante.github.io/vhp/featur
 
 VHP is an experiment in AI-assisted software development. Every line of code has been written through conversations with AI agents (Claude). The goal is to demonstrate that complex systems like programming language interpreters can be built entirely through natural language prompts.
 
+## Why VHP Instead of Just Vibe Coding Rust?
+
+You might wonder: "If AI can write code, why not just vibe code your project directly in Rust?"
+
+The answer is **existing codebases**. One of VHP's primary goals is to run existing PHP code with zero modifications. There are millions of PHP applications in production today — WordPress, Laravel, Drupal, and countless custom systems. VHP aims to provide a fast, secure runtime for all of them without requiring developers to rewrite their code.
+
+Think of it this way: vibe coding Rust gets you a new application. VHP gets you a new runtime for *all* PHP applications.
+
 ## Contributing
 
 Contributions are welcome! Feel free to:
