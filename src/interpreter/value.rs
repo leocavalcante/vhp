@@ -1,5 +1,6 @@
 //! Runtime value representation for VHP
 
+use std::collections::HashMap;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 
@@ -63,6 +64,7 @@ impl ArrayKey {
                 }
             }
             Value::Array(_) => ArrayKey::String("Array".to_string()),
+            Value::Object(obj) => ArrayKey::String(format!("Object({})", obj.class_name)),
         }
     }
 
@@ -84,6 +86,45 @@ pub enum Value {
     Float(f64),
     String(String),
     Array(Vec<(ArrayKey, Value)>),
+    Object(ObjectInstance),
+}
+
+/// Object instance representation
+#[derive(Debug, Clone)]
+pub struct ObjectInstance {
+    pub class_name: String,
+    pub properties: HashMap<String, Value>,
+}
+
+impl ObjectInstance {
+    pub fn new(class_name: String) -> Self {
+        Self {
+            class_name,
+            properties: HashMap::new(),
+        }
+    }
+}
+
+impl PartialEq for ObjectInstance {
+    fn eq(&self, other: &Self) -> bool {
+        if self.class_name != other.class_name {
+            return false;
+        }
+        if self.properties.len() != other.properties.len() {
+            return false;
+        }
+        for (key, val) in &self.properties {
+            match other.properties.get(key) {
+                Some(other_val) => {
+                    if val != other_val {
+                        return false;
+                    }
+                }
+                None => return false,
+            }
+        }
+        true
+    }
 }
 
 impl PartialEq for Value {
@@ -114,6 +155,7 @@ impl Value {
             }
             Value::String(s) => s.clone(),
             Value::Array(_) => "Array".to_string(),
+            Value::Object(obj) => format!("Object({})", obj.class_name),
         }
     }
 
@@ -126,6 +168,7 @@ impl Value {
             Value::Float(n) => *n != 0.0,
             Value::String(s) => !s.is_empty() && s != "0",
             Value::Array(arr) => !arr.is_empty(),
+            Value::Object(_) => true, // Objects are always truthy
         }
     }
 
@@ -150,6 +193,7 @@ impl Value {
                     1
                 }
             }
+            Value::Object(_) => 1,
         }
     }
 
@@ -174,6 +218,7 @@ impl Value {
                     1.0
                 }
             }
+            Value::Object(_) => 1.0,
         }
     }
 
@@ -198,6 +243,7 @@ impl Value {
             }
             Value::String(s) => s.clone(),
             Value::Array(_) => "Array".to_string(),
+            Value::Object(obj) => format!("Object({})", obj.class_name),
         }
     }
 
@@ -210,6 +256,12 @@ impl Value {
     /// Check if value is an array
     pub fn is_array(&self) -> bool {
         matches!(self, Value::Array(_))
+    }
+
+    /// Check if value is an object
+    #[allow(dead_code)] // Will be used for is_object() built-in function
+    pub fn is_object(&self) -> bool {
+        matches!(self, Value::Object(_))
     }
 
     /// Check type equality for === and !==
@@ -230,6 +282,10 @@ impl Value {
                     }
                 }
                 true
+            }
+            (Value::Object(a), Value::Object(b)) => {
+                // Objects are equal if they have the same class and same properties
+                a.class_name == b.class_name && a.properties == b.properties
             }
             _ => false,
         }
@@ -276,6 +332,10 @@ impl Value {
                 }
                 true
             }
+            // Object comparisons
+            (Value::Object(a), Value::Object(b)) => {
+                a.class_name == b.class_name && a.properties == b.properties
+            }
             _ => self.to_bool() == other.to_bool(),
         }
     }
@@ -289,6 +349,7 @@ impl Value {
             Value::Float(_) => "double",
             Value::String(_) => "string",
             Value::Array(_) => "array",
+            Value::Object(_) => "object",
         }
     }
 }

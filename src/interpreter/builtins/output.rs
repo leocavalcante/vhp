@@ -54,6 +54,15 @@ fn var_dump_value<W: Write>(output: &mut W, value: &Value, indent: usize) -> Res
             }
             writeln!(output, "{}}}", prefix).map_err(|e| e.to_string())?;
         }
+        Value::Object(obj) => {
+            writeln!(output, "{}object({})#1 ({}) {{", prefix, obj.class_name, obj.properties.len())
+                .map_err(|e| e.to_string())?;
+            for (key, val) in &obj.properties {
+                writeln!(output, "{}  [\"{}\"]=>", prefix, key).map_err(|e| e.to_string())?;
+                var_dump_value(output, val, indent + 1)?;
+            }
+            writeln!(output, "{}}}", prefix).map_err(|e| e.to_string())?;
+        }
     }
     Ok(())
 }
@@ -88,6 +97,16 @@ fn print_r_value(value: &Value, indent: usize) -> String {
                 };
                 let val_str = print_r_value(val, indent + 1);
                 result.push_str(&format!("{}    [{}] => {}\n", prefix, key_str, val_str.trim_start()));
+            }
+            result.push_str(&format!("{})\n", prefix));
+            result
+        }
+        Value::Object(obj) => {
+            let mut result = format!("{} Object\n", obj.class_name);
+            result.push_str(&format!("{}(\n", prefix));
+            for (key, val) in &obj.properties {
+                let val_str = print_r_value(val, indent + 1);
+                result.push_str(&format!("{}    [{}] => {}\n", prefix, key, val_str.trim_start()));
             }
             result.push_str(&format!("{})\n", prefix));
             result

@@ -6,9 +6,12 @@
 mod builtins;
 mod value;
 
-pub use value::{ArrayKey, Value};
+pub use value::{ArrayKey, ObjectInstance, Value};
 
-use crate::ast::{AssignOp, BinaryOp, Expr, FunctionParam, Program, Stmt, SwitchCase, UnaryOp};
+use crate::ast::{
+    AssignOp, BinaryOp, Expr, FunctionParam, Program, Property, Stmt, SwitchCase, UnaryOp,
+    Visibility,
+};
 use std::collections::HashMap;
 use std::io::{self, Write};
 
@@ -28,10 +31,24 @@ pub struct UserFunction {
     pub body: Vec<Stmt>,
 }
 
+/// Class definition stored in the interpreter
+#[derive(Debug, Clone)]
+pub struct ClassDefinition {
+    pub name: String,
+    #[allow(dead_code)] // Will be used for inheritance support
+    pub parent: Option<String>,
+    pub properties: Vec<Property>,
+    pub methods: HashMap<String, UserFunction>,
+    #[allow(dead_code)] // Will be used for visibility enforcement
+    pub method_visibility: HashMap<String, Visibility>,
+}
+
 pub struct Interpreter<W: Write> {
     output: W,
     variables: HashMap<String, Value>,
     functions: HashMap<String, UserFunction>,
+    classes: HashMap<String, ClassDefinition>,
+    current_object: Option<ObjectInstance>,
 }
 
 impl<W: Write> Interpreter<W> {
@@ -40,6 +57,8 @@ impl<W: Write> Interpreter<W> {
             output,
             variables: HashMap::new(),
             functions: HashMap::new(),
+            classes: HashMap::new(),
+            current_object: None,
         }
     }
 
@@ -90,6 +109,36 @@ impl<W: Write> Interpreter<W> {
             }
 
             Expr::FunctionCall { name, args } => self.call_function(name, args),
+
+            Expr::New { class_name, args } => self.eval_new(class_name, args),
+
+            Expr::PropertyAccess { object, property } => self.eval_property_access(object, property),
+
+            Expr::MethodCall {
+                object,
+                method,
+                args,
+            } => self.eval_method_call(object, method, args),
+
+            Expr::PropertyAssign {
+                object,
+                property,
+                value,
+            } => self.eval_property_assign(object, property, value),
+
+            Expr::This => {
+                if let Some(ref obj) = self.current_object {
+                    Ok(Value::Object(obj.clone()))
+                } else {
+                    Err("Cannot use $this outside of object context".to_string())
+                }
+            }
+
+            Expr::StaticMethodCall {
+                class_name,
+                method,
+                args,
+            } => self.eval_static_method_call(class_name, method, args),
         }
     }
 
@@ -711,6 +760,269 @@ impl<W: Write> Interpreter<W> {
         Ok(new_value)
     }
 
+    /// Evaluate object instantiation (new ClassName(...))
+    fn eval_new(&mut self, class_name: &str, args: &[Expr]) -> Result<Value, String> {
+        let class_name_lower = class_name.to_lowercase();
+
+        // Look up class definition
+        let class_def = self
+            .classes
+            .get(&class_name_lower)
+            .cloned()
+            .ok_or_else(|| format!("Class '{}' not found", class_name))?;
+
+        // Create new object instance
+        let mut instance = ObjectInstance::new(class_def.name.clone());
+
+        // Initialize properties with default values
+        for prop in &class_def.properties {
+            let default_val = if let Some(ref default_expr) = prop.default {
+                self.eval_expr(default_expr)?
+            } else {
+                Value::Null
+            };
+            instance.properties.insert(prop.name.clone(), default_val);
+        }
+
+        // Check for constructor (__construct)
+        if let Some(constructor) = class_def.methods.get("__construct") {
+            // Evaluate constructor arguments
+            let mut arg_values = Vec::new();
+            for arg in args {
+                arg_values.push(self.eval_expr(arg)?);
+            }
+
+            // Call constructor with $this bound
+            self.call_method_on_object(&mut instance, constructor, &arg_values)?;
+        }
+
+        Ok(Value::Object(instance))
+    }
+
+    /// Evaluate property access ($obj->property)
+    fn eval_property_access(&mut self, object: &Expr, property: &str) -> Result<Value, String> {
+        let obj_value = self.eval_expr(object)?;
+
+        match obj_value {
+            Value::Object(instance) => {
+                instance
+                    .properties
+                    .get(property)
+                    .cloned()
+                    .ok_or_else(|| format!("Undefined property: {}", property))
+            }
+            _ => Err(format!(
+                "Cannot access property on non-object ({})",
+                obj_value.get_type()
+            )),
+        }
+    }
+
+    /// Evaluate method call ($obj->method(...))
+    fn eval_method_call(
+        &mut self,
+        object: &Expr,
+        method: &str,
+        args: &[Expr],
+    ) -> Result<Value, String> {
+        // Get the variable name if object is a variable, so we can update it after the method call
+        let var_name = match object {
+            Expr::Variable(name) => Some(name.clone()),
+            _ => None,
+        };
+
+        let obj_value = self.eval_expr(object)?;
+
+        match obj_value {
+            Value::Object(mut instance) => {
+                let class_name_lower = instance.class_name.to_lowercase();
+
+                // Look up class definition
+                let class_def = self
+                    .classes
+                    .get(&class_name_lower)
+                    .cloned()
+                    .ok_or_else(|| format!("Class '{}' not found", instance.class_name))?;
+
+                let method_lower = method.to_lowercase();
+
+                // Look up method
+                let method_func = class_def
+                    .methods
+                    .get(&method_lower)
+                    .cloned()
+                    .ok_or_else(|| {
+                        format!(
+                            "Call to undefined method {}::{}()",
+                            instance.class_name, method
+                        )
+                    })?;
+
+                // Evaluate arguments
+                let mut arg_values = Vec::new();
+                for arg in args {
+                    arg_values.push(self.eval_expr(arg)?);
+                }
+
+                // Call method with $this bound
+                let result = self.call_method_on_object(&mut instance, &method_func, &arg_values)?;
+
+                // Write back the modified instance to the variable if applicable
+                if let Some(name) = var_name {
+                    self.variables.insert(name, Value::Object(instance));
+                }
+
+                Ok(result)
+            }
+            _ => Err(format!(
+                "Cannot call method on non-object ({})",
+                obj_value.get_type()
+            )),
+        }
+    }
+
+    /// Evaluate property assignment ($obj->property = value)
+    fn eval_property_assign(
+        &mut self,
+        object: &Expr,
+        property: &str,
+        value: &Expr,
+    ) -> Result<Value, String> {
+        // For property assignment, we need to handle $this specially
+        match object {
+            Expr::This => {
+                // Evaluate value first to avoid borrow conflicts
+                let val = self.eval_expr(value)?;
+                if let Some(ref mut obj) = self.current_object {
+                    obj.properties.insert(property.to_string(), val.clone());
+                    Ok(val)
+                } else {
+                    Err("Cannot use $this outside of object context".to_string())
+                }
+            }
+            Expr::Variable(var_name) => {
+                // Evaluate value first
+                let val = self.eval_expr(value)?;
+                // Get the object from variable
+                if let Some(Value::Object(mut instance)) = self.variables.get(var_name).cloned() {
+                    instance.properties.insert(property.to_string(), val.clone());
+                    self.variables
+                        .insert(var_name.clone(), Value::Object(instance));
+                    Ok(val)
+                } else {
+                    Err(format!(
+                        "Cannot access property on non-object variable ${}",
+                        var_name
+                    ))
+                }
+            }
+            _ => {
+                // For other expressions, evaluate and try to assign
+                let obj_value = self.eval_expr(object)?;
+                match obj_value {
+                    Value::Object(_) => Err(
+                        "Cannot assign property on temporary object expression".to_string(),
+                    ),
+                    _ => Err(format!(
+                        "Cannot access property on non-object ({})",
+                        obj_value.get_type()
+                    )),
+                }
+            }
+        }
+    }
+
+    /// Evaluate static method call (ClassName::method(...))
+    fn eval_static_method_call(
+        &mut self,
+        class_name: &str,
+        method: &str,
+        args: &[Expr],
+    ) -> Result<Value, String> {
+        let class_name_lower = class_name.to_lowercase();
+
+        // Look up class definition
+        let class_def = self
+            .classes
+            .get(&class_name_lower)
+            .cloned()
+            .ok_or_else(|| format!("Class '{}' not found", class_name))?;
+
+        let method_lower = method.to_lowercase();
+
+        // Look up method
+        let method_func = class_def.methods.get(&method_lower).cloned().ok_or_else(|| {
+            format!(
+                "Call to undefined method {}::{}()",
+                class_def.name, method
+            )
+        })?;
+
+        // Evaluate arguments
+        let mut arg_values = Vec::new();
+        for arg in args {
+            arg_values.push(self.eval_expr(arg)?);
+        }
+
+        // Call method without $this (static call)
+        self.call_user_function(&method_func, &arg_values)
+    }
+
+    /// Call a method on an object instance
+    fn call_method_on_object(
+        &mut self,
+        instance: &mut ObjectInstance,
+        method: &UserFunction,
+        args: &[Value],
+    ) -> Result<Value, String> {
+        // Save current state
+        let saved_variables = self.variables.clone();
+        let saved_current_object = self.current_object.take();
+
+        // Set current object to this instance
+        self.current_object = Some(instance.clone());
+
+        // Clear variables and set parameters
+        self.variables.clear();
+
+        // Bind arguments to parameters
+        for (i, param) in method.params.iter().enumerate() {
+            let value = if i < args.len() {
+                args[i].clone()
+            } else if let Some(ref default_expr) = param.default {
+                self.eval_expr(default_expr)?
+            } else {
+                Value::Null
+            };
+            self.variables.insert(param.name.clone(), value);
+        }
+
+        // Execute method body
+        let mut return_value = Value::Null;
+        for stmt in &method.body {
+            let cf = self.execute_stmt(stmt).map_err(|e| e.to_string())?;
+            match cf {
+                ControlFlow::Return(v) => {
+                    return_value = v;
+                    break;
+                }
+                ControlFlow::Break | ControlFlow::Continue => break,
+                ControlFlow::None => {}
+            }
+        }
+
+        // Copy back any property changes from $this
+        if let Some(ref obj) = self.current_object {
+            *instance = obj.clone();
+        }
+
+        // Restore previous state
+        self.variables = saved_variables;
+        self.current_object = saved_current_object;
+
+        Ok(return_value)
+    }
+
     pub fn execute(&mut self, program: &Program) -> io::Result<()> {
         for stmt in &program.statements {
             let _ = self.execute_stmt(stmt)?;
@@ -1015,6 +1327,38 @@ impl<W: Write> Interpreter<W> {
                     Value::Null
                 };
                 Ok(ControlFlow::Return(value))
+            }
+            Stmt::Class {
+                name,
+                parent,
+                properties,
+                methods,
+            } => {
+                // Build methods map
+                let mut methods_map = HashMap::new();
+                let mut visibility_map = HashMap::new();
+
+                for method in methods {
+                    let func = UserFunction {
+                        params: method.params.clone(),
+                        body: method.body.clone(),
+                    };
+                    let method_name_lower = method.name.to_lowercase();
+                    methods_map.insert(method_name_lower.clone(), func);
+                    visibility_map.insert(method_name_lower, method.visibility);
+                }
+
+                let class_def = ClassDefinition {
+                    name: name.clone(),
+                    parent: parent.clone(),
+                    properties: properties.clone(),
+                    methods: methods_map,
+                    method_visibility: visibility_map,
+                };
+
+                // Store class definition (case-insensitive)
+                self.classes.insert(name.to_lowercase(), class_def);
+                Ok(ControlFlow::None)
             }
         }
     }
