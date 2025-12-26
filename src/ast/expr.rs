@@ -67,4 +67,40 @@ pub enum Expr {
         name: String,
         args: Vec<Expr>,
     },
+
+    // Object instantiation: new ClassName(args)
+    New {
+        class_name: String,
+        args: Vec<Expr>,
+    },
+
+    // Property access: $obj->property
+    PropertyAccess {
+        object: Box<Expr>,
+        property: String,
+    },
+
+    // Method call: $obj->method(args)
+    MethodCall {
+        object: Box<Expr>,
+        method: String,
+        args: Vec<Expr>,
+    },
+
+    // Property assignment: $obj->property = value
+    PropertyAssign {
+        object: Box<Expr>,
+        property: String,
+        value: Box<Expr>,
+    },
+
+    // $this reference
+    This,
+
+    // Static method call: ClassName::method(args)
+    StaticMethodCall {
+        class_name: String,
+        method: String,
+        args: Vec<Expr>,
+    },
 }

@@ -1,5 +1,31 @@
 use super::expr::Expr;
 
+/// Visibility modifier for class members
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Visibility {
+    Public,
+    Protected,
+    Private,
+}
+
+/// Class property definition
+#[derive(Debug, Clone)]
+pub struct Property {
+    pub name: String,
+    #[allow(dead_code)] // Will be used for visibility enforcement
+    pub visibility: Visibility,
+    pub default: Option<Expr>,
+}
+
+/// Class method definition
+#[derive(Debug, Clone)]
+pub struct Method {
+    pub name: String,
+    pub visibility: Visibility,
+    pub params: Vec<FunctionParam>,
+    pub body: Vec<Stmt>,
+}
+
 /// Statements
 #[derive(Debug, Clone)]
 pub enum Stmt {
@@ -47,6 +73,12 @@ pub enum Stmt {
         body: Vec<Stmt>,
     },
     Return(Option<Expr>),
+    Class {
+        name: String,
+        parent: Option<String>,
+        properties: Vec<Property>,
+        methods: Vec<Method>,
+    },
 }
 
 /// Switch case

@@ -9,4 +9,4 @@ mod stmt;
 
 pub use expr::{ArrayElement, Expr};
 pub use ops::{AssignOp, BinaryOp, UnaryOp};
-pub use stmt::{FunctionParam, Program, Stmt, SwitchCase};
+pub use stmt::{FunctionParam, Method, Program, Property, Stmt, SwitchCase, Visibility};
