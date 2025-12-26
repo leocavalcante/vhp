@@ -179,6 +179,8 @@ Source Code → Lexer → Tokens → Parser → AST → Interpreter → Output
 - [x] Default property values
 - [x] Multiple objects from same class with independent state
 - [x] Case-insensitive class and method names (PHP-compatible)
+- [x] Inheritance with `extends` keyword
+- [x] Parent method calls with `parent::method()`
 
 ### Match Expressions (PHP 8.0)
 - [x] Basic match syntax: `match($expr) { value => result }`
@@ -367,9 +369,10 @@ partial error message to match
 - [x] Property access and method calls
 - [x] Static method calls (`ClassName::method()`)
 - [x] Default property values
+- [x] Inheritance with `extends` keyword
+- [x] Parent method calls with `parent::method()`
 
 **Remaining for Phase 5 (future):**
-- [x] Inheritance (`extends`)
 - [ ] Interfaces and traits
 - [ ] Constructor Property Promotion (PHP 8.0)
 - [ ] Readonly Properties (PHP 8.1) & Classes (PHP 8.2)
