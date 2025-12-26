@@ -34,6 +34,7 @@ pub enum TokenKind {
     Private,      // private
     Protected,    // protected
     Extends,      // extends
+    Parent,       // parent
 
     // Identifiers and Variables
     Variable(String),  // $name

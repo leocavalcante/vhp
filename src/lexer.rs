@@ -194,6 +194,7 @@ impl Lexer {
             "private" => TokenKind::Private,
             "protected" => TokenKind::Protected,
             "extends" => TokenKind::Extends,
+            "parent" => TokenKind::Parent,
             _ => TokenKind::Identifier(ident.to_string()),
         }
     }
