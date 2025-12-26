@@ -402,3 +402,60 @@ $a->increment();
 $b->increment();
 echo $a->count . ", " . $b->count;  // 2, 1
 ```
+
+## Match Expressions (PHP 8.0)
+
+Match expressions are a more powerful alternative to switch statements. They return a value and use strict comparison.
+
+### Basic Match
+
+```php
+<?php
+$food = "apple";
+$result = match($food) {
+    "apple" => "fruit",
+    "carrot" => "vegetable",
+    "chicken" => "meat",
+    default => "unknown",
+};
+echo $result;  // fruit
+```
+
+### Multiple Conditions
+
+```php
+<?php
+$num = 2;
+$result = match($num) {
+    1, 2, 3 => "low",
+    4, 5, 6 => "medium",
+    default => "high",
+};
+echo $result;  // low
+```
+
+### Strict Comparison
+
+Match uses strict (`===`) comparison, unlike switch which uses loose (`==`):
+
+```php
+<?php
+$val = "1";
+echo match($val) {
+    1 => "integer",
+    "1" => "string",
+};  // string
+```
+
+### Match with Expressions
+
+```php
+<?php
+$grade = 85;
+echo match(true) {
+    $grade >= 90 => "A",
+    $grade >= 80 => "B",
+    $grade >= 70 => "C",
+    default => "F",
+};  // B
+```

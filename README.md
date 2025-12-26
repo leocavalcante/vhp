@@ -63,6 +63,7 @@ cargo build --release
 - ✅ Arrays (indexed, associative, nested)
 - ✅ User-defined and recursive functions
 - ✅ Classes & Objects (properties, methods, constructors, `$this`, static calls)
+- ✅ Match expressions (PHP 8.0)
 - ✅ 65+ built-in functions (string, math, array, type, output)
 - ✅ PHP-compatible type coercion
 - ✅ Mixed HTML/PHP support

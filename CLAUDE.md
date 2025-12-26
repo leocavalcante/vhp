@@ -61,7 +61,7 @@ src/
         ├── types.rs     # Type checking/conversion functions (14)
         └── output.rs    # Output functions (4)
 
-tests/                   # Test suite organized by feature (178 tests)
+tests/                   # Test suite organized by feature (189 tests)
 ├── arrays/              # Array tests (18)
 ├── builtins/            # Built-in function tests (21)
 ├── classes/             # Class and object tests (12)
@@ -69,7 +69,7 @@ tests/                   # Test suite organized by feature (178 tests)
 ├── control_flow/        # Control flow tests (25)
 ├── echo/                # Echo statement tests (6)
 ├── errors/              # Error handling tests (3)
-├── expressions/         # Expression evaluation tests (6)
+├── expressions/         # Expression evaluation tests (17)
 ├── functions/           # User-defined function tests (10)
 ├── html/                # HTML passthrough tests (3)
 ├── numbers/             # Numeric literal tests (5)
@@ -179,6 +179,14 @@ Source Code → Lexer → Tokens → Parser → AST → Interpreter → Output
 - [x] Default property values
 - [x] Multiple objects from same class with independent state
 - [x] Case-insensitive class and method names (PHP-compatible)
+
+### Match Expressions (PHP 8.0)
+- [x] Basic match syntax: `match($expr) { value => result }`
+- [x] Multiple conditions per arm: `1, 2, 3 => result`
+- [x] Default arm: `default => result`
+- [x] Strict (===) comparison semantics
+- [x] Match as expression (returns value)
+- [x] Unhandled match error when no arm matches and no default
 
 ## Adding New Features
 
@@ -361,14 +369,14 @@ partial error message to match
 - [x] Default property values
 
 **Remaining for Phase 5 (future):**
-- [ ] Inheritance (`extends`)
+- [x] Inheritance (`extends`)
 - [ ] Interfaces and traits
 - [ ] Constructor Property Promotion (PHP 8.0)
 - [ ] Readonly Properties (PHP 8.1) & Classes (PHP 8.2)
 - [ ] "Clone with" functionality (PHP 8.5)
 
-### Phase 6: Modern PHP 8.x Features (Planned)
-- [ ] Match Expressions (PHP 8.0)
+### Phase 6: Modern PHP 8.x Features (In Progress)
+- [x] Match Expressions (PHP 8.0)
 - [ ] Named Arguments (PHP 8.0)
 - [ ] Attributes (PHP 8.0)
 - [ ] Enums (PHP 8.1)
