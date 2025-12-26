@@ -1,0 +1,11 @@
+--TEST--
+Single-line comment with //
+--DESCRIPTION--
+Tests that // comments are ignored
+--FILE--
+<?php
+// This is a comment
+echo "Hello";
+// Another comment
+--EXPECT--
+Hello

@@ -1,0 +1,8 @@
+--TEST--
+Echo without semicolon before close tag
+--DESCRIPTION--
+Tests that semicolon is optional before ?>
+--FILE--
+<?php echo "No semicolon" ?>
+--EXPECT--
+No semicolon

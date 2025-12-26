@@ -1,0 +1,9 @@
+--TEST--
+Echo zero
+--DESCRIPTION--
+Tests echo with zero value
+--FILE--
+<?php
+echo 0;
+--EXPECT--
+0

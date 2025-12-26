@@ -1,0 +1,9 @@
+--TEST--
+Unterminated string error
+--DESCRIPTION--
+Tests that unterminated strings produce an error
+--FILE--
+<?php
+echo "unterminated;
+--EXPECT_ERROR--
+Unterminated string

@@ -1,0 +1,7 @@
+--TEST--
+Multiplication operator
+--FILE--
+<?php
+echo 6 * 7;
+--EXPECT--
+42

@@ -1,0 +1,10 @@
+--TEST--
+Comparison operators
+--FILE--
+<?php
+echo 5 < 10 ? "y" : "n";
+echo 10 > 5 ? "y" : "n";
+echo 5 <= 5 ? "y" : "n";
+echo 5 >= 5 ? "y" : "n";
+--EXPECT--
+yyyy

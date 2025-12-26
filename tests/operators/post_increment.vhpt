@@ -1,0 +1,8 @@
+--TEST--
+Post-increment operator
+--FILE--
+<?php
+$x = 5;
+echo $x++, ",", $x;
+--EXPECT--
+5,6

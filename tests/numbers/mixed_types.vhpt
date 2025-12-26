@@ -1,0 +1,9 @@
+--TEST--
+Echo mixed types
+--DESCRIPTION--
+Tests echo with mixed string, integer, and float
+--FILE--
+<?php
+echo "Count: ", 42, " Pi: ", 3.14;
+--EXPECT--
+Count: 42 Pi: 3.14

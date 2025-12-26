@@ -1,0 +1,7 @@
+--TEST--
+Assignment expression value
+--FILE--
+<?php
+echo $x = 42;
+--EXPECT--
+42

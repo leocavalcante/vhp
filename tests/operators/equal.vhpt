@@ -1,0 +1,7 @@
+--TEST--
+Loose equality (==)
+--FILE--
+<?php
+echo 5 == "5" ? "yes" : "no";
+--EXPECT--
+yes

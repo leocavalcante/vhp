@@ -1,0 +1,12 @@
+--TEST--
+Multi-line comment
+--DESCRIPTION--
+Tests that /* */ comments are ignored
+--FILE--
+<?php
+/* This is a
+   multi-line
+   comment */
+echo "Hello";
+--EXPECT--
+Hello

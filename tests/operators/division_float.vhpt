@@ -1,0 +1,7 @@
+--TEST--
+Division with float result
+--FILE--
+<?php
+echo 7 / 2;
+--EXPECT--
+3.5

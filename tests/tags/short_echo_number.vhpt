@@ -1,0 +1,8 @@
+--TEST--
+Short echo tag with number
+--DESCRIPTION--
+Tests <?= with a numeric value
+--FILE--
+<p>Count: <?= 42 ?></p>
+--EXPECT--
+<p>Count: 42</p>

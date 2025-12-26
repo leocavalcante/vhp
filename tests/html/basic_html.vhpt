@@ -1,0 +1,16 @@
+--TEST--
+Basic HTML passthrough
+--DESCRIPTION--
+Tests that HTML outside PHP tags is passed through unchanged
+--FILE--
+<html>
+<body>
+Hello
+</body>
+</html>
+--EXPECT--
+<html>
+<body>
+Hello
+</body>
+</html>

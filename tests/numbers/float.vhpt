@@ -1,0 +1,9 @@
+--TEST--
+Echo float literal
+--DESCRIPTION--
+Tests echo with a floating point value
+--FILE--
+<?php
+echo 3.14159;
+--EXPECT--
+3.14159

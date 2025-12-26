@@ -1,0 +1,9 @@
+--TEST--
+Basic echo with single-quoted string
+--DESCRIPTION--
+Tests echo statement with a single-quoted string
+--FILE--
+<?php
+echo 'Hello, World!';
+--EXPECT--
+Hello, World!

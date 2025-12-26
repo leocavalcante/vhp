@@ -1,0 +1,7 @@
+--TEST--
+Unary negation
+--FILE--
+<?php
+echo -42;
+--EXPECT--
+-42

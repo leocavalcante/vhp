@@ -1,0 +1,16 @@
+--TEST--
+Multiple PHP blocks
+--DESCRIPTION--
+Tests multiple PHP blocks with HTML between them
+--FILE--
+<?php echo "First"; ?>
+---
+<?php echo "Second"; ?>
+---
+<?php echo "Third"; ?>
+--EXPECT--
+First
+---
+Second
+---
+Third

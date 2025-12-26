@@ -1,0 +1,9 @@
+--TEST--
+Echo integer literal
+--DESCRIPTION--
+Tests echo with an integer value
+--FILE--
+<?php
+echo 42;
+--EXPECT--
+42

@@ -1,0 +1,7 @@
+--TEST--
+Modulo operator
+--FILE--
+<?php
+echo 17 % 5;
+--EXPECT--
+2

@@ -1,0 +1,9 @@
+--TEST--
+Unexpected identifier error
+--DESCRIPTION--
+Tests that bare identifiers (not variables or keywords) produce an error
+--FILE--
+<?php
+unknown;
+--EXPECT_ERROR--
+Unexpected token Identifier

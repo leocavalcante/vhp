@@ -1,0 +1,9 @@
+--TEST--
+Variable reassignment
+--FILE--
+<?php
+$x = 10;
+$x = 20;
+echo $x;
+--EXPECT--
+20

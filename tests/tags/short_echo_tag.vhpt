@@ -1,0 +1,8 @@
+--TEST--
+Short echo tag
+--DESCRIPTION--
+Tests the <?= short echo tag
+--FILE--
+<p><?= "Hello from short tag" ?></p>
+--EXPECT--
+<p>Hello from short tag</p>

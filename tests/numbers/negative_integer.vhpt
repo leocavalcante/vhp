@@ -1,0 +1,11 @@
+--TEST--
+Echo negative integer
+--DESCRIPTION--
+Tests echo with a negative integer (currently parsed as identifier, will fail)
+--SKIPIF--
+Negative numbers not yet implemented
+--FILE--
+<?php
+echo -42;
+--EXPECT--
+-42

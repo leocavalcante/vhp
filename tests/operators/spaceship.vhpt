@@ -1,0 +1,9 @@
+--TEST--
+Spaceship operator
+--FILE--
+<?php
+echo 1 <=> 2, ",";
+echo 2 <=> 2, ",";
+echo 3 <=> 2;
+--EXPECT--
+-1,0,1

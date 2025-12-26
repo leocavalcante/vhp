@@ -1,0 +1,9 @@
+--TEST--
+Escaped backslash
+--DESCRIPTION--
+Tests \\ escape sequence
+--FILE--
+<?php
+echo "C:\\Users\\test";
+--EXPECT--
+C:\Users\test

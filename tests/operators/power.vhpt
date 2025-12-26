@@ -1,0 +1,7 @@
+--TEST--
+Power operator
+--FILE--
+<?php
+echo 2 ** 10;
+--EXPECT--
+1024

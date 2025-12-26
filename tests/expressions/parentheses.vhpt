@@ -1,0 +1,7 @@
+--TEST--
+Parentheses override precedence
+--FILE--
+<?php
+echo (2 + 3) * 4;
+--EXPECT--
+20

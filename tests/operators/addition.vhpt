@@ -1,0 +1,7 @@
+--TEST--
+Addition operator
+--FILE--
+<?php
+echo 5 + 3;
+--EXPECT--
+8

@@ -1,0 +1,8 @@
+[package]
+name = "vhp"
+version = "0.1.0"
+edition = "2021"
+description = "VHP: Vibe-coded Hypertext Preprocessor - A fast, secure PHP superset built in Rust"
+license = "MIT"
+
+[dependencies]

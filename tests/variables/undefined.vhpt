@@ -1,0 +1,8 @@
+--TEST--
+Undefined variable returns null
+--FILE--
+<?php
+echo $undefined;
+echo "done";
+--EXPECT--
+done

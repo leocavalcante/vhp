@@ -1,0 +1,11 @@
+--TEST--
+Multiple echo statements
+--DESCRIPTION--
+Tests multiple echo statements in sequence
+--FILE--
+<?php
+echo "Line 1";
+echo "Line 2";
+echo "Line 3";
+--EXPECT--
+Line 1Line 2Line 3

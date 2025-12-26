@@ -1,0 +1,11 @@
+--TEST--
+Case insensitive echo
+--DESCRIPTION--
+Tests that ECHO and Echo work the same as echo
+--FILE--
+<?php
+ECHO "UPPER";
+Echo "Mixed";
+echo "lower";
+--EXPECT--
+UPPERMixedlower

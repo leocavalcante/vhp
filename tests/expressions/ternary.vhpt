@@ -1,0 +1,8 @@
+--TEST--
+Ternary operator
+--FILE--
+<?php
+echo true ? "yes" : "no";
+echo false ? "yes" : "no";
+--EXPECT--
+yesno

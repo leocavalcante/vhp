@@ -1,0 +1,7 @@
+--TEST--
+Subtraction operator
+--FILE--
+<?php
+echo 10 - 3;
+--EXPECT--
+7

@@ -1,0 +1,7 @@
+--TEST--
+Division operator
+--FILE--
+<?php
+echo 20 / 4;
+--EXPECT--
+5

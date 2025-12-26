@@ -1,0 +1,9 @@
+--TEST--
+Concat assignment operator
+--FILE--
+<?php
+$s = "Hello";
+$s .= " World";
+echo $s;
+--EXPECT--
+Hello World

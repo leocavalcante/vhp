@@ -1,0 +1,9 @@
+--TEST--
+Echo with multiple comma-separated expressions
+--DESCRIPTION--
+Tests echo with multiple expressions separated by commas
+--FILE--
+<?php
+echo "Hello", ", ", "World", "!";
+--EXPECT--
+Hello, World!

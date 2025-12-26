@@ -1,0 +1,7 @@
+--TEST--
+Operator precedence - multiplication before addition
+--FILE--
+<?php
+echo 2 + 3 * 4;
+--EXPECT--
+14

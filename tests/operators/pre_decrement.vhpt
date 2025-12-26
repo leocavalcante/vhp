@@ -1,0 +1,8 @@
+--TEST--
+Pre-decrement operator
+--FILE--
+<?php
+$x = 5;
+echo --$x, ",", $x;
+--EXPECT--
+4,4

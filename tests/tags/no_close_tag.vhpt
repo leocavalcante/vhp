@@ -1,0 +1,9 @@
+--TEST--
+PHP only mode (no close tag)
+--DESCRIPTION--
+Tests PHP file without closing tag (best practice)
+--FILE--
+<?php
+echo "No close tag";
+--EXPECT--
+No close tag

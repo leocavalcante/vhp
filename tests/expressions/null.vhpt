@@ -1,0 +1,8 @@
+--TEST--
+Null literal
+--FILE--
+<?php
+$x = null;
+echo $x === null ? "yes" : "no";
+--EXPECT--
+yes

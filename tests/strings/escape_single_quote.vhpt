@@ -1,0 +1,9 @@
+--TEST--
+Escaped single quote
+--DESCRIPTION--
+Tests \' escape sequence in single-quoted strings
+--FILE--
+<?php
+echo 'It\'s working';
+--EXPECT--
+It's working

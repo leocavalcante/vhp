@@ -1,0 +1,10 @@
+--TEST--
+Newline escape sequence
+--DESCRIPTION--
+Tests \n escape sequence in double-quoted strings
+--FILE--
+<?php
+echo "Line1\nLine2";
+--EXPECT--
+Line1
+Line2

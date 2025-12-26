@@ -1,0 +1,7 @@
+--TEST--
+String concatenation
+--FILE--
+<?php
+echo "Hello" . " " . "World";
+--EXPECT--
+Hello World

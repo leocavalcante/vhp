@@ -1,0 +1,8 @@
+--TEST--
+Logical OR operator
+--FILE--
+<?php
+echo false || true ? "y" : "n";
+echo false || false ? "y" : "n";
+--EXPECT--
+yn

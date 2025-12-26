@@ -1,0 +1,9 @@
+--TEST--
+Tab escape sequence
+--DESCRIPTION--
+Tests \t escape sequence in double-quoted strings
+--FILE--
+<?php
+echo "Col1\tCol2";
+--EXPECT--
+Col1	Col2

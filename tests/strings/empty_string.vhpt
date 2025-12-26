@@ -1,0 +1,9 @@
+--TEST--
+Empty string
+--DESCRIPTION--
+Tests echo with empty string
+--FILE--
+<?php
+echo "";
+--EXPECT--
+

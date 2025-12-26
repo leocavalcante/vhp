@@ -1,0 +1,9 @@
+--TEST--
+Escaped double quote
+--DESCRIPTION--
+Tests \" escape sequence in double-quoted strings
+--FILE--
+<?php
+echo "He said \"Hello\"";
+--EXPECT--
+He said "Hello"

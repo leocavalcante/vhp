@@ -1,0 +1,8 @@
+--TEST--
+Basic variable assignment
+--FILE--
+<?php
+$x = 42;
+echo $x;
+--EXPECT--
+42

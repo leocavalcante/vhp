@@ -1,0 +1,9 @@
+--TEST--
+Inline comment
+--DESCRIPTION--
+Tests inline comment at end of statement
+--FILE--
+<?php
+echo "Hello"; // inline comment
+--EXPECT--
+Hello

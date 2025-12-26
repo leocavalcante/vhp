@@ -1,0 +1,8 @@
+--TEST--
+Boolean literals
+--FILE--
+<?php
+echo true ? "t" : "f";
+echo false ? "t" : "f";
+--EXPECT--
+tf

@@ -1,0 +1,8 @@
+--TEST--
+Logical NOT operator
+--FILE--
+<?php
+echo !false ? "y" : "n";
+echo !true ? "y" : "n";
+--EXPECT--
+yn
