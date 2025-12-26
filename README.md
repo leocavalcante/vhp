@@ -13,6 +13,12 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/leocavalcante/vhp/actions/workflows/ci.yml"><img src="https://github.com/leocavalcante/vhp/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/leocavalcante/vhp/blob/main/LICENSE"><img src="https://img.shields.io/github/license/leocavalcante/vhp" alt="License"></a>
+  <a href="https://github.com/leocavalcante/vhp"><img src="https://img.shields.io/github/stars/leocavalcante/vhp" alt="Stars"></a>
+</p>
+
+<p align="center">
   <a href="https://leocavalcante.github.io/vhp/features">Features</a> •
   <a href="https://leocavalcante.github.io/vhp/installation">Installation</a> •
   <a href="https://leocavalcante.github.io/vhp/usage">Usage</a> •
