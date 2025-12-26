@@ -9,8 +9,8 @@ mod value;
 pub use value::{ArrayKey, ObjectInstance, Value};
 
 use crate::ast::{
-    AssignOp, BinaryOp, Expr, FunctionParam, Program, Property, Stmt, SwitchCase, UnaryOp,
-    Visibility,
+    AssignOp, BinaryOp, Expr, FunctionParam, MatchArm, Program, Property, Stmt, SwitchCase,
+    UnaryOp, Visibility,
 };
 use std::collections::HashMap;
 use std::io::{self, Write};
@@ -139,6 +139,12 @@ impl<W: Write> Interpreter<W> {
                 method,
                 args,
             } => self.eval_static_method_call(class_name, method, args),
+
+            Expr::Match {
+                expr,
+                arms,
+                default,
+            } => self.eval_match(expr, arms, default),
         }
     }
 
@@ -760,32 +766,74 @@ impl<W: Write> Interpreter<W> {
         Ok(new_value)
     }
 
+    /// Collect all properties from class hierarchy
+    fn collect_properties(&mut self, class_name: &str) -> Result<Vec<Property>, String> {
+        let class_def = self
+            .classes
+            .get(&class_name.to_lowercase())
+            .cloned()
+            .ok_or_else(|| format!("Class '{}' not found", class_name))?;
+
+        let mut properties = if let Some(parent) = &class_def.parent {
+            self.collect_properties(parent)?
+        } else {
+            Vec::new()
+        };
+
+        // Add/override properties from current class
+        for prop in &class_def.properties {
+            if let Some(existing) = properties.iter_mut().find(|p| p.name == prop.name) {
+                *existing = prop.clone();
+            } else {
+                properties.push(prop.clone());
+            }
+        }
+
+        Ok(properties)
+    }
+
+    /// Find method in class hierarchy
+    fn find_method(&self, class_name: &str, method_name: &str) -> Option<UserFunction> {
+        let class_def = self.classes.get(&class_name.to_lowercase())?;
+        
+        if let Some(method) = class_def.methods.get(&method_name.to_lowercase()) {
+            return Some(method.clone());
+        }
+
+        if let Some(parent) = &class_def.parent {
+            self.find_method(parent, method_name)
+        } else {
+            None
+        }
+    }
+
     /// Evaluate object instantiation (new ClassName(...))
     fn eval_new(&mut self, class_name: &str, args: &[Expr]) -> Result<Value, String> {
         let class_name_lower = class_name.to_lowercase();
 
-        // Look up class definition
-        let class_def = self
-            .classes
-            .get(&class_name_lower)
-            .cloned()
-            .ok_or_else(|| format!("Class '{}' not found", class_name))?;
+        // Check if class exists
+        if !self.classes.contains_key(&class_name_lower) {
+            return Err(format!("Class '{}' not found", class_name));
+        }
+
+        // Collect properties from hierarchy
+        let properties = self.collect_properties(class_name)?;
 
         // Create new object instance
-        let mut instance = ObjectInstance::new(class_def.name.clone());
+        let mut instance = ObjectInstance::new(class_name.to_string());
 
         // Initialize properties with default values
-        for prop in &class_def.properties {
+        for prop in properties {
             let default_val = if let Some(ref default_expr) = prop.default {
                 self.eval_expr(default_expr)?
             } else {
                 Value::Null
             };
-            instance.properties.insert(prop.name.clone(), default_val);
+            instance.properties.insert(prop.name, default_val);
         }
 
         // Check for constructor (__construct)
-        if let Some(constructor) = class_def.methods.get("__construct") {
+        if let Some(constructor) = self.find_method(class_name, "__construct") {
             // Evaluate constructor arguments
             let mut arg_values = Vec::new();
             for arg in args {
@@ -793,7 +841,7 @@ impl<W: Write> Interpreter<W> {
             }
 
             // Call constructor with $this bound
-            self.call_method_on_object(&mut instance, constructor, &arg_values)?;
+            self.call_method_on_object(&mut instance, &constructor, &arg_values)?;
         }
 
         Ok(Value::Object(instance))
@@ -835,26 +883,15 @@ impl<W: Write> Interpreter<W> {
 
         match obj_value {
             Value::Object(mut instance) => {
-                let class_name_lower = instance.class_name.to_lowercase();
+                let class_name = instance.class_name.clone();
 
-                // Look up class definition
-                let class_def = self
-                    .classes
-                    .get(&class_name_lower)
-                    .cloned()
-                    .ok_or_else(|| format!("Class '{}' not found", instance.class_name))?;
-
-                let method_lower = method.to_lowercase();
-
-                // Look up method
-                let method_func = class_def
-                    .methods
-                    .get(&method_lower)
-                    .cloned()
+                // Look up method in hierarchy
+                let method_func = self
+                    .find_method(&class_name, method)
                     .ok_or_else(|| {
                         format!(
                             "Call to undefined method {}::{}()",
-                            instance.class_name, method
+                            class_name, method
                         )
                     })?;
 
@@ -939,24 +976,15 @@ impl<W: Write> Interpreter<W> {
         method: &str,
         args: &[Expr],
     ) -> Result<Value, String> {
-        let class_name_lower = class_name.to_lowercase();
-
-        // Look up class definition
-        let class_def = self
-            .classes
-            .get(&class_name_lower)
-            .cloned()
-            .ok_or_else(|| format!("Class '{}' not found", class_name))?;
-
-        let method_lower = method.to_lowercase();
-
-        // Look up method
-        let method_func = class_def.methods.get(&method_lower).cloned().ok_or_else(|| {
-            format!(
-                "Call to undefined method {}::{}()",
-                class_def.name, method
-            )
-        })?;
+        // Look up method in hierarchy
+        let method_func = self
+            .find_method(class_name, method)
+            .ok_or_else(|| {
+                format!(
+                    "Call to undefined method {}::{}()",
+                    class_name, method
+                )
+            })?;
 
         // Evaluate arguments
         let mut arg_values = Vec::new();
@@ -966,6 +994,38 @@ impl<W: Write> Interpreter<W> {
 
         // Call method without $this (static call)
         self.call_user_function(&method_func, &arg_values)
+    }
+
+    /// Evaluate match expression (PHP 8.0)
+    fn eval_match(
+        &mut self,
+        expr: &Expr,
+        arms: &[MatchArm],
+        default: &Option<Box<Expr>>,
+    ) -> Result<Value, String> {
+        let match_value = self.eval_expr(expr)?;
+
+        // Try each arm
+        for arm in arms {
+            // Check if any condition matches (using strict identity comparison)
+            for condition in &arm.conditions {
+                let cond_value = self.eval_expr(condition)?;
+                if match_value.type_equals(&cond_value) {
+                    return self.eval_expr(&arm.result);
+                }
+            }
+        }
+
+        // No match found, try default
+        if let Some(default_expr) = default {
+            return self.eval_expr(default_expr);
+        }
+
+        // PHP 8 throws UnhandledMatchError if no match and no default
+        Err(format!(
+            "Unhandled match value: {}",
+            match_value.to_output_string()
+        ))
     }
 
     /// Call a method on an object instance
