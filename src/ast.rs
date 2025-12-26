@@ -95,6 +95,12 @@ pub enum Expr {
         then_expr: Box<Expr>,
         else_expr: Box<Expr>,
     },
+
+    // Function call
+    FunctionCall {
+        name: String,
+        args: Vec<Expr>,
+    },
 }
 
 /// Statements
@@ -136,6 +142,12 @@ pub enum Stmt {
     },
     Break,
     Continue,
+    Function {
+        name: String,
+        params: Vec<FunctionParam>,
+        body: Vec<Stmt>,
+    },
+    Return(Option<Expr>),
 }
 
 /// Switch case
@@ -143,6 +155,14 @@ pub enum Stmt {
 pub struct SwitchCase {
     pub value: Expr,
     pub body: Vec<Stmt>,
+}
+
+/// Function parameter
+#[derive(Debug, Clone)]
+pub struct FunctionParam {
+    pub name: String,
+    pub default: Option<Expr>,
+    pub by_ref: bool,
 }
 
 #[derive(Debug)]

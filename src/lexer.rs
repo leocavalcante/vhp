@@ -185,6 +185,8 @@ impl Lexer {
             "default" => TokenKind::Default,
             "break" => TokenKind::Break,
             "continue" => TokenKind::Continue,
+            "function" => TokenKind::Function,
+            "return" => TokenKind::Return,
             _ => TokenKind::Identifier(ident.to_string()),
         }
     }
@@ -445,10 +447,8 @@ impl Lexer {
                             self.advance();
                             TokenKind::And
                         } else {
-                            return Err(format!(
-                                "Unexpected character '&' at line {}, column {} (bitwise operators not yet supported)",
-                                line, column
-                            ));
+                            // Single & for by-reference
+                            TokenKind::Identifier("&".to_string())
                         }
                     }
                     '|' => {

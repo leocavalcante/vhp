@@ -23,6 +23,8 @@ pub enum TokenKind {
     Break,        // break
     Continue,     // continue
     Do,           // do
+    Function,     // function
+    Return,       // return
 
     // Identifiers and Variables
     Variable(String),  // $name
