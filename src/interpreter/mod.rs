@@ -50,6 +50,7 @@ pub struct Interpreter<W: Write> {
     classes: HashMap<String, ClassDefinition>,
     current_object: Option<ObjectInstance>,
     current_class: Option<String>,
+    in_constructor: bool, // Track if we're currently in a constructor
 }
 
 impl<W: Write> Interpreter<W> {
@@ -61,6 +62,7 @@ impl<W: Write> Interpreter<W> {
             classes: HashMap::new(),
             current_object: None,
             current_class: None,
+            in_constructor: false,
         }
     }
 
@@ -892,14 +894,19 @@ impl<W: Write> Interpreter<W> {
         // Create new object instance
         let mut instance = ObjectInstance::new(class_name.to_string());
 
-        // Initialize properties with default values
+        // Initialize properties with default values and track readonly
         for prop in properties {
             let default_val = if let Some(ref default_expr) = prop.default {
                 self.eval_expr(default_expr)?
             } else {
                 Value::Null
             };
-            instance.properties.insert(prop.name, default_val);
+            instance.properties.insert(prop.name.clone(), default_val);
+            
+            // Track readonly properties
+            if prop.readonly {
+                instance.readonly_properties.insert(prop.name);
+            }
         }
 
         // Check for constructor (__construct)
@@ -908,7 +915,7 @@ impl<W: Write> Interpreter<W> {
             let arg_values = self.resolve_function_args(args, &constructor.params)?;
 
             // Call constructor with $this bound
-            self.call_method_on_object(&mut instance, &constructor, &arg_values, declaring_class)?;
+            self.call_method_on_object(&mut instance, &constructor, &arg_values, declaring_class, "__construct")?;
         }
 
         Ok(Value::Object(instance))
@@ -966,7 +973,7 @@ impl<W: Write> Interpreter<W> {
                 let arg_values = self.resolve_function_args(args, &method_func.params)?;
 
                 // Call method with $this bound
-                let result = self.call_method_on_object(&mut instance, &method_func, &arg_values, declaring_class)?;
+                let result = self.call_method_on_object(&mut instance, &method_func, &arg_values, declaring_class, method)?;
 
                 // Write back the modified instance to the variable if applicable
                 if let Some(name) = var_name {
@@ -995,7 +1002,18 @@ impl<W: Write> Interpreter<W> {
                 // Evaluate value first to avoid borrow conflicts
                 let val = self.eval_expr(value)?;
                 if let Some(ref mut obj) = self.current_object {
+                    // Check if property is readonly and already initialized
+                    if obj.readonly_properties.contains(property) 
+                        && obj.initialized_properties.contains(property)
+                        && !self.in_constructor {
+                        return Err(format!(
+                            "Cannot modify readonly property {}::${}",
+                            obj.class_name, property
+                        ));
+                    }
+                    
                     obj.properties.insert(property.to_string(), val.clone());
+                    obj.initialized_properties.insert(property.to_string());
                     Ok(val)
                 } else {
                     Err("Cannot use $this outside of object context".to_string())
@@ -1006,7 +1024,17 @@ impl<W: Write> Interpreter<W> {
                 let val = self.eval_expr(value)?;
                 // Get the object from variable
                 if let Some(Value::Object(mut instance)) = self.variables.get(var_name).cloned() {
+                    // Check if property is readonly and already initialized (not in constructor)
+                    if instance.readonly_properties.contains(property) 
+                        && instance.initialized_properties.contains(property) {
+                        return Err(format!(
+                            "Cannot modify readonly property {}::${}",
+                            instance.class_name, property
+                        ));
+                    }
+                    
                     instance.properties.insert(property.to_string(), val.clone());
+                    instance.initialized_properties.insert(property.to_string());
                     self.variables
                         .insert(var_name.clone(), Value::Object(instance));
                     Ok(val)
@@ -1152,15 +1180,20 @@ impl<W: Write> Interpreter<W> {
         method: &UserFunction,
         args: &[Value],
         declaring_class: String,
+        method_name: &str,  // Added to detect constructor
     ) -> Result<Value, String> {
         // Save current state
         let saved_variables = self.variables.clone();
         let saved_current_object = self.current_object.take();
         let saved_current_class = self.current_class.take();
+        let saved_in_constructor = self.in_constructor;
 
         // Set current object to this instance
         self.current_object = Some(instance.clone());
         self.current_class = Some(declaring_class);
+        
+        // Set in_constructor flag if calling __construct
+        self.in_constructor = method_name.to_lowercase() == "__construct";
 
         // Clear variables and set parameters
         self.variables.clear();
@@ -1209,6 +1242,7 @@ impl<W: Write> Interpreter<W> {
         self.variables = saved_variables;
         self.current_object = saved_current_object;
         self.current_class = saved_current_class;
+        self.in_constructor = saved_in_constructor;
 
         Ok(return_value)
     }

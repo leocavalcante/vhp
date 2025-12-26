@@ -94,6 +94,8 @@ pub enum Value {
 pub struct ObjectInstance {
     pub class_name: String,
     pub properties: HashMap<String, Value>,
+    pub readonly_properties: std::collections::HashSet<String>, // Track readonly properties
+    pub initialized_properties: std::collections::HashSet<String>, // Track which properties have been set
 }
 
 impl ObjectInstance {
@@ -101,6 +103,8 @@ impl ObjectInstance {
         Self {
             class_name,
             properties: HashMap::new(),
+            readonly_properties: std::collections::HashSet::new(),
+            initialized_properties: std::collections::HashSet::new(),
         }
     }
 }

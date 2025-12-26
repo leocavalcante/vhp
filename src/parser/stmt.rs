@@ -503,6 +503,7 @@ impl<'a> StmtParser<'a> {
                     default,
                     by_ref,
                     promoted: None,
+                    promoted_readonly: false,
                 });
 
                 if !self.check(&TokenKind::Comma) {
@@ -567,7 +568,7 @@ impl<'a> StmtParser<'a> {
     }
 
     /// Parse class property
-    fn parse_property(&mut self, visibility: Visibility) -> Result<Property, String> {
+    fn parse_property(&mut self, visibility: Visibility, readonly: bool) -> Result<Property, String> {
         let name = if let TokenKind::Variable(name) = &self.current().kind {
             let name = name.clone();
             self.advance();
@@ -595,6 +596,7 @@ impl<'a> StmtParser<'a> {
             name,
             visibility,
             default,
+            readonly,
         })
     }
 
@@ -628,6 +630,14 @@ impl<'a> StmtParser<'a> {
                     Some(visibility)
                 } else {
                     None
+                };
+                
+                // Check for readonly modifier in promoted properties
+                let promoted_readonly = if promoted.is_some() && self.check(&TokenKind::Readonly) {
+                    self.advance();
+                    true
+                } else {
+                    false
                 };
 
                 let by_ref = if let TokenKind::Identifier(s) = &self.current().kind {
@@ -665,6 +675,7 @@ impl<'a> StmtParser<'a> {
                     default,
                     by_ref,
                     promoted,
+                    promoted_readonly,
                 });
 
                 if !self.check(&TokenKind::Comma) {
@@ -735,11 +746,19 @@ impl<'a> StmtParser<'a> {
 
         while !self.check(&TokenKind::RightBrace) && !self.check(&TokenKind::Eof) {
             let visibility = self.parse_visibility();
+            
+            // Check for readonly modifier (PHP 8.1)
+            let readonly = if self.check(&TokenKind::Readonly) {
+                self.advance();
+                true
+            } else {
+                false
+            };
 
             if self.check(&TokenKind::Function) {
                 methods.push(self.parse_method(visibility)?);
             } else if self.check(&TokenKind::Variable(String::new())) {
-                properties.push(self.parse_property(visibility)?);
+                properties.push(self.parse_property(visibility, readonly)?);
             } else {
                 return Err(format!(
                     "Expected property or method in class at line {}, column {}",
