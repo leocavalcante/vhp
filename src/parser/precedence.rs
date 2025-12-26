@@ -4,6 +4,7 @@ use crate::token::TokenKind;
 
 /// Operator precedence levels (higher = binds tighter)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[allow(dead_code)]
 pub enum Precedence {
     None = 0,
     Assignment = 1,    // = += -= etc.

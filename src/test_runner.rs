@@ -8,7 +8,9 @@ use crate::parser::Parser;
 #[derive(Debug, Default)]
 pub struct TestCase {
     pub name: String,
+    #[allow(dead_code)]
     pub description: String,
+    #[allow(dead_code)]
     pub file: String,
     pub code: String,
     pub expected: Option<String>,
@@ -203,7 +205,7 @@ impl TestRunner {
 
             if path.is_dir() {
                 self.discover_recursive(&path, tests)?;
-            } else if path.extension().map_or(false, |ext| ext == "vhpt") {
+            } else if path.extension().is_some_and(|ext| ext == "vhpt") {
                 tests.push(path);
             }
         }

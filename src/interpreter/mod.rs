@@ -469,7 +469,7 @@ impl<W: Write> Interpreter<W> {
             Stmt::Echo(exprs) => {
                 for expr in exprs {
                     let value = self.eval_expr(expr).map_err(|e| {
-                        io::Error::new(io::ErrorKind::Other, e)
+                        io::Error::other(e)
                     })?;
                     write!(self.output, "{}", value.to_output_string())?;
                 }
@@ -477,7 +477,7 @@ impl<W: Write> Interpreter<W> {
             }
             Stmt::Expression(expr) => {
                 self.eval_expr(expr).map_err(|e| {
-                    io::Error::new(io::ErrorKind::Other, e)
+                    io::Error::other(e)
                 })?;
                 Ok(ControlFlow::None)
             }
@@ -492,7 +492,7 @@ impl<W: Write> Interpreter<W> {
                 else_branch,
             } => {
                 let cond_value = self.eval_expr(condition).map_err(|e| {
-                    io::Error::new(io::ErrorKind::Other, e)
+                    io::Error::other(e)
                 })?;
 
                 if cond_value.to_bool() {
@@ -506,7 +506,7 @@ impl<W: Write> Interpreter<W> {
                     let mut executed = false;
                     for (elseif_cond, elseif_body) in elseif_branches {
                         let elseif_value = self.eval_expr(elseif_cond).map_err(|e| {
-                            io::Error::new(io::ErrorKind::Other, e)
+                            io::Error::other(e)
                         })?;
                         if elseif_value.to_bool() {
                             for stmt in elseif_body {
@@ -536,7 +536,7 @@ impl<W: Write> Interpreter<W> {
             Stmt::While { condition, body } => {
                 loop {
                     let cond_value = self.eval_expr(condition).map_err(|e| {
-                        io::Error::new(io::ErrorKind::Other, e)
+                        io::Error::other(e)
                     })?;
 
                     if !cond_value.to_bool() {
@@ -584,7 +584,7 @@ impl<W: Write> Interpreter<W> {
                     }
 
                     let cond_value = self.eval_expr(condition).map_err(|e| {
-                        io::Error::new(io::ErrorKind::Other, e)
+                        io::Error::other(e)
                     })?;
 
                     if !cond_value.to_bool() {
@@ -601,14 +601,14 @@ impl<W: Write> Interpreter<W> {
             } => {
                 if let Some(init_expr) = init {
                     self.eval_expr(init_expr).map_err(|e| {
-                        io::Error::new(io::ErrorKind::Other, e)
+                        io::Error::other(e)
                     })?;
                 }
 
                 loop {
                     if let Some(cond_expr) = condition {
                         let cond_value = self.eval_expr(cond_expr).map_err(|e| {
-                            io::Error::new(io::ErrorKind::Other, e)
+                            io::Error::other(e)
                         })?;
                         if !cond_value.to_bool() {
                             break;
@@ -643,7 +643,7 @@ impl<W: Write> Interpreter<W> {
 
                     if let Some(update_expr) = update {
                         self.eval_expr(update_expr).map_err(|e| {
-                            io::Error::new(io::ErrorKind::Other, e)
+                            io::Error::other(e)
                         })?;
                     }
                 }
@@ -655,8 +655,7 @@ impl<W: Write> Interpreter<W> {
                 value: _,
                 body: _,
             } => {
-                Err(io::Error::new(
-                    io::ErrorKind::Other,
+                Err(io::Error::other(
                     "foreach requires array support (not yet implemented)",
                 ))
             }
@@ -666,7 +665,7 @@ impl<W: Write> Interpreter<W> {
                 default,
             } => {
                 let switch_value = self.eval_expr(expr).map_err(|e| {
-                    io::Error::new(io::ErrorKind::Other, e)
+                    io::Error::other(e)
                 })?;
 
                 let mut matched = false;
@@ -675,7 +674,7 @@ impl<W: Write> Interpreter<W> {
                 for SwitchCase { value, body } in cases {
                     if !matched && !fall_through {
                         let case_value = self.eval_expr(value).map_err(|e| {
-                            io::Error::new(io::ErrorKind::Other, e)
+                            io::Error::other(e)
                         })?;
                         if switch_value.loose_equals(&case_value) {
                             matched = true;
@@ -725,7 +724,7 @@ impl<W: Write> Interpreter<W> {
             Stmt::Return(expr) => {
                 let value = if let Some(e) = expr {
                     self.eval_expr(e).map_err(|e| {
-                        io::Error::new(io::ErrorKind::Other, e)
+                        io::Error::other(e)
                     })?
                 } else {
                     Value::Null

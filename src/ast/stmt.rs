@@ -26,6 +26,8 @@ pub enum Stmt {
         update: Option<Expr>,
         body: Vec<Stmt>,
     },
+    /// Foreach loop (fields will be used when array support is implemented)
+    #[allow(dead_code)]
     Foreach {
         array: Expr,
         key: Option<String>,
@@ -59,6 +61,8 @@ pub struct SwitchCase {
 pub struct FunctionParam {
     pub name: String,
     pub default: Option<Expr>,
+    /// By-reference parameter (will be used when reference semantics are implemented)
+    #[allow(dead_code)]
     pub by_ref: bool,
 }
 

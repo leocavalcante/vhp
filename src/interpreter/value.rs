@@ -102,7 +102,8 @@ impl Value {
         }
     }
 
-    /// Check if value is numeric
+    /// Check if value is numeric (used by is_numeric built-in function)
+    #[allow(dead_code)]
     pub fn is_numeric(&self) -> bool {
         matches!(self, Value::Integer(_) | Value::Float(_))
     }
