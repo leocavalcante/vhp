@@ -905,7 +905,8 @@ impl<W: Write> Interpreter<W> {
                 Value::Null
             };
             instance.properties.insert(prop.name.clone(), default_val);
-            
+            // Mark property as initialized when setting its default value
+            instance.initialized_properties.insert(prop.name.clone());
             // Track readonly properties
             if prop.readonly {
                 instance.readonly_properties.insert(prop.name);
