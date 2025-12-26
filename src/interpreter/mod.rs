@@ -443,9 +443,12 @@ impl<W: Write> Interpreter<W> {
                 FunctionArg::Positional(expr) => {
                     arg_values.push(self.eval_expr(expr)?);
                 }
-                FunctionArg::Named { name: _, value } => {
-                    // For built-ins, treat named args as positional in order
-                    arg_values.push(self.eval_expr(value)?);
+                FunctionArg::Named { name: _, value: _ } => {
+                    // Reject named arguments for built-in functions to avoid misinterpreting them as positional
+                    return Err(format!(
+                        "Named arguments are not supported for built-in function '{}'",
+                        name
+                    ));
                 }
             }
         }
