@@ -16,8 +16,8 @@ VHP is being developed incrementally, with each phase adding new capabilities wh
 | **2. Control Flow** | ✅ Complete | `if`/`else`, `while`, `for`, `do-while`, `switch`, `break`/`continue` |
 | **3. Functions** | ✅ Complete | Declarations, calls, returns, parameters, 50+ built-ins |
 | **4. Arrays** | ✅ Complete | Literals, access, modification, `foreach`, 13 array functions |
-| **5. Classes & Objects** | 🚧 Next | Classes, properties, methods, inheritance, interfaces |
-| **6. VHP Extensions** | 📋 Planned | Type inference, pattern matching, async/await |
+| **5. Classes & Objects** | ✅ Complete | Classes, properties, methods, constructors, `$this`, static calls |
+| **6. Modern PHP 8.x Features** | 📋 Planned | Match Expressions, Named Arguments, Enums, Fibers, Pipe Operator |
 
 ## Phase Details
 
@@ -61,25 +61,36 @@ VHP is being developed incrementally, with each phase adding new capabilities wh
 - `foreach` with arrays (value only and key-value)
 - 13 array functions (`count`, `array_push`, `array_pop`, `in_array`, `array_keys`, `array_values`, `array_merge`, `array_reverse`, `array_search`, `array_key_exists`, `range`, etc.)
 
-### Phase 5: Classes & Objects 🚧
+### Phase 5: Classes & Objects ✅
 
-- Class declarations
-- Properties and methods
-- Constructors
-- Visibility (public, private, protected)
-- Inheritance
+- Class declarations with `class` keyword
+- Properties with visibility modifiers (`public`, `private`, `protected`)
+- Methods with `$this` reference
+- Constructors (`__construct`)
+- Object instantiation with `new`
+- Property access (`$obj->property`)
+- Method calls (`$obj->method()`)
+- Static method calls (`ClassName::method()`)
+- Default property values
+- Multiple objects from same class
+
+**Remaining for Phase 5:**
+- Inheritance (`extends`)
 - Interfaces and traits
-- Static members
+- Constructor Property Promotion (PHP 8.0)
+- Readonly Properties (PHP 8.1) & Classes (PHP 8.2)
+- "Clone with" functionality (PHP 8.5)
 
-### Phase 6: VHP Extensions 💡
+### Phase 6: Modern PHP 8.x Features 📋
 
-Beyond PHP compatibility, VHP aims to introduce modern language features:
+This phase focuses on catching up with major features introduced in PHP 8.0 and beyond.
 
-- **Type inference** - Automatic type detection
-- **Pattern matching** - More powerful switch alternatives
-- **Null coalescing improvements** - Enhanced null safety
-- **Async/await** - Native asynchronous programming
-- **Better error messages** - Developer-friendly diagnostics
+- **Match Expressions** (PHP 8.0) - A more powerful and safer alternative to `switch`.
+- **Named Arguments** (PHP 8.0) - Pass arguments to functions based on parameter names.
+- **Attributes** (PHP 8.0) - Structured metadata for classes, methods, and functions.
+- **Enums** (PHP 8.1) - Support for strongly-typed enumerations.
+- **Fibers** (PHP 8.1) - The foundation for lightweight, cooperative concurrency (async/await).
+- **Pipe Operator** (PHP 8.5) - A functional-style operator for chaining method calls.
 
 ## Contributing to the Roadmap
 

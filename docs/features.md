@@ -295,3 +295,110 @@ echo sprintf("Name: %s, Age: %d", "John", 25);
 #### Output Functions (4)
 
 `print`, `var_dump`, `print_r`, `printf`
+
+## Classes & Objects
+
+### Class Declaration
+
+```php
+<?php
+class Person {
+    public $name;
+    public $age = 0;
+
+    function __construct($name, $age) {
+        $this->name = $name;
+        $this->age = $age;
+    }
+
+    function greet() {
+        return "Hello, my name is " . $this->name;
+    }
+}
+```
+
+### Creating Objects
+
+```php
+<?php
+$person = new Person("Alice", 30);
+echo $person->name;     // Alice
+echo $person->greet();  // Hello, my name is Alice
+```
+
+### Properties
+
+```php
+<?php
+class Box {
+    public $value = 10;    // With default value
+    public $label;         // Without default (null)
+}
+
+$box = new Box();
+echo $box->value;  // 10
+$box->value = 20;  // Modify property
+```
+
+### Visibility Modifiers
+
+VHP supports visibility modifiers for properties and methods:
+
+- `public` - Accessible from anywhere (default)
+- `protected` - Accessible from class and subclasses
+- `private` - Accessible only within the class
+
+### Constructors
+
+```php
+<?php
+class Rectangle {
+    public $width;
+    public $height;
+
+    function __construct($w, $h) {
+        $this->width = $w;
+        $this->height = $h;
+    }
+
+    function area() {
+        return $this->width * $this->height;
+    }
+}
+
+$rect = new Rectangle(10, 5);
+echo $rect->area();  // 50
+```
+
+### Static Method Calls
+
+```php
+<?php
+class Math {
+    function square($n) {
+        return $n * $n;
+    }
+}
+
+echo Math::square(5);  // 25
+```
+
+### Multiple Objects
+
+```php
+<?php
+class Counter {
+    public $count = 0;
+
+    function increment() {
+        $this->count = $this->count + 1;
+    }
+}
+
+$a = new Counter();
+$b = new Counter();
+$a->increment();
+$a->increment();
+$b->increment();
+echo $a->count . ", " . $b->count;  // 2, 1
+```

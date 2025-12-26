@@ -61,9 +61,10 @@ src/
         ├── types.rs     # Type checking/conversion functions (14)
         └── output.rs    # Output functions (4)
 
-tests/                   # Test suite organized by feature (166 tests)
+tests/                   # Test suite organized by feature (178 tests)
 ├── arrays/              # Array tests (18)
 ├── builtins/            # Built-in function tests (21)
+├── classes/             # Class and object tests (12)
 ├── comments/            # Comment syntax tests (4)
 ├── control_flow/        # Control flow tests (25)
 ├── echo/                # Echo statement tests (6)
@@ -165,6 +166,19 @@ Source Code → Lexer → Tokens → Parser → AST → Interpreter → Output
 - [x] Strict equality (`===`) without type coercion
 - [x] PHP truthiness rules for boolean context
 - [x] Automatic type conversion for arithmetic operations
+
+### Classes & Objects
+- [x] Class declarations with `class` keyword
+- [x] Properties with visibility modifiers (`public`, `private`, `protected`)
+- [x] Methods with `$this` reference
+- [x] Constructors (`__construct`)
+- [x] Object instantiation with `new`
+- [x] Property access and modification (`$obj->property`)
+- [x] Method calls (`$obj->method()`)
+- [x] Static method calls (`ClassName::method()`)
+- [x] Default property values
+- [x] Multiple objects from same class with independent state
+- [x] Case-insensitive class and method names (PHP-compatible)
 
 ## Adding New Features
 
@@ -336,20 +350,30 @@ partial error message to match
 - [x] `foreach` with arrays (value only and key-value)
 - [x] Built-in array functions (`count`, `array_push`, `array_pop`, `in_array`, `array_keys`, `array_values`, `array_merge`, `array_reverse`, `array_search`, `array_key_exists`, `range`, etc.)
 
-### Phase 5: Classes & Objects (Next)
-- [ ] Class declarations
-- [ ] Properties and methods
-- [ ] Constructors
-- [ ] Visibility (public, private, protected)
-- [ ] Inheritance
-- [ ] Interfaces and traits
+### Phase 5: Classes & Objects ✅ Complete
+- [x] Class declarations with `class` keyword
+- [x] Properties with visibility modifiers (`public`, `private`, `protected`)
+- [x] Methods with `$this` reference
+- [x] Constructors (`__construct`)
+- [x] Object instantiation with `new`
+- [x] Property access and method calls
+- [x] Static method calls (`ClassName::method()`)
+- [x] Default property values
 
-### Phase 6: VHP Extensions (Beyond PHP)
-- [ ] Type inference
-- [ ] Pattern matching
-- [ ] Null coalescing improvements
-- [ ] Async/await
-- [ ] Better error messages
+**Remaining for Phase 5 (future):**
+- [ ] Inheritance (`extends`)
+- [ ] Interfaces and traits
+- [ ] Constructor Property Promotion (PHP 8.0)
+- [ ] Readonly Properties (PHP 8.1) & Classes (PHP 8.2)
+- [ ] "Clone with" functionality (PHP 8.5)
+
+### Phase 6: Modern PHP 8.x Features (Planned)
+- [ ] Match Expressions (PHP 8.0)
+- [ ] Named Arguments (PHP 8.0)
+- [ ] Attributes (PHP 8.0)
+- [ ] Enums (PHP 8.1)
+- [ ] Fibers (PHP 8.1)
+- [ ] Pipe Operator (PHP 8.5)
 
 ## Code Style Guidelines
 

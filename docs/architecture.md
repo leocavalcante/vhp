@@ -50,8 +50,10 @@ src/
         ├── types.rs     # Type functions (13)
         └── output.rs    # Output functions (4)
 
-tests/                   # 120 tests organized by feature
+tests/                   # 178 tests organized by feature
+├── arrays/              # Array tests (18)
 ├── builtins/            # Built-in function tests (21)
+├── classes/             # Class and object tests (12)
 ├── comments/            # Comment syntax tests (4)
 ├── control_flow/        # Control flow tests (25)
 ├── echo/                # Echo statement tests (6)
