@@ -1213,6 +1213,12 @@ impl<W: Write> Interpreter<W> {
             if let Some(_visibility) = param.promoted {
                 if let Some(ref mut obj) = self.current_object {
                     obj.properties.insert(param.name.clone(), value.clone());
+                    obj.initialized_properties.insert(param.name.clone());
+                    
+                    // Mark as readonly if promoted_readonly is true
+                    if param.promoted_readonly {
+                        obj.readonly_properties.insert(param.name.clone());
+                    }
                 }
             }
             
