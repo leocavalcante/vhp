@@ -621,25 +621,22 @@ impl<'a> StmtParser<'a> {
         let mut params = Vec::new();
         if !self.check(&TokenKind::RightParen) {
             loop {
-                // Check for visibility modifier (constructor property promotion)
-                let promoted = if self.check(&TokenKind::Public)
+                // Disallow visibility/readonly modifiers on parameters here to avoid
+                // accepting constructor property promotion syntax in non-constructors.
+                if self.check(&TokenKind::Public)
                     || self.check(&TokenKind::Protected)
                     || self.check(&TokenKind::Private)
+                    || self.check(&TokenKind::Readonly)
                 {
-                    let visibility = self.parse_visibility();
-                    Some(visibility)
-                } else {
-                    None
-                };
-                
-                // Check for readonly modifier in promoted properties
-                let promoted_readonly = if promoted.is_some() && self.check(&TokenKind::Readonly) {
-                    self.advance();
-                    true
-                } else {
-                    false
-                };
+                    return Err(format!(
+                        "Visibility and readonly modifiers are only allowed on constructor parameters at line {}, column {}",
+                        self.current().line,
+                        self.current().column
+                    ));
+                }
 
+                let promoted = None;
+                let promoted_readonly = false;
                 let by_ref = if let TokenKind::Identifier(s) = &self.current().kind {
                     if s == "&" {
                         self.advance();
