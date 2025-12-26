@@ -459,3 +459,108 @@ echo match(true) {
     default => "F",
 };  // B
 ```
+
+## Named Arguments (PHP 8.0)
+
+Named arguments allow you to pass arguments to functions based on parameter names, not just position.
+
+### Basic Usage
+
+```php
+<?php
+function greet($name, $greeting = "Hello") {
+    echo $greeting . ", " . $name . "!\n";
+}
+
+greet(name: "Alice");              // Hello, Alice!
+greet(name: "Bob", greeting: "Hi");  // Hi, Bob!
+```
+
+### Order Independence
+
+```php
+<?php
+function createUser($username, $email, $role = "user") {
+    // ...
+}
+
+// Order doesn't matter with named arguments
+createUser(email: "user@example.com", username: "john");
+createUser(username: "jane", role: "admin", email: "jane@example.com");
+```
+
+### Mixed Positional and Named
+
+```php
+<?php
+function calc($a, $b, $c = 10, $d = 20) {
+    return $a + $b + $c + $d;
+}
+
+calc(1, 2);           // Positional: 33
+calc(1, 2, d: 30);    // Mixed: 43
+```
+
+## Constructor Property Promotion (PHP 8.0)
+
+Declare and initialize properties directly in the constructor parameter list.
+
+```php
+<?php
+class Person {
+    // Before PHP 8.0 (verbose)
+    // public $name;
+    // public $age;
+    // public function __construct($name, $age) {
+    //     $this->name = $name;
+    //     $this->age = $age;
+    // }
+    
+    // PHP 8.0 (concise)
+    public function __construct(
+        public $name,
+        public $age
+    ) {}
+}
+
+$person = new Person("Alice", 30);
+echo $person->name;  // Alice
+```
+
+## Readonly Properties (PHP 8.1)
+
+Readonly properties can only be initialized once and cannot be modified afterward.
+
+```php
+<?php
+class User {
+    public readonly $id;
+    public $name;
+    
+    public function __construct($id, $name) {
+        $this->id = $id;  // OK: initialization
+        $this->name = $name;
+    }
+    
+    public function changeName($newName) {
+        $this->name = $newName;  // OK: not readonly
+        // $this->id = 999;  // Error: readonly
+    }
+}
+```
+
+### Readonly with Constructor Promotion
+
+```php
+<?php
+class Account {
+    public function __construct(
+        public readonly $id,
+        public $balance = 0
+    ) {}
+}
+
+$account = new Account(12345);
+echo $account->id;  // 12345
+// $account->id = 99999;  // Error: Cannot modify readonly property
+```

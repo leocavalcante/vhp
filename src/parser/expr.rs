@@ -425,11 +425,11 @@ impl<'a> ExprParser<'a> {
                     };
                     self.parse_postfix(call)
                 } else {
-                    return Err(format!(
+                    Err(format!(
                         "Expected '::' after 'parent' at line {}, column {}",
                         token.line,
                         token.column
-                    ));
+                    ))
                 }
             }
             TokenKind::New => {

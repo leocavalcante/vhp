@@ -61,16 +61,16 @@ src/
         ├── types.rs     # Type checking/conversion functions (14)
         └── output.rs    # Output functions (4)
 
-tests/                   # Test suite organized by feature (189 tests)
+tests/                   # Test suite organized by feature (206 tests)
 ├── arrays/              # Array tests (18)
 ├── builtins/            # Built-in function tests (21)
-├── classes/             # Class and object tests (12)
+├── classes/             # Class and object tests (25)
 ├── comments/            # Comment syntax tests (4)
 ├── control_flow/        # Control flow tests (25)
 ├── echo/                # Echo statement tests (6)
 ├── errors/              # Error handling tests (3)
-├── expressions/         # Expression evaluation tests (17)
-├── functions/           # User-defined function tests (10)
+├── expressions/         # Expression evaluation tests (28)
+├── functions/           # User-defined function tests (15)
 ├── html/                # HTML passthrough tests (3)
 ├── numbers/             # Numeric literal tests (5)
 ├── operators/           # Operator tests (23)
@@ -181,6 +181,8 @@ Source Code → Lexer → Tokens → Parser → AST → Interpreter → Output
 - [x] Case-insensitive class and method names (PHP-compatible)
 - [x] Inheritance with `extends` keyword
 - [x] Parent method calls with `parent::method()`
+- [x] Constructor Property Promotion (PHP 8.0)
+- [x] Readonly Properties (PHP 8.1)
 
 ### Match Expressions (PHP 8.0)
 - [x] Basic match syntax: `match($expr) { value => result }`
@@ -189,6 +191,12 @@ Source Code → Lexer → Tokens → Parser → AST → Interpreter → Output
 - [x] Strict (===) comparison semantics
 - [x] Match as expression (returns value)
 - [x] Unhandled match error when no arm matches and no default
+
+### Named Arguments (PHP 8.0)
+- [x] Call functions with named parameters: `func(name: "value")`
+- [x] Order-independent argument passing
+- [x] Mix positional and named arguments
+- [x] Support for user functions, methods, and constructors
 
 ## Adding New Features
 
@@ -371,16 +379,17 @@ partial error message to match
 - [x] Default property values
 - [x] Inheritance with `extends` keyword
 - [x] Parent method calls with `parent::method()`
+- [x] Constructor Property Promotion (PHP 8.0)
+- [x] Readonly Properties (PHP 8.1)
 
 **Remaining for Phase 5 (future):**
 - [ ] Interfaces and traits
-- [ ] Constructor Property Promotion (PHP 8.0)
-- [ ] Readonly Properties (PHP 8.1) & Classes (PHP 8.2)
+- [ ] Readonly Classes (PHP 8.2)
 - [ ] "Clone with" functionality (PHP 8.5)
 
 ### Phase 6: Modern PHP 8.x Features (In Progress)
 - [x] Match Expressions (PHP 8.0)
-- [ ] Named Arguments (PHP 8.0)
+- [x] Named Arguments (PHP 8.0)
 - [ ] Attributes (PHP 8.0)
 - [ ] Enums (PHP 8.1)
 - [ ] Fibers (PHP 8.1)

@@ -1584,8 +1584,7 @@ impl<W: Write> Interpreter<W> {
                             visibility_map.insert(method_name.clone(), *visibility);
                         }
                     } else {
-                        return Err(io::Error::new(
-                            io::ErrorKind::Other,
+                        return Err(io::Error::other(
                             format!("Parent class '{}' not found", parent_name),
                         ));
                     }
