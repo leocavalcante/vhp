@@ -1,0 +1,7 @@
+--TEST--
+Modulo by zero error
+--FILE--
+<?php
+echo 10 % 0;
+--EXPECT_ERROR--
+Division by zero

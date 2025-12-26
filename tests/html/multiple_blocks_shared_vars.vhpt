@@ -1,0 +1,12 @@
+--TEST--
+Multiple PHP blocks with shared variables
+--FILE--
+<?php $x = 10; ?>
+Value is: <?= $x ?>
+<?php $x += 5; ?>
+Now it is: <?= $x ?>
+--EXPECT--
+
+Value is: 10
+
+Now it is: 15

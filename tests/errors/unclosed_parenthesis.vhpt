@@ -1,0 +1,7 @@
+--TEST--
+Unclosed parenthesis error
+--FILE--
+<?php
+echo (1 + 2;
+--EXPECT_ERROR--
+Expected

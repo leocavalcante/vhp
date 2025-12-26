@@ -1,0 +1,11 @@
+--TEST--
+Short echo tag expressions
+--FILE--
+<?php $name = "World"; ?>
+<?= "Hello, " . $name . "!" ?>
+<?= 1 + 2 + 3 ?>
+<?= true ? "yes" : "no" ?>
+--EXPECT--
+Hello, World!
+6
+yes

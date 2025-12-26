@@ -1,0 +1,17 @@
+--TEST--
+var_dump with different types
+--FILE--
+<?php
+var_dump("hello");
+var_dump(42);
+var_dump(3.14);
+var_dump(true);
+var_dump(false);
+var_dump(null);
+--EXPECT--
+string(5) "hello"
+int(42)
+float(3.14)
+bool(true)
+bool(false)
+NULL

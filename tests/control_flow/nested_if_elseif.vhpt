@@ -1,0 +1,22 @@
+--TEST--
+Nested if with multiple elseif
+--FILE--
+<?php
+for ($i = 0; $i < 6; $i++) {
+    if ($i == 0) {
+        echo "zero";
+    } else if ($i == 1) {
+        echo "one";
+    } elseif ($i == 2) {
+        echo "two";
+    } else if ($i == 3) {
+        echo "three";
+    } elseif ($i == 4) {
+        echo "four";
+    } else {
+        echo "other";
+    }
+    echo " ";
+}
+--EXPECT--
+zero one two three four other

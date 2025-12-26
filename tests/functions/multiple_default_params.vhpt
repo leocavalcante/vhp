@@ -1,0 +1,17 @@
+--TEST--
+Function with multiple default parameters
+--FILE--
+<?php
+function greet($name = "World", $greeting = "Hello", $punctuation = "!") {
+    return $greeting . ", " . $name . $punctuation;
+}
+
+echo greet() . "\n";
+echo greet("Leo") . "\n";
+echo greet("Leo", "Hi") . "\n";
+echo greet("Leo", "Hi", "?");
+--EXPECT--
+Hello, World!
+Hello, Leo!
+Hi, Leo!
+Hi, Leo?

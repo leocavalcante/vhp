@@ -1,0 +1,21 @@
+--TEST--
+Loose vs strict equality
+--FILE--
+<?php
+// Loose equality (type coercion)
+echo (1 == "1") ? "T" : "F";
+echo (0 == false) ? "T" : "F";
+echo (1 == true) ? "T" : "F";
+echo ("" == false) ? "T" : "F";
+echo (null == false) ? "T" : "F";
+echo "\n";
+
+// Strict equality (no coercion)
+echo (1 === "1") ? "T" : "F";
+echo (0 === false) ? "T" : "F";
+echo (1 === true) ? "T" : "F";
+echo (1 === 1) ? "T" : "F";
+echo ("a" === "a") ? "T" : "F";
+--EXPECT--
+TTTTT
+FFFTT

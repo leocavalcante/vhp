@@ -1,0 +1,10 @@
+--TEST--
+Wrong argument count error
+--FILE--
+<?php
+function greet($name) {
+    return "Hello, " . $name;
+}
+greet();
+--EXPECT_ERROR--
+argument

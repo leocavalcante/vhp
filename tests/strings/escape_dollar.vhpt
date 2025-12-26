@@ -1,0 +1,10 @@
+--TEST--
+Dollar sign escape in double-quoted string
+--FILE--
+<?php
+echo "Price: \$100";
+echo "\n";
+echo "Variable: \$name";
+--EXPECT--
+Price: $100
+Variable: $name

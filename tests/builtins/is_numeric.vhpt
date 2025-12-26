@@ -1,0 +1,25 @@
+--TEST--
+is_numeric function
+--FILE--
+<?php
+echo is_numeric(42) ? "yes" : "no";
+echo "\n";
+echo is_numeric("42") ? "yes" : "no";
+echo "\n";
+echo is_numeric("3.14") ? "yes" : "no";
+echo "\n";
+echo is_numeric("-100") ? "yes" : "no";
+echo "\n";
+echo is_numeric("hello") ? "yes" : "no";
+echo "\n";
+echo is_numeric("12abc") ? "yes" : "no";
+echo "\n";
+echo is_numeric("") ? "yes" : "no";
+--EXPECT--
+yes
+yes
+yes
+yes
+no
+no
+no

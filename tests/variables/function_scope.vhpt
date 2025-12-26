@@ -1,0 +1,19 @@
+--TEST--
+Function local scope does not leak
+--FILE--
+<?php
+$x = "global";
+
+function test() {
+    $x = "local";
+    $y = "also local";
+    echo $x . "\n";
+}
+
+test();
+echo $x . "\n";
+echo isset($y) ? "y exists" : "y undefined";
+--EXPECT--
+local
+global
+y undefined

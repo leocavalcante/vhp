@@ -1,0 +1,10 @@
+--TEST--
+Logical operators xor
+--FILE--
+<?php
+echo (true xor false) ? "T" : "F";
+echo (false xor true) ? "T" : "F";
+echo (true xor true) ? "T" : "F";
+echo (false xor false) ? "T" : "F";
+--EXPECT--
+TTFF

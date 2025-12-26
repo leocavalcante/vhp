@@ -1,0 +1,41 @@
+--TEST--
+String concatenation edge cases
+--FILE--
+<?php
+// Empty string concatenation
+echo "" . "";
+echo "\n";
+echo "hello" . "";
+echo "\n";
+echo "" . "world";
+echo "\n";
+
+// Multiple concatenations
+echo "a" . "b" . "c" . "d";
+echo "\n";
+
+// Concatenation with numbers (type coercion)
+echo "value: " . 42;
+echo "\n";
+echo 3.14 . " is pi";
+echo "\n";
+
+// Concatenation with booleans
+echo "bool: " . true;
+echo "\n";
+echo false . "end";
+echo "\n";
+
+// Concatenation with null
+echo "null: " . null;
+echo "\n";
+--EXPECT--
+
+hello
+world
+abcd
+value: 42
+3.14 is pi
+bool: 1
+end
+null:

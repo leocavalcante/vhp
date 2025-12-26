@@ -1,0 +1,14 @@
+--TEST--
+Do-while with break
+--FILE--
+<?php
+$i = 0;
+do {
+    if ($i == 3) {
+        break;
+    }
+    echo $i;
+    $i++;
+} while ($i < 10);
+--EXPECT--
+012

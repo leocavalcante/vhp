@@ -1,0 +1,16 @@
+--TEST--
+Triple nested loops with break
+--FILE--
+<?php
+for ($i = 0; $i < 2; $i++) {
+    for ($j = 0; $j < 3; $j++) {
+        for ($k = 0; $k < 4; $k++) {
+            if ($k == 2) {
+                break;
+            }
+            echo $i . $j . $k . " ";
+        }
+    }
+}
+--EXPECT--
+000 001 010 011 020 021 100 101 110 111 120 121

@@ -1,0 +1,21 @@
+--TEST--
+Switch with multiple cases per value
+--FILE--
+<?php
+for ($i = 0; $i < 5; $i++) {
+    switch ($i) {
+        case 0:
+        case 1:
+            echo "low ";
+            break;
+        case 2:
+            echo "mid ";
+            break;
+        case 3:
+        case 4:
+            echo "high ";
+            break;
+    }
+}
+--EXPECT--
+low low mid high high

@@ -1,0 +1,22 @@
+--TEST--
+Variables in expressions
+--FILE--
+<?php
+$a = 10;
+$b = 3;
+
+echo ($a + $b) . "\n";
+echo ($a - $b) . "\n";
+echo ($a * $b) . "\n";
+echo ($a / $b) . "\n";
+echo ($a % $b) . "\n";
+echo ($a ** $b) . "\n";
+echo ($a <=> $b);
+--EXPECT--
+13
+7
+30
+3.3333333333333335
+1
+1000
+1

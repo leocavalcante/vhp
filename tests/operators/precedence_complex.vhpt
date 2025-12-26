@@ -1,0 +1,26 @@
+--TEST--
+Operator precedence complex
+--FILE--
+<?php
+// Multiplication before addition
+echo 2 + 3 * 4 . "\n";
+
+// Power before multiplication
+echo 2 * 3 ** 2 . "\n";
+
+// Comparison before logical
+echo (1 < 2 && 3 > 2) ? "yes" : "no";
+echo "\n";
+
+// Ternary with comparison
+echo 5 > 3 ? "a" : 5 < 3 ? "b" : "c";
+echo "\n";
+
+// Complex expression
+echo 10 - 2 * 3 + 4 / 2;
+--EXPECT--
+14
+18
+yes
+a
+6

@@ -1,0 +1,16 @@
+--TEST--
+substr with negative indices
+--FILE--
+<?php
+$str = "Hello, World!";
+echo substr($str, -6) . "\n";
+echo substr($str, -6, 5) . "\n";
+echo substr($str, 0, -1) . "\n";
+echo substr($str, 7, -1) . "\n";
+echo substr($str, -6, -1);
+--EXPECT--
+World!
+World
+Hello, World
+World
+World

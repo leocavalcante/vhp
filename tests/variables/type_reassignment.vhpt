@@ -1,0 +1,24 @@
+--TEST--
+Variable reassignment with different types
+--FILE--
+<?php
+$x = 42;
+echo gettype($x) . ": " . $x . "\n";
+
+$x = "hello";
+echo gettype($x) . ": " . $x . "\n";
+
+$x = 3.14;
+echo gettype($x) . ": " . $x . "\n";
+
+$x = true;
+echo gettype($x) . ": " . $x . "\n";
+
+$x = null;
+echo gettype($x) . ": " . (is_null($x) ? "null" : $x);
+--EXPECT--
+integer: 42
+string: hello
+double: 3.14
+boolean: 1
+NULL: null

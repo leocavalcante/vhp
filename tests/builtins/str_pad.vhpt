@@ -1,0 +1,16 @@
+--TEST--
+str_pad function with numeric pad_type
+--FILE--
+<?php
+// STR_PAD_LEFT = 0, STR_PAD_RIGHT = 1, STR_PAD_BOTH = 2
+echo str_pad("1", 3, "0", 0) . "\n";
+echo str_pad("1", 3, "0", 1) . "\n";
+echo str_pad("1", 3, "0", 2) . "\n";
+echo str_pad("test", 8, "-") . "\n";
+echo str_pad("test", 2);
+--EXPECT--
+001
+100
+010
+test----
+test

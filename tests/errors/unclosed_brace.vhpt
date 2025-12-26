@@ -1,0 +1,8 @@
+--TEST--
+Unclosed brace error
+--FILE--
+<?php
+if (true) {
+    echo "hello";
+--EXPECT_ERROR--
+Expected

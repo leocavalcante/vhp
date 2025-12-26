@@ -1,0 +1,13 @@
+--TEST--
+While loop with complex condition
+--FILE--
+<?php
+$x = 0;
+$y = 10;
+while ($x < 5 && $y > 5) {
+    echo $x . ":" . $y . " ";
+    $x++;
+    $y--;
+}
+--EXPECT--
+0:10 1:9 2:8 3:7 4:6

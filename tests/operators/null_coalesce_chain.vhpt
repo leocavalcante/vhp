@@ -1,0 +1,17 @@
+--TEST--
+Null coalescing chain
+--FILE--
+<?php
+$a = null;
+$b = null;
+$c = "found";
+echo $a ?? $b ?? $c ?? "default";
+echo "\n";
+echo $a ?? "fallback";
+echo "\n";
+$x = "value";
+echo $x ?? "unused";
+--EXPECT--
+found
+fallback
+value

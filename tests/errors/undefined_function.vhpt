@@ -1,0 +1,7 @@
+--TEST--
+Undefined function error
+--FILE--
+<?php
+undefined_function();
+--EXPECT_ERROR--
+undefined function
