@@ -35,6 +35,8 @@ pub enum TokenKind {
     Protected,    // protected
     Extends,      // extends
     Parent,       // parent
+    Enum,         // enum (PHP 8.1)
+    Readonly,     // readonly (PHP 8.1)
 
     // Identifiers and Variables
     Variable(String),  // $name
