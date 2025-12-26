@@ -1,4 +1,4 @@
-use crate::ast::{AssignOp, BinaryOp, Expr, Program, Stmt, SwitchCase, UnaryOp};
+use crate::ast::{AssignOp, BinaryOp, Expr, FunctionParam, Program, Stmt, SwitchCase, UnaryOp};
 use crate::token::{Token, TokenKind};
 
 /// Operator precedence levels (higher = binds tighter)
@@ -235,6 +235,34 @@ impl Parser {
                         "Expected variable after '--' at line {}, column {}",
                         self.current().line,
                         self.current().column
+                    ))
+                }
+            }
+            TokenKind::Identifier(name) => {
+                let name = name.clone();
+                self.advance();
+
+                // Check for function call
+                if self.check(&TokenKind::LeftParen) {
+                    self.advance(); // consume '('
+                    let mut args = Vec::new();
+
+                    if !self.check(&TokenKind::RightParen) {
+                        args.push(self.parse_expression(Precedence::None)?);
+
+                        while self.check(&TokenKind::Comma) {
+                            self.advance();
+                            args.push(self.parse_expression(Precedence::None)?);
+                        }
+                    }
+
+                    self.consume(TokenKind::RightParen, "Expected ')' after function arguments")?;
+                    Ok(Expr::FunctionCall { name, args })
+                } else {
+                    // Just an identifier - could be a constant, treat as undefined for now
+                    Err(format!(
+                        "Unexpected identifier '{}' at line {}, column {}",
+                        name, token.line, token.column
                     ))
                 }
             }
@@ -836,6 +864,112 @@ impl Parser {
         Ok(Stmt::Continue)
     }
 
+    /// Parse function declaration
+    fn parse_function(&mut self) -> Result<Stmt, String> {
+        self.advance(); // consume 'function'
+
+        // Get function name
+        let name = if let TokenKind::Identifier(name) = &self.current().kind {
+            let name = name.clone();
+            self.advance();
+            name
+        } else {
+            return Err(format!(
+                "Expected function name at line {}, column {}",
+                self.current().line,
+                self.current().column
+            ));
+        };
+
+        self.consume(TokenKind::LeftParen, "Expected '(' after function name")?;
+
+        // Parse parameters
+        let mut params = Vec::new();
+        if !self.check(&TokenKind::RightParen) {
+            loop {
+                // Check for by-reference parameter
+                let by_ref = if let TokenKind::Identifier(s) = &self.current().kind {
+                    if s == "&" {
+                        self.advance();
+                        true
+                    } else {
+                        false
+                    }
+                } else {
+                    false
+                };
+
+                // Get parameter name
+                let param_name = if let TokenKind::Variable(name) = &self.current().kind {
+                    let name = name.clone();
+                    self.advance();
+                    name
+                } else {
+                    return Err(format!(
+                        "Expected parameter name at line {}, column {}",
+                        self.current().line,
+                        self.current().column
+                    ));
+                };
+
+                // Check for default value
+                let default = if self.check(&TokenKind::Assign) {
+                    self.advance();
+                    Some(self.parse_expression(Precedence::None)?)
+                } else {
+                    None
+                };
+
+                params.push(FunctionParam {
+                    name: param_name,
+                    default,
+                    by_ref,
+                });
+
+                if !self.check(&TokenKind::Comma) {
+                    break;
+                }
+                self.advance();
+            }
+        }
+
+        self.consume(TokenKind::RightParen, "Expected ')' after parameters")?;
+        self.consume(TokenKind::LeftBrace, "Expected '{' before function body")?;
+
+        // Parse function body
+        let mut body = Vec::new();
+        while !self.check(&TokenKind::RightBrace) && !self.check(&TokenKind::Eof) {
+            if let Some(stmt) = self.parse_statement()? {
+                body.push(stmt);
+            }
+        }
+
+        self.consume(TokenKind::RightBrace, "Expected '}' after function body")?;
+
+        Ok(Stmt::Function { name, params, body })
+    }
+
+    /// Parse return statement
+    fn parse_return(&mut self) -> Result<Stmt, String> {
+        self.advance(); // consume 'return'
+
+        // Check if there's a value to return
+        let value = if self.check(&TokenKind::Semicolon)
+            || self.check(&TokenKind::CloseTag)
+            || self.check(&TokenKind::Eof)
+        {
+            None
+        } else {
+            Some(self.parse_expression(Precedence::None)?)
+        };
+
+        if self.check(&TokenKind::Semicolon) {
+            self.advance();
+        }
+
+        Ok(Stmt::Return(value))
+    }
+
     /// Parse expression statement
     fn parse_expression_statement(&mut self) -> Result<Stmt, String> {
         let expr = self.parse_expression(Precedence::None)?;
@@ -873,6 +1007,8 @@ impl Parser {
             TokenKind::Switch => Ok(Some(self.parse_switch()?)),
             TokenKind::Break => Ok(Some(self.parse_break()?)),
             TokenKind::Continue => Ok(Some(self.parse_continue()?)),
+            TokenKind::Function => Ok(Some(self.parse_function()?)),
+            TokenKind::Return => Ok(Some(self.parse_return()?)),
             TokenKind::Html(html) => {
                 self.advance();
                 Ok(Some(Stmt::Html(html)))
@@ -890,7 +1026,8 @@ impl Parser {
             | TokenKind::Minus
             | TokenKind::Not
             | TokenKind::Increment
-            | TokenKind::Decrement => Ok(Some(self.parse_expression_statement()?)),
+            | TokenKind::Decrement
+            | TokenKind::Identifier(_) => Ok(Some(self.parse_expression_statement()?)),
             _ => Err(format!(
                 "Unexpected token {:?} at line {}, column {}",
                 token.kind, token.line, token.column
