@@ -427,6 +427,51 @@ impl<'a> ExprParser<'a> {
                     ))
                 }
             }
+            TokenKind::Parent => {
+                self.advance(); // consume 'parent'
+
+                // parent::method() call
+                if self.check(&TokenKind::DoubleColon) {
+                    self.advance(); // consume '::'
+                    let method = if let TokenKind::Identifier(method_name) = &self.current().kind {
+                        let method_name = method_name.clone();
+                        self.advance();
+                        method_name
+                    } else {
+                        return Err(format!(
+                            "Expected method name after 'parent::' at line {}, column {}",
+                            self.current().line,
+                            self.current().column
+                        ));
+                    };
+
+                    self.consume(TokenKind::LeftParen, "Expected '(' after parent method name")?;
+                    let mut args = Vec::new();
+
+                    if !self.check(&TokenKind::RightParen) {
+                        args.push(self.parse_expression(Precedence::None)?);
+
+                        while self.check(&TokenKind::Comma) {
+                            self.advance();
+                            args.push(self.parse_expression(Precedence::None)?);
+                        }
+                    }
+
+                    self.consume(TokenKind::RightParen, "Expected ')' after parent method arguments")?;
+                    let call = Expr::StaticMethodCall {
+                        class_name: "parent".to_string(),
+                        method,
+                        args,
+                    };
+                    self.parse_postfix(call)
+                } else {
+                    return Err(format!(
+                        "Expected '::' after 'parent' at line {}, column {}",
+                        token.line,
+                        token.column
+                    ));
+                }
+            }
             TokenKind::New => {
                 self.advance(); // consume 'new'
                 let class_name = if let TokenKind::Identifier(name) = &self.current().kind {
