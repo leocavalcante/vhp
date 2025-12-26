@@ -1,0 +1,14 @@
+--TEST--
+Match expression unhandled error
+--DESCRIPTION--
+Tests that match throws error when no arm matches and no default
+--FILE--
+<?php
+$x = 5;
+$result = match($x) {
+    1 => "one",
+    2 => "two",
+};
+echo $result;
+--EXPECT_ERROR--
+Unhandled match value

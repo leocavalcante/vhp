@@ -1,0 +1,15 @@
+--TEST--
+Match expression with default
+--DESCRIPTION--
+Tests match expression with default arm
+--FILE--
+<?php
+$x = 5;
+$result = match($x) {
+    1 => "one",
+    2 => "two",
+    default => "other",
+};
+echo $result;
+--EXPECT--
+other

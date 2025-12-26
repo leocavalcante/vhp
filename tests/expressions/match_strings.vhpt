@@ -1,0 +1,16 @@
+--TEST--
+Match expression with string values
+--DESCRIPTION--
+Tests match expression matching strings
+--FILE--
+<?php
+$color = "red";
+$result = match($color) {
+    "red" => "#FF0000",
+    "green" => "#00FF00",
+    "blue" => "#0000FF",
+    default => "#000000",
+};
+echo $result;
+--EXPECT--
+#FF0000

@@ -1,0 +1,20 @@
+--TEST--
+Match expression as function return
+--DESCRIPTION--
+Tests match expression used directly in return statement
+--FILE--
+<?php
+function getLabel($val) {
+    return match($val) {
+        0 => "zero",
+        1 => "one",
+        default => "many",
+    };
+}
+echo getLabel(0) . "\n";
+echo getLabel(1) . "\n";
+echo getLabel(100);
+--EXPECT--
+zero
+one
+many

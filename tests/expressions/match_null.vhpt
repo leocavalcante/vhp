@@ -1,0 +1,15 @@
+--TEST--
+Match expression with null
+--DESCRIPTION--
+Tests match expression matching null value
+--FILE--
+<?php
+$val = null;
+$result = match($val) {
+    null => "nothing",
+    0 => "zero",
+    default => "something",
+};
+echo $result;
+--EXPECT--
+nothing

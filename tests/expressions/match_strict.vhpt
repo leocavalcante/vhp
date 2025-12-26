@@ -1,0 +1,15 @@
+--TEST--
+Match expression with strict comparison
+--DESCRIPTION--
+Tests that match uses strict (===) comparison, not loose (==)
+--FILE--
+<?php
+$x = "1";
+$result = match($x) {
+    1 => "integer one",
+    "1" => "string one",
+    default => "other",
+};
+echo $result;
+--EXPECT--
+string one

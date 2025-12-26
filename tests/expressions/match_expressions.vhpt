@@ -1,0 +1,15 @@
+--TEST--
+Match expression with expressions as values
+--DESCRIPTION--
+Tests match expression with expressions (not just literals) as arm values
+--FILE--
+<?php
+$x = 6;
+$result = match($x) {
+    1 + 1 => "two",
+    3 * 2 => "six",
+    default => "other",
+};
+echo $result;
+--EXPECT--
+six

@@ -1,0 +1,15 @@
+--TEST--
+Basic match expression
+--DESCRIPTION--
+Tests basic match expression with simple values
+--FILE--
+<?php
+$x = 1;
+$result = match($x) {
+    1 => "one",
+    2 => "two",
+    3 => "three",
+};
+echo $result;
+--EXPECT--
+one

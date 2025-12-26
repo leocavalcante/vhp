@@ -1,0 +1,14 @@
+--TEST--
+Match expression with boolean
+--DESCRIPTION--
+Tests match expression matching boolean values
+--FILE--
+<?php
+$flag = true;
+$result = match($flag) {
+    true => "yes",
+    false => "no",
+};
+echo $result;
+--EXPECT--
+yes

@@ -1,0 +1,15 @@
+--TEST--
+Match expression with multiple conditions
+--DESCRIPTION--
+Tests match expression with multiple conditions per arm
+--FILE--
+<?php
+$x = 2;
+$result = match($x) {
+    1, 2, 3 => "low",
+    4, 5, 6 => "medium",
+    default => "high",
+};
+echo $result;
+--EXPECT--
+low
