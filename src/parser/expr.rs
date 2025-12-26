@@ -1,6 +1,6 @@
 //! Expression parsing
 
-use crate::ast::{ArrayElement, AssignOp, BinaryOp, Expr, UnaryOp};
+use crate::ast::{ArrayElement, AssignOp, BinaryOp, Expr, MatchArm, UnaryOp};
 use crate::token::{Token, TokenKind};
 use super::precedence::{Precedence, get_precedence, is_right_assoc};
 
@@ -89,6 +89,81 @@ impl<'a> ExprParser<'a> {
 
         self.consume(TokenKind::RightBracket, "Expected ']' after array elements")?;
         Ok(Expr::Array(elements))
+    }
+
+    /// Parse match expression: match ($expr) { cond1, cond2 => result, default => result }
+    fn parse_match(&mut self) -> Result<Expr, String> {
+        self.advance(); // consume 'match'
+        self.consume(TokenKind::LeftParen, "Expected '(' after 'match'")?;
+        let expr = self.parse_expression(Precedence::None)?;
+        self.consume(TokenKind::RightParen, "Expected ')' after match expression")?;
+        self.consume(TokenKind::LeftBrace, "Expected '{' to start match body")?;
+
+        let mut arms = Vec::new();
+        let mut default: Option<Box<Expr>> = None;
+
+        while !self.check(&TokenKind::RightBrace) && !self.check(&TokenKind::Eof) {
+            // Check for default arm
+            if self.check(&TokenKind::Default) {
+                self.advance(); // consume 'default'
+                self.consume(TokenKind::DoubleArrow, "Expected '=>' after 'default'")?;
+                let result = self.parse_expression(Precedence::None)?;
+                default = Some(Box::new(result));
+
+                // Optional comma after arm
+                if self.check(&TokenKind::Comma) {
+                    self.advance();
+                }
+                continue;
+            }
+
+            // Parse conditions (can be multiple, comma-separated before =>)
+            let mut conditions = Vec::new();
+            conditions.push(self.parse_expression(Precedence::None)?);
+
+            // Handle multiple conditions: 1, 2 => ...
+            while self.check(&TokenKind::Comma) {
+                // Peek ahead to see if this is a continuation of conditions or the next arm
+                let next_pos = *self.pos + 1;
+                if next_pos < self.tokens.len() {
+                    // Check if after comma we have '=>' (end of conditions) or '}' (malformed)
+                    // or another expression (more conditions)
+                    let after_comma = &self.tokens[next_pos].kind;
+                    if matches!(after_comma, TokenKind::RightBrace | TokenKind::Default) {
+                        break;
+                    }
+                }
+                self.advance(); // consume comma
+
+                // If next is '=>', we're done with conditions for this arm
+                if self.check(&TokenKind::DoubleArrow) {
+                    break;
+                }
+
+                conditions.push(self.parse_expression(Precedence::None)?);
+            }
+
+            self.consume(TokenKind::DoubleArrow, "Expected '=>' after match condition(s)")?;
+            let result = self.parse_expression(Precedence::None)?;
+
+            arms.push(MatchArm {
+                conditions,
+                result: Box::new(result),
+            });
+
+            // Optional comma after arm
+            if self.check(&TokenKind::Comma) {
+                self.advance();
+            }
+        }
+
+        self.consume(TokenKind::RightBrace, "Expected '}' to end match body")?;
+
+        Ok(Expr::Match {
+            expr: Box::new(expr),
+            arms,
+            default,
+        })
     }
 
     /// Parse postfix operations (array access, property access, method calls, increment/decrement)
@@ -384,6 +459,10 @@ impl<'a> ExprParser<'a> {
 
                 let new_expr = Expr::New { class_name, args };
                 self.parse_postfix(new_expr)
+            }
+            TokenKind::Match => {
+                let match_expr = self.parse_match()?;
+                self.parse_postfix(match_expr)
             }
             _ => Err(format!(
                 "Expected expression but found {:?} at line {}, column {}",
