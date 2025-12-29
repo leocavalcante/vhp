@@ -295,7 +295,7 @@ impl<'a> StmtParser<'a> {
     }
 
     /// Parse class method (shared between class and trait)
-    pub fn parse_method(&mut self, visibility: Visibility) -> Result<Method, String> {
+    pub fn parse_method(&mut self, visibility: Visibility, is_abstract_method: bool) -> Result<Method, String> {
         self.advance(); // consume 'function'
 
         let name = if let TokenKind::Identifier(name) = &self.current().kind {
@@ -444,20 +444,45 @@ impl<'a> StmtParser<'a> {
         }
 
         self.consume(TokenKind::RightParen, "Expected ')' after parameters")?;
-        self.consume(TokenKind::LeftBrace, "Expected '{' before method body")?;
-
-        let mut body = Vec::new();
-        while !self.check(&TokenKind::RightBrace) && !self.check(&TokenKind::Eof) {
-            if let Some(stmt) = self.parse_statement()? {
-                body.push(stmt);
+        
+        // Skip return type hint if present (: type)
+        if self.check(&TokenKind::Colon) {
+            self.advance(); // consume ':'
+            // Skip the type identifier
+            if let TokenKind::Identifier(_) = &self.current().kind {
+                self.advance();
+            } else if self.check(&TokenKind::QuestionMark) {
+                // Nullable type ?Type
+                self.advance();
+                if let TokenKind::Identifier(_) = &self.current().kind {
+                    self.advance();
+                }
             }
         }
 
-        self.consume(TokenKind::RightBrace, "Expected '}' after method body")?;
+        // Abstract methods end with semicolon, concrete methods have body
+        let body = if is_abstract_method {
+            self.consume(TokenKind::Semicolon, "Expected ';' after abstract method declaration")?;
+            Vec::new()
+        } else {
+            self.consume(TokenKind::LeftBrace, "Expected '{' before method body")?;
+
+            let mut body = Vec::new();
+            while !self.check(&TokenKind::RightBrace) && !self.check(&TokenKind::Eof) {
+                if let Some(stmt) = self.parse_statement()? {
+                    body.push(stmt);
+                }
+            }
+
+            self.consume(TokenKind::RightBrace, "Expected '}' after method body")?;
+            body
+        };
 
         Ok(Method {
             name,
             visibility,
+            is_static: false, // Will be set by caller if needed
+            is_abstract: is_abstract_method,
             params,
             body,
             attributes: Vec::new(), // Will be set by caller
@@ -529,6 +554,18 @@ impl<'a> StmtParser<'a> {
             }
             TokenKind::Readonly => {
                 // readonly can be used before class keyword (PHP 8.2)
+                let mut class = self.parse_class()?;
+                if let Stmt::Class {
+                    attributes: ref mut attrs,
+                    ..
+                } = class
+                {
+                    *attrs = attributes;
+                }
+                Ok(Some(class))
+            }
+            TokenKind::Abstract => {
+                // abstract can be used before class keyword
                 let mut class = self.parse_class()?;
                 if let Stmt::Class {
                     attributes: ref mut attrs,

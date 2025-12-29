@@ -190,6 +190,8 @@ impl<'a> StmtParser<'a> {
                 methods.push(Method {
                     name: method_name,
                     visibility,
+                    is_static: false,
+                    is_abstract: false,
                     params,
                     body,
                     attributes: Vec::new(),

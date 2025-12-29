@@ -704,6 +704,118 @@ interface Config {
 echo Config::VERSION;  // 1.0
 ```
 
+## Abstract Classes and Methods
+
+Abstract classes provide a way to define base classes that cannot be instantiated directly. They can contain both abstract methods (without implementations) that must be implemented by child classes, and concrete methods with full implementations.
+
+### Basic Abstract Class
+
+```php
+<?php
+abstract class Animal {
+    abstract function speak();
+    
+    function describe() {
+        echo "I am an animal";
+    }
+}
+
+class Dog extends Animal {
+    function speak() {
+        echo "Woof!";
+    }
+}
+
+$dog = new Dog();
+$dog->speak();     // Woof!
+$dog->describe();  // I am an animal
+```
+
+### Cannot Instantiate Abstract Classes
+
+Attempting to instantiate an abstract class directly results in an error:
+
+```php
+<?php
+abstract class Shape {
+    abstract function area();
+}
+
+$shape = new Shape();  // Error: Cannot instantiate abstract class Shape
+```
+
+### Multiple Abstract Methods
+
+Abstract classes can have multiple abstract methods:
+
+```php
+<?php
+abstract class Repository {
+    abstract function find($id);
+    abstract function save($entity);
+    abstract function delete($id);
+    
+    function count() {
+        return 0;  // Default implementation
+    }
+}
+
+class UserRepository extends Repository {
+    function find($id) {
+        return "User $id";
+    }
+    
+    function save($entity) {
+        echo "Saving $entity";
+    }
+    
+    function delete($id) {
+        echo "Deleting $id";
+    }
+}
+```
+
+### Abstract Classes with Constructors
+
+Abstract classes can have constructors that are called when child classes are instantiated:
+
+```php
+<?php
+abstract class Entity {
+    public $id;
+    
+    function __construct($id) {
+        $this->id = $id;
+    }
+    
+    abstract function getName();
+}
+
+class User extends Entity {
+    public $name;
+    
+    function __construct($id, $name) {
+        $this->id = $id;
+        $this->name = $name;
+    }
+    
+    function getName() {
+        return $this->name;
+    }
+}
+
+$user = new User(1, "John");
+echo $user->getName();  // John
+```
+
+### Key Points
+
+- Abstract classes cannot be instantiated directly
+- Abstract methods have no body (no `{}`)
+- Non-abstract child classes must implement all abstract methods
+- Abstract classes can contain both abstract and concrete methods
+- Abstract methods can only exist in abstract classes
+
 ## Readonly Properties (PHP 8.1)
 
 Readonly properties can only be assigned once and cannot be modified afterward. They're useful for immutable data structures.

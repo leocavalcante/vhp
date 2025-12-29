@@ -200,6 +200,7 @@ Source Code → Lexer → Tokens → Parser → AST → Interpreter → Output
 - [x] Readonly Classes (PHP 8.2)
 - [x] Object cloning with `clone` keyword (PHP 5.0)
 - [x] Clone with property modification syntax (PHP 8.4)
+- [x] Abstract classes and methods
 
 ### Match Expressions (PHP 8.0)
 - [x] Basic match syntax: `match($expr) { value => result }`
@@ -484,7 +485,7 @@ Essential PHP features for compatibility with standard PHP code.
 - [ ] Iterator interfaces
 
 **Abstract & Final:**
-- [ ] abstract classes and methods
+- [x] abstract classes and methods
 - [ ] final classes, methods, and constants (PHP 8.1)
 
 **Magic Methods:**

@@ -1,0 +1,11 @@
+--TEST--
+Non-abstract class cannot have abstract methods
+--DESCRIPTION--
+Tests that a non-abstract class cannot contain abstract methods
+--FILE--
+<?php
+class NotAbstract {
+    abstract public function test();
+}
+--EXPECT_ERROR--
+Non-abstract class

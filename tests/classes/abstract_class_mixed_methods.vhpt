@@ -1,0 +1,42 @@
+--TEST--
+Abstract class with concrete and abstract methods
+--DESCRIPTION--
+Tests that an abstract class can have both concrete and abstract methods
+--FILE--
+<?php
+abstract class Shape {
+    protected $color;
+    
+    public function setColor($color) {
+        $this->color = $color;
+    }
+    
+    public function getColor() {
+        return $this->color;
+    }
+    
+    abstract public function area();
+}
+
+class Rectangle extends Shape {
+    private $width;
+    private $height;
+    
+    public function __construct($color, $w, $h) {
+        $this->color = $color;
+        $this->width = $w;
+        $this->height = $h;
+    }
+    
+    public function area() {
+        return $this->width * $this->height;
+    }
+}
+
+$rect = new Rectangle("red", 5, 3);
+echo $rect->getColor();
+echo "\n";
+echo $rect->area();
+--EXPECT--
+red
+15

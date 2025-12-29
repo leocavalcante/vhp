@@ -64,6 +64,7 @@ cargo build --release
 - ✅ User-defined and recursive functions
 - ✅ Classes & Objects (properties, methods, constructors, `$this`, static calls, inheritance)
 - ✅ Interfaces and Traits
+- ✅ Abstract classes and methods
 - ✅ Constructor Property Promotion (PHP 8.0)
 - ✅ Readonly properties (PHP 8.1)
 - ✅ Readonly classes (PHP 8.2)

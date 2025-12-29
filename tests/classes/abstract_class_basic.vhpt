@@ -1,0 +1,20 @@
+--TEST--
+Basic abstract class with abstract method
+--DESCRIPTION--
+Tests that an abstract class can define abstract methods that child classes implement
+--FILE--
+<?php
+abstract class Animal {
+    abstract public function speak();
+}
+
+class Dog extends Animal {
+    public function speak() {
+        echo "Woof!";
+    }
+}
+
+$dog = new Dog();
+$dog->speak();
+--EXPECT--
+Woof!

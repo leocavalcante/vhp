@@ -1,0 +1,17 @@
+--TEST--
+Must implement all abstract methods from parent
+--DESCRIPTION--
+Tests that a non-abstract child class must implement all abstract methods from parent
+--FILE--
+<?php
+abstract class Base {
+    abstract public function required();
+}
+
+class Child extends Base {
+    // Missing required() implementation
+}
+
+$c = new Child();
+--EXPECT_ERROR--
+must implement abstract method

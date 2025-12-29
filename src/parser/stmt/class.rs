@@ -6,6 +6,7 @@
 //! - Class methods
 //! - Visibility modifiers
 //! - Trait usage within classes
+//! - Abstract classes and methods
 
 use super::StmtParser;
 use crate::ast::Stmt;
@@ -14,6 +15,14 @@ use crate::token::TokenKind;
 impl<'a> StmtParser<'a> {
     /// Parse class declaration
     pub fn parse_class(&mut self) -> Result<Stmt, String> {
+        // Check for abstract modifier before class keyword
+        let is_abstract = if self.check(&TokenKind::Abstract) {
+            self.advance();
+            true
+        } else {
+            false
+        };
+
         // Check for readonly modifier before class keyword
         let readonly = if self.check(&TokenKind::Readonly) {
             self.advance();
@@ -92,6 +101,22 @@ impl<'a> StmtParser<'a> {
             // Parse attributes that may precede property or method
             let attributes = self.parse_attributes()?;
 
+            // Check for abstract modifier
+            let member_is_abstract = if self.check(&TokenKind::Abstract) {
+                if !is_abstract {
+                    return Err(format!(
+                        "Non-abstract class '{}' cannot contain abstract methods at line {}, column {}",
+                        name,
+                        self.current().line,
+                        self.current().column
+                    ));
+                }
+                self.advance();
+                true
+            } else {
+                false
+            };
+
             // Check for readonly modifier (can appear before visibility)
             let readonly_first = if self.check(&TokenKind::Readonly) {
                 self.advance();
@@ -110,6 +135,18 @@ impl<'a> StmtParser<'a> {
                 } else {
                     false
                 };
+            
+            // Check for static modifier
+            let is_static = if let TokenKind::Identifier(s) = &self.current().kind {
+                if s.to_lowercase() == "static" {
+                    self.advance();
+                    true
+                } else {
+                    false
+                }
+            } else {
+                false
+            };
 
             // Skip type hints (not supported yet, but we need to skip them)
             // Common PHP types: string, int, float, bool, array, object, mixed, etc.
@@ -146,7 +183,8 @@ impl<'a> StmtParser<'a> {
             }
 
             if self.check(&TokenKind::Function) {
-                let mut method = self.parse_method(visibility)?;
+                let mut method = self.parse_method(visibility, member_is_abstract)?;
+                method.is_static = is_static;
                 method.attributes = attributes;
                 methods.push(method);
             } else if self.check(&TokenKind::Variable(String::new())) {
@@ -183,6 +221,7 @@ impl<'a> StmtParser<'a> {
 
         Ok(Stmt::Class {
             name,
+            is_abstract,
             readonly,
             parent,
             interfaces,

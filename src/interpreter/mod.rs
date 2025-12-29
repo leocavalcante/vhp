@@ -32,6 +32,7 @@ pub enum ControlFlow {
 pub struct UserFunction {
     pub params: Vec<FunctionParam>,
     pub body: Vec<crate::ast::Stmt>,
+    pub is_abstract: bool, // for abstract methods
     #[allow(dead_code)] // Will be used for reflection
     pub attributes: Vec<crate::ast::Attribute>,
 }
@@ -40,6 +41,7 @@ pub struct UserFunction {
 #[derive(Debug, Clone)]
 pub struct ClassDefinition {
     pub name: String,
+    pub is_abstract: bool, // abstract class modifier
     pub readonly: bool, // PHP 8.2+: if true, all properties are implicitly readonly
     #[allow(dead_code)] // Will be used for inheritance support
     pub parent: Option<String>,

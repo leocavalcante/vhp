@@ -26,6 +26,7 @@ impl<W: Write> Interpreter<W> {
             UserFunction {
                 params: params.to_vec(),
                 body: body.to_vec(),
+                is_abstract: false, // regular functions are never abstract
                 attributes: attributes.to_vec(),
             },
         );
@@ -37,6 +38,7 @@ impl<W: Write> Interpreter<W> {
     pub(super) fn handle_class_decl(
         &mut self,
         name: &str,
+        is_abstract: bool,
         readonly: bool,
         parent: &Option<String>,
         interfaces: &[String],
@@ -52,6 +54,30 @@ impl<W: Write> Interpreter<W> {
                     "Interface '{}' not found",
                     iface_name
                 )));
+            }
+        }
+        
+        // If extending a class, check parent isn't abstract or that we implement all abstract methods
+        if let Some(parent_name) = parent {
+            let parent_name_lower = parent_name.to_lowercase();
+            if let Some(parent_class) = self.classes.get(&parent_name_lower).cloned() {
+                // If this class is not abstract, it must implement all abstract methods from parent
+                if !is_abstract && parent_class.is_abstract {
+                    for (method_name, method_func) in parent_class.methods.iter() {
+                        if method_func.is_abstract {
+                            // Check if this method is implemented
+                            let implemented = methods.iter().any(|m| {
+                                m.name.to_lowercase() == method_name.to_lowercase()
+                            });
+                            if !implemented {
+                                return Err(std::io::Error::other(format!(
+                                    "Class {} must implement abstract method {}::{}",
+                                    name, parent_name, method_name
+                                )));
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -151,6 +177,7 @@ impl<W: Write> Interpreter<W> {
             let func = UserFunction {
                 params: method.params.clone(),
                 body: method_body,
+                is_abstract: method.is_abstract,
                 attributes: method.attributes.clone(),
             };
             let method_name_lower = method.name.to_lowercase();
@@ -183,6 +210,7 @@ impl<W: Write> Interpreter<W> {
 
         let class_def = ClassDefinition {
             name: name.to_string(),
+            is_abstract,
             readonly,
             parent: parent.clone(),
             properties: all_properties,
@@ -288,6 +316,7 @@ impl<W: Write> Interpreter<W> {
             let func = UserFunction {
                 params: method.params.clone(),
                 body: method.body.clone(),
+                is_abstract: method.is_abstract,
                 attributes: method.attributes.clone(),
             };
             let method_name_lower = method.name.to_lowercase();
@@ -390,6 +419,7 @@ impl<W: Write> Interpreter<W> {
                 UserFunction {
                     params: method.params.clone(),
                     body: method.body.clone(),
+                    is_abstract: method.is_abstract,
                     attributes: method.attributes.clone(),
                 },
             );

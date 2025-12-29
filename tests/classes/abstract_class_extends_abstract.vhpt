@@ -1,0 +1,31 @@
+--TEST--
+Abstract class extending abstract class
+--DESCRIPTION--
+Tests that an abstract class can extend another abstract class without implementing methods
+--FILE--
+<?php
+abstract class Vehicle {
+    abstract public function move();
+}
+
+abstract class Car extends Vehicle {
+    abstract public function honk();
+}
+
+class SportsCar extends Car {
+    public function move() {
+        echo "Vroom!";
+    }
+    
+    public function honk() {
+        echo "Beep!";
+    }
+}
+
+$car = new SportsCar();
+$car->move();
+echo "\n";
+$car->honk();
+--EXPECT--
+Vroom!
+Beep!

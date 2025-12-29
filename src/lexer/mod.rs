@@ -194,6 +194,7 @@ impl Lexer {
             "clone" => TokenKind::Clone,
             "fiber" => TokenKind::Fiber,
             "with" => TokenKind::With,
+            "abstract" => TokenKind::Abstract,
             _ => TokenKind::Identifier(ident.to_string()),
         }
     }

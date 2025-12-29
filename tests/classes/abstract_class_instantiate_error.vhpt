@@ -1,0 +1,13 @@
+--TEST--
+Cannot instantiate abstract class
+--DESCRIPTION--
+Tests that attempting to instantiate an abstract class results in an error
+--FILE--
+<?php
+abstract class Shape {
+    abstract public function area();
+}
+
+$shape = new Shape();
+--EXPECT_ERROR--
+Cannot instantiate abstract class Shape

@@ -31,6 +31,14 @@ impl<W: Write> Interpreter<W> {
         if !self.classes.contains_key(&class_name_lower) {
             return Err(format!("Class '{}' not found", class_name));
         }
+        
+        // Check if class is abstract
+        {
+            let class_def = self.classes.get(&class_name_lower).unwrap();
+            if class_def.is_abstract {
+                return Err(format!("Cannot instantiate abstract class {}", class_name));
+            }
+        }
 
         // Collect properties from hierarchy
         let properties = self.collect_properties(class_name)?;

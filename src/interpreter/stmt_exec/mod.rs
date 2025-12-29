@@ -88,6 +88,7 @@ impl<W: Write> Interpreter<W> {
 
             Stmt::Class {
                 name,
+                is_abstract,
                 readonly,
                 parent,
                 interfaces,
@@ -96,7 +97,7 @@ impl<W: Write> Interpreter<W> {
                 methods,
                 attributes,
             } => self.handle_class_decl(
-                name, *readonly, parent, interfaces, trait_uses, properties, methods, attributes,
+                name, *is_abstract, *readonly, parent, interfaces, trait_uses, properties, methods, attributes,
             ),
 
             Stmt::Interface {
