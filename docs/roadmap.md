@@ -83,7 +83,7 @@ VHP is being developed incrementally, with each phase adding new capabilities wh
 - Traits using other traits
 
 **Remaining for Phase 5:**
-- Constructor Property Promotion (PHP 8.0)
+- ✅ **Constructor Property Promotion** (PHP 8.0) - Shorthand syntax for declaring and initializing properties in constructor.
 - Readonly Properties (PHP 8.1) & Classes (PHP 8.2)
 - "Clone with" functionality (PHP 8.5)
 

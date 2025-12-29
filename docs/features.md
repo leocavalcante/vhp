@@ -370,6 +370,46 @@ $rect = new Rectangle(10, 5);
 echo $rect->area();  // 50
 ```
 
+### Constructor Property Promotion (PHP 8.0)
+
+Shorthand syntax for declaring and initializing properties directly in the constructor:
+
+```php
+<?php
+class User {
+    public function __construct(
+        public $name,
+        private $age
+    ) {}
+
+    public function getAge() {
+        return $this->age;
+    }
+}
+
+$user = new User("Alice", 30);
+echo $user->name;  // Alice
+echo $user->getAge();  // 30
+```
+
+You can mix promoted and regular parameters:
+
+```php
+<?php
+class Product {
+    public function __construct(
+        public $name,
+        public $price,
+        $currency = "USD"
+    ) {
+        echo "Price: $price $currency";
+    }
+}
+
+$p = new Product("Widget", 9.99);  // Price: 9.99 USD
+echo $p->name;  // Widget
+```
+
 ### Static Method Calls
 
 ```php
