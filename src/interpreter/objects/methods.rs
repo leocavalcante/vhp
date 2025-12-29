@@ -1,205 +1,27 @@
-//! Object-oriented programming features for the interpreter
+//! Method dispatch and invocation
 //!
-//! This module handles:
-//! - Class instantiation (new ClassName)
-//! - Property access and assignment
-//! - Method calls
-//! - Static method calls
-//! - Object inheritance and composition
+//! Handles:
+//! - Instance method calls ($obj->method())
+//! - Static method calls (ClassName::method())
+//! - Method resolution in class hierarchy
+//! - Named arguments (PHP 8.0)
+//! - Enum built-in methods (cases, from, tryFrom)
+//! - Setting up $this context for instance methods
+//! - Setting up current_class context for static methods
 
-use crate::ast::{Argument, Property};
-use crate::interpreter::value::{ObjectInstance, Value};
+use crate::ast::Argument;
+use crate::interpreter::value::ObjectInstance;
 use crate::interpreter::Interpreter;
+use crate::interpreter::Value;
 use std::io::Write;
 
 impl<W: Write> Interpreter<W> {
-    /// Collect all properties from class hierarchy
-    pub(super) fn collect_properties(&mut self, class_name: &str) -> Result<Vec<Property>, String> {
-        let class_def = self
-            .classes
-            .get(&class_name.to_lowercase())
-            .cloned()
-            .ok_or_else(|| format!("Class '{}' not found", class_name))?;
-
-        let mut properties = if let Some(parent) = &class_def.parent {
-            self.collect_properties(parent)?
-        } else {
-            Vec::new()
-        };
-
-        // Add/override properties from current class
-        for prop in &class_def.properties {
-            if let Some(existing) = properties.iter_mut().find(|p| p.name == prop.name) {
-                *existing = prop.clone();
-            } else {
-                properties.push(prop.clone());
-            }
-        }
-
-        Ok(properties)
-    }
-
-    /// Find method in class hierarchy
-    pub(super) fn find_method(
-        &self,
-        class_name: &str,
-        method_name: &str,
-    ) -> Option<(crate::interpreter::UserFunction, String)> {
-        let class_def = self.classes.get(&class_name.to_lowercase())?;
-
-        if let Some(method) = class_def.methods.get(&method_name.to_lowercase()) {
-            return Some((method.clone(), class_def.name.clone()));
-        }
-
-        if let Some(parent) = &class_def.parent {
-            self.find_method(parent, method_name)
-        } else {
-            None
-        }
-    }
-
-    /// Evaluate object instantiation (new ClassName(...))
-    pub(super) fn eval_new(
-        &mut self,
-        class_name: &str,
-        args: &[Argument],
-    ) -> Result<Value, String> {
-        let class_name_lower = class_name.to_lowercase();
-
-        // Check if class exists
-        if !self.classes.contains_key(&class_name_lower) {
-            return Err(format!("Class '{}' not found", class_name));
-        }
-
-        // Collect properties from hierarchy
-        let properties = self.collect_properties(class_name)?;
-
-        // Create new object instance
-        let mut instance = ObjectInstance::new(class_name.to_string());
-
-        // Initialize properties with default values and track readonly
-        for prop in properties {
-            let default_val = if let Some(ref default_expr) = prop.default {
-                self.eval_expr(default_expr)?
-            } else {
-                Value::Null
-            };
-            instance.properties.insert(prop.name.clone(), default_val);
-
-            // Track readonly properties and mark with defaults as initialized
-            if prop.readonly {
-                instance.readonly_properties.insert(prop.name.clone());
-                if prop.default.is_some() {
-                    instance.initialized_readonly.insert(prop.name.clone());
-                }
-            }
-        }
-
-        // Get the readonly flag before we borrow class_def mutably
-        let class_readonly = {
-            let class_def = self.classes.get(&class_name_lower).unwrap();
-            class_def.readonly
-        };
-
-        // Also handle constructor promoted properties
-        let class_def = self.classes.get(&class_name_lower).unwrap();
-        if let Some(constructor) = class_def.methods.get("__construct") {
-            for param in &constructor.params {
-                if param.visibility.is_some() && param.readonly {
-                    instance.readonly_properties.insert(param.name.clone());
-                }
-            }
-        }
-
-        // Check for constructor (__construct)
-        if let Some((constructor, declaring_class)) = self.find_method(class_name, "__construct") {
-            // Call constructor with $this bound and named argument support
-            self.call_method_on_object_with_arguments(
-                &mut instance,
-                &constructor,
-                args,
-                declaring_class,
-            )?;
-        }
-
-        // After constructor completes, mark all current readonly properties as initialized
-        for prop_name in instance.readonly_properties.iter() {
-            if instance.properties.contains_key(prop_name) {
-                instance.initialized_readonly.insert(prop_name.clone());
-            }
-        }
-
-        // If class itself is readonly (PHP 8.2), all properties are implicitly readonly
-        if class_readonly {
-            // Get all property names from the instance and mark them as readonly
-            let all_property_names: Vec<String> =
-                instance.properties.keys().map(|k| k.to_string()).collect();
-
-            // Add all properties to readonly set
-            for prop_name in all_property_names {
-                instance.readonly_properties.insert(prop_name.clone());
-                // Mark as initialized since constructor has completed
-                instance.initialized_readonly.insert(prop_name);
-            }
-        }
-
-        Ok(Value::Object(instance))
-    }
-
-    /// Evaluate property access ($obj->property)
-    pub(super) fn eval_property_access(
-        &mut self,
-        object: &crate::ast::Expr,
-        property: &str,
-    ) -> Result<Value, String> {
-        let obj_value = self.eval_expr(object)?;
-
-        // Handle enum case properties
-        if let Value::EnumCase {
-            enum_name,
-            case_name,
-            backing_value,
-        } = obj_value
-        {
-            match property {
-                "name" => return Ok(Value::String(case_name)),
-                "value" => {
-                    if let Some(val) = backing_value {
-                        return Ok(*val);
-                    } else {
-                        return Err(format!(
-                            "Pure enum case {}::{} does not have a 'value' property",
-                            enum_name, case_name
-                        ));
-                    }
-                }
-                _ => {
-                    return Err(format!(
-                        "Enum case {}::{} does not have property '{}'",
-                        enum_name, case_name, property
-                    ));
-                }
-            }
-        }
-
-        // Handle object properties
-        match obj_value {
-            Value::Object(instance) => {
-                if let Some(value) = instance.properties.get(property) {
-                    Ok(value.clone())
-                } else {
-                    Ok(Value::Null)
-                }
-            }
-            _ => Err(format!(
-                "Cannot access property on non-object ({})",
-                obj_value.get_type()
-            )),
-        }
-    }
-
-    /// Evaluate method call ($obj->method(...))
-    pub(super) fn eval_method_call(
+    /// Evaluate instance method call ($obj->method(...))
+    ///
+    /// Looks up the method in the class hierarchy and invokes it
+    /// with the object as $this context. Updates the object after
+    /// the call if it was modified.
+    pub(crate) fn eval_method_call(
         &mut self,
         object: &crate::ast::Expr,
         method: &str,
@@ -245,93 +67,11 @@ impl<W: Write> Interpreter<W> {
         }
     }
 
-    /// Evaluate property assignment ($obj->property = value)
-    pub(super) fn eval_property_assign(
-        &mut self,
-        object: &crate::ast::Expr,
-        property: &str,
-        value: &crate::ast::Expr,
-    ) -> Result<Value, String> {
-        // For property assignment, we need to handle $this specially
-        match object {
-            crate::ast::Expr::This => {
-                // Evaluate value first to avoid borrow conflicts
-                let val = self.eval_expr(value)?;
-                if let Some(ref mut obj) = self.current_object {
-                    // Check if property is readonly and already initialized
-                    if obj.readonly_properties.contains(property)
-                        && obj.initialized_readonly.contains(property)
-                    {
-                        return Err(format!(
-                            "Cannot modify readonly property {}::${}",
-                            obj.class_name, property
-                        ));
-                    }
-
-                    obj.properties.insert(property.to_string(), val.clone());
-
-                    // If this is a readonly property, mark it as initialized
-                    if obj.readonly_properties.contains(property) {
-                        obj.initialized_readonly.insert(property.to_string());
-                    }
-
-                    Ok(val)
-                } else {
-                    Err("Cannot use $this outside of object context".to_string())
-                }
-            }
-            crate::ast::Expr::Variable(var_name) => {
-                // Evaluate value first
-                let val = self.eval_expr(value)?;
-                // Get the object from variable
-                if let Some(Value::Object(mut instance)) = self.variables.get(var_name).cloned() {
-                    // Check if property is readonly and already initialized
-                    if instance.readonly_properties.contains(property)
-                        && instance.initialized_readonly.contains(property)
-                    {
-                        return Err(format!(
-                            "Cannot modify readonly property {}::${}",
-                            instance.class_name, property
-                        ));
-                    }
-
-                    instance
-                        .properties
-                        .insert(property.to_string(), val.clone());
-
-                    // If this is a readonly property, mark it as initialized
-                    if instance.readonly_properties.contains(property) {
-                        instance.initialized_readonly.insert(property.to_string());
-                    }
-
-                    self.variables
-                        .insert(var_name.clone(), Value::Object(instance));
-                    Ok(val)
-                } else {
-                    Err(format!(
-                        "Cannot access property on non-object variable ${}",
-                        var_name
-                    ))
-                }
-            }
-            _ => {
-                // For other expressions, evaluate and try to assign
-                let obj_value = self.eval_expr(object)?;
-                match obj_value {
-                    Value::Object(_) => {
-                        Err("Cannot assign property on temporary object expression".to_string())
-                    }
-                    _ => Err(format!(
-                        "Cannot access property on non-object ({})",
-                        obj_value.get_type()
-                    )),
-                }
-            }
-        }
-    }
-
     /// Evaluate static method call (ClassName::method(...))
-    pub(super) fn eval_static_method_call(
+    ///
+    /// Supports special class names: 'self', 'parent', and user-defined classes.
+    /// Handles both user-defined methods and built-in enum methods (cases, from, tryFrom).
+    pub(crate) fn eval_static_method_call(
         &mut self,
         class_name: &str,
         method: &str,
@@ -556,9 +296,13 @@ impl<W: Write> Interpreter<W> {
         Ok(return_value)
     }
 
-    /// Call a method on an object instance
+    /// Call a method on an object instance (internal helper)
+    ///
+    /// Lower-level method invocation used by eval_method_call.
+    /// Supports positional arguments only (use call_method_on_object_with_arguments
+    /// for named argument support).
     #[allow(dead_code)]
-    pub(super) fn call_method_on_object(
+    pub(crate) fn call_method_on_object(
         &mut self,
         instance: &mut ObjectInstance,
         method: &crate::interpreter::UserFunction,
@@ -618,7 +362,10 @@ impl<W: Write> Interpreter<W> {
     }
 
     /// Call method on object with support for named arguments (PHP 8.0)
-    pub(super) fn call_method_on_object_with_arguments(
+    ///
+    /// Full-featured method invocation supporting both positional and named arguments.
+    /// Used for both instance method calls and constructor invocation.
+    pub(crate) fn call_method_on_object_with_arguments(
         &mut self,
         instance: &mut ObjectInstance,
         method: &crate::interpreter::UserFunction,
