@@ -8,7 +8,7 @@ mod value;
 
 // Submodules for organized implementation
 mod expr_eval;
-mod functions;
+mod functions; // Function call handling (dispatcher, user functions)
 mod objects;
 mod stmt_exec;
 
