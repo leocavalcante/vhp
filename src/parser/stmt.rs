@@ -468,6 +468,23 @@ impl<'a> StmtParser<'a> {
         let mut params = Vec::new();
         if !self.check(&TokenKind::RightParen) {
             loop {
+                // Skip type hints (not supported yet)
+                if let TokenKind::Identifier(type_name) = &self.current().kind {
+                    let type_lower = type_name.to_lowercase();
+                    if matches!(type_lower.as_str(),
+                        "string" | "int" | "float" | "bool" | "array" | "object" | "mixed" |
+                        "callable" | "iterable" | "void" | "never" | "true" | "false" | "null" |
+                        "self" | "parent" | "static") {
+                        // Skip the type
+                        self.advance();
+                        // Handle array type brackets if present
+                        if self.check(&TokenKind::LeftBracket) {
+                            self.advance();
+                            self.consume(TokenKind::RightBracket, "Expected ']' after array type")?;
+                        }
+                    }
+                }
+
                 let by_ref = if let TokenKind::Identifier(s) = &self.current().kind {
                     if s == "&" {
                         self.advance();
@@ -503,6 +520,7 @@ impl<'a> StmtParser<'a> {
                     default,
                     by_ref,
                     visibility: None,
+                    readonly: false,
                 });
 
                 if !self.check(&TokenKind::Comma) {
@@ -595,6 +613,7 @@ impl<'a> StmtParser<'a> {
             name,
             visibility,
             default,
+            readonly: false, // Will be set by caller if needed
         })
     }
 
@@ -653,6 +672,35 @@ impl<'a> StmtParser<'a> {
                     }
                 };
 
+                // Check for readonly modifier (only in constructors with visibility)
+                let param_readonly = if is_constructor && param_visibility.is_some() {
+                    if self.check(&TokenKind::Readonly) {
+                        self.advance();
+                        true
+                    } else {
+                        false
+                    }
+                } else {
+                    false
+                };
+
+                // Skip type hints (not supported yet)
+                if let TokenKind::Identifier(type_name) = &self.current().kind {
+                    let type_lower = type_name.to_lowercase();
+                    if matches!(type_lower.as_str(),
+                        "string" | "int" | "float" | "bool" | "array" | "object" | "mixed" |
+                        "callable" | "iterable" | "void" | "never" | "true" | "false" | "null" |
+                        "self" | "parent" | "static") {
+                        // Skip the type
+                        self.advance();
+                        // Handle array type brackets if present
+                        if self.check(&TokenKind::LeftBracket) {
+                            self.advance();
+                            self.consume(TokenKind::RightBracket, "Expected ']' after array type")?;
+                        }
+                    }
+                }
+
                 let by_ref = if let TokenKind::Identifier(s) = &self.current().kind {
                     if s == "&" {
                         self.advance();
@@ -688,6 +736,7 @@ impl<'a> StmtParser<'a> {
                     default,
                     by_ref,
                     visibility: param_visibility,
+                    readonly: param_readonly,
                 });
 
                 if !self.check(&TokenKind::Comma) {
@@ -762,6 +811,7 @@ impl<'a> StmtParser<'a> {
                     default,
                     by_ref: false,
                     visibility: None,
+                    readonly: false,
                 });
 
                 if !self.check(&TokenKind::Comma) {
@@ -1150,12 +1200,49 @@ impl<'a> StmtParser<'a> {
         let mut methods = Vec::new();
 
         while !self.check(&TokenKind::RightBrace) && !self.check(&TokenKind::Eof) {
+            // Check for readonly modifier (can appear before visibility)
+            let readonly_first = if self.check(&TokenKind::Readonly) {
+                self.advance();
+                true
+            } else {
+                false
+            };
+
             let visibility = self.parse_visibility();
+
+            // Check for readonly modifier if not already found (can appear after visibility)
+            let readonly = readonly_first || if self.check(&TokenKind::Readonly) {
+                self.advance();
+                true
+            } else {
+                false
+            };
+
+            // Skip type hints (not supported yet, but we need to skip them)
+            // Common PHP types: string, int, float, bool, array, object, mixed, etc.
+            if let TokenKind::Identifier(type_name) = &self.current().kind {
+                let type_lower = type_name.to_lowercase();
+                if matches!(type_lower.as_str(),
+                    "string" | "int" | "float" | "bool" | "array" | "object" | "mixed" |
+                    "callable" | "iterable" | "void" | "never" | "true" | "false" | "null" |
+                    "self" | "parent" | "static") {
+                    // Skip the type
+                    self.advance();
+                    // Handle array type brackets if present
+                    if self.check(&TokenKind::LeftBracket) {
+                        self.advance();
+                        self.consume(TokenKind::RightBracket, "Expected ']' after array type")?;
+                    }
+                }
+            }
 
             if self.check(&TokenKind::Function) {
                 methods.push(self.parse_method(visibility)?);
             } else if self.check(&TokenKind::Variable(String::new())) {
-                properties.push(self.parse_property(visibility)?);
+                // Parse property with readonly modifier
+                let mut prop = self.parse_property(visibility)?;
+                prop.readonly = readonly;
+                properties.push(prop);
             } else {
                 return Err(format!(
                     "Expected property or method in class at line {}, column {}",
