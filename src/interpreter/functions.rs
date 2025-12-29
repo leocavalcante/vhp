@@ -6,7 +6,7 @@
 //! - Named argument support (PHP 8.0)
 //! - Variable assignment and compound assignments
 
-use crate::ast::{Argument, AssignOp};
+use crate::ast::Argument;
 use crate::interpreter::builtins;
 use crate::interpreter::value::Value;
 use crate::interpreter::Interpreter;
@@ -287,66 +287,6 @@ impl<W: Write> Interpreter<W> {
         Ok(return_value)
     }
 
-    pub(super) fn eval_assign(
-        &mut self,
-        var: &str,
-        op: &AssignOp,
-        value: &crate::ast::Expr,
-    ) -> Result<Value, String> {
-        let new_value = match op {
-            AssignOp::Assign => self.eval_expr(value)?,
-            AssignOp::AddAssign => {
-                let current = self.variables.get(var).cloned().unwrap_or(Value::Null);
-                let right = self.eval_expr(value)?;
-                self.numeric_op(&current, &right, |a, b| a + b, |a, b| a + b)?
-            }
-            AssignOp::SubAssign => {
-                let current = self.variables.get(var).cloned().unwrap_or(Value::Null);
-                let right = self.eval_expr(value)?;
-                self.numeric_op(&current, &right, |a, b| a - b, |a, b| a - b)?
-            }
-            AssignOp::MulAssign => {
-                let current = self.variables.get(var).cloned().unwrap_or(Value::Null);
-                let right = self.eval_expr(value)?;
-                self.numeric_op(&current, &right, |a, b| a * b, |a, b| a * b)?
-            }
-            AssignOp::DivAssign => {
-                let current = self.variables.get(var).cloned().unwrap_or(Value::Null);
-                let right = self.eval_expr(value)?;
-                let right_f = right.to_float();
-                if right_f == 0.0 {
-                    return Err("Division by zero".to_string());
-                }
-                let result = current.to_float() / right_f;
-                if result.fract() == 0.0 {
-                    Value::Integer(result as i64)
-                } else {
-                    Value::Float(result)
-                }
-            }
-            AssignOp::ModAssign => {
-                let current = self.variables.get(var).cloned().unwrap_or(Value::Null);
-                let right = self.eval_expr(value)?;
-                let right_i = right.to_int();
-                if right_i == 0 {
-                    return Err("Division by zero".to_string());
-                }
-                Value::Integer(current.to_int() % right_i)
-            }
-            AssignOp::ConcatAssign => {
-                let current = self.variables.get(var).cloned().unwrap_or(Value::Null);
-                let right = self.eval_expr(value)?;
-                Value::String(format!(
-                    "{}{}",
-                    current.to_string_val(),
-                    right.to_string_val()
-                ))
-            }
-        };
-
-        self.variables.insert(var.to_string(), new_value.clone());
-        Ok(new_value)
-    }
 
     /// Helper to call a function with pre-evaluated argument values
     pub(super) fn call_function_with_values(
