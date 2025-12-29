@@ -110,6 +110,7 @@ pub enum TokenKind {
     DoubleArrow,       // =>
     Arrow,             // ->
     DoubleColon,       // ::
+    Pipe,              // |> (PHP 8.5 pipe operator)
     Hash,              // # (for attributes when followed by [)
 
     // Special

@@ -30,6 +30,9 @@ pub enum BinaryOp {
 
     // Null coalescing
     NullCoalesce, // ??
+
+    // Pipe operator
+    Pipe,       // |> (PHP 8.5)
 }
 
 /// Unary operators

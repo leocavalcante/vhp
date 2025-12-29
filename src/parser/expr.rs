@@ -89,11 +89,28 @@ impl<'a> ExprParser<'a> {
                             self.current().column
                         ));
                     }
-                    let value = self.parse_expression(Precedence::None)?;
-                    args.push(Argument {
-                        name: None,
-                        value: Box::new(value),
-                    });
+
+                    // Check for placeholder ... (three dots)
+                    if self.check(&TokenKind::Concat)
+                        && *self.pos + 1 < self.tokens.len()
+                        && std::mem::discriminant(&self.tokens[*self.pos + 1].kind) == std::mem::discriminant(&TokenKind::Concat)
+                        && *self.pos + 2 < self.tokens.len()
+                        && std::mem::discriminant(&self.tokens[*self.pos + 2].kind) == std::mem::discriminant(&TokenKind::Concat) {
+                        // This is a placeholder (...)
+                        self.advance(); // consume first .
+                        self.advance(); // consume second .
+                        self.advance(); // consume third .
+                        args.push(Argument {
+                            name: None,
+                            value: Box::new(Expr::Placeholder),
+                        });
+                    } else {
+                        let value = self.parse_expression(Precedence::None)?;
+                        args.push(Argument {
+                            name: None,
+                            value: Box::new(value),
+                        });
+                    }
                 }
 
                 if !self.check(&TokenKind::Comma) {
@@ -712,6 +729,7 @@ impl<'a> ExprParser<'a> {
             TokenKind::Or => Some(BinaryOp::Or),
             TokenKind::Xor => Some(BinaryOp::Xor),
             TokenKind::NullCoalesce => Some(BinaryOp::NullCoalesce),
+            TokenKind::Pipe => Some(BinaryOp::Pipe),
             _ => None,
         }
     }

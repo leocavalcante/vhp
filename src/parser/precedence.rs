@@ -8,18 +8,19 @@ use crate::token::TokenKind;
 pub enum Precedence {
     None = 0,
     Assignment = 1,    // = += -= etc.
-    Ternary = 2,       // ?:
-    NullCoalesce = 3,  // ??
-    Or = 4,            // || or
-    And = 5,           // && and
-    Xor = 6,           // xor
-    Equality = 7,      // == === != !==
-    Comparison = 8,    // < > <= >= <=>
-    Concat = 9,        // .
-    AddSub = 10,       // + -
-    MulDiv = 11,       // * / %
-    Pow = 12,          // ** (right associative)
-    Unary = 13,        // ! - ++ --
+    Pipe = 2,          // |> (pipe operator - PHP 8.5)
+    Ternary = 3,       // ?:
+    NullCoalesce = 4,  // ??
+    Or = 5,            // || or
+    And = 6,           // && and
+    Xor = 7,           // xor
+    Equality = 8,      // == === != !==
+    Comparison = 9,    // < > <= >= <=>
+    Concat = 10,       // .
+    AddSub = 11,       // + -
+    MulDiv = 12,       // * / %
+    Pow = 13,          // ** (right associative)
+    Unary = 14,        // ! - ++ --
 }
 
 /// Get precedence for a token kind
@@ -34,6 +35,7 @@ pub fn get_precedence(kind: &TokenKind) -> Precedence {
         | TokenKind::ConcatAssign => Precedence::Assignment,
 
         TokenKind::QuestionMark => Precedence::Ternary,
+        TokenKind::Pipe => Precedence::Pipe,
         TokenKind::NullCoalesce => Precedence::NullCoalesce,
 
         TokenKind::Or => Precedence::Or,

@@ -148,4 +148,7 @@ pub enum Expr {
         object: Box<Expr>,
         modifications: Vec<PropertyModification>,
     },
+
+    // Placeholder for pipe operator: ... (PHP 8.5)
+    Placeholder,
 }
