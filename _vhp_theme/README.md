@@ -1,141 +1,137 @@
 # VHP Theme
 
-A clean, modern GitHub Pages theme inspired by the PHP 8.5 landing page design. This theme prioritizes simplicity, performance, and accessibility.
+A modern, minimalist, and elegant GitHub Pages theme. Clean typography, sophisticated color palette, and smooth interactions.
 
 ## Features
 
-- **Lightweight** — Pure CSS, minimal JavaScript (only for mobile nav)
-- **Responsive** — Mobile-first design that works on all screen sizes
-- **Fast** — System fonts, no external dependencies, optimized for performance
-- **Accessible** — Semantic HTML, ARIA labels, good contrast ratios
-- **Modern** — CSS custom properties (variables), CSS Grid/Flexbox
-- **PHP-inspired Colors** — Based on official PHP website branding
+- **Modern Design** — Elegant visual hierarchy with sophisticated color palette
+- **Minimalist** — Clean, spacious layouts without unnecessary decoration
+- **Fast** — Pure CSS, minimal JavaScript, system fonts
+- **Responsive** — Mobile-first design that works everywhere
+- **Smooth** — Gentle transitions and hover effects for polish
+- **Accessible** — Semantic HTML, WCAG AA+ contrast, keyboard navigation
 
-## Design Principles
+## Color Palette
 
-The theme follows the PHP 8.5 landing page design philosophy:
-
-1. **Documentation First** — Clean visual hierarchy focused on content
-2. **Minimal Decoration** — Unobtrusive, tasteful visual design
-3. **System Fonts** — Using device native fonts for better performance
-4. **Zero JavaScript** — Except minimal mobile navigation (fully functional without)
-5. **Responsive by Default** — Mobile-first approach with proper breakpoints
-
-## Color Scheme
-
-| Purpose | Color | CSS Variable |
-|---------|-------|--------------|
-| Primary | #777BB3 (Purple) | `--color-primary` |
-| Secondary | #1F5F83 (Blue) | `--color-secondary` |
-| Accent | #F37830 (Orange) | `--color-accent` |
-| Text | #1A1A1A (Dark) | `--color-text` |
-| Background | #FFFFFF | `--color-bg` |
+| Purpose | Color | Hex |
+|---------|-------|-----|
+| Dark | #1a202c | Used for headings and text |
+| Slate | #2d3748 | Secondary dark shade |
+| Teal | #06b6d4 | Primary accent (tech feel) |
+| Teal Dark | #0891b2 | Hover state |
+| Amber | #f59e0b | Warm accent (highlights) |
+| Text | #1f2937 | Body text |
+| Gray | #e5e7eb | Borders and dividers |
 
 ## Typography
 
-- **Body Font** — System stack: `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif`
-- **Mono Font** — `SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace`
+- **System Font Stack** — `-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto"...`
+- **Monospace** — `"Fira Code", "Courier New", monospace`
+- **Modern Sizing** — Responsive font scales (3rem → 1.75rem on mobile)
+- **Spacing** — 7-level spacing system (0.25rem to 4rem)
 
-## Layout
+## Design Highlights
 
-The theme provides sensible max-widths:
+### Gradients & Depth
+- Hero heading uses cyan-to-dark gradient
+- Site title uses cyan-to-amber gradient
+- Code blocks have dark gradient backgrounds
+- Table headers use dark gradient
 
-- **Default content** — 48rem (768px)
-- **Wide content** — 60rem (960px)
+### Subtle Interactions
+- Links have animated underline on hover
+- Buttons have lift effect with shadows
+- Feature cards move up on hover with glow
+- Navigation items highlight with background
 
-## Customization
-
-### Color Variables
-
-Edit `assets/css/style.css` to customize colors:
-
-```css
-:root {
-  --color-primary: #777bb3;
-  --color-primary-dark: #665ba0;
-  --color-secondary: #1f5f83;
-  /* ... more variables ... */
-}
-```
-
-### Spacing
-
-Adjust the spacing scale:
-
-```css
-:root {
-  --spacing-xs: 0.25rem;
-  --spacing-sm: 0.5rem;
-  --spacing-md: 1rem;
-  /* ... more spacing ... */
-}
-```
-
-### Fonts
-
-Change fonts in the CSS variables:
-
-```css
-:root {
-  --font-base: /* your font stack */;
-  --font-mono: /* your mono font stack */;
-}
-```
-
-## Configuration
-
-The theme respects the following `_config.yml` settings:
-
-```yaml
-title: Site Title
-description: Site description
-theme: _vhp_theme
-
-# Navigation
-nav:
-  - title: Page Title
-    url: /page-url
-```
+### Components
+- **Navigation** — Sticky header with backdrop blur
+- **Hero Section** — Large, gradient text with prominent links
+- **Feature Cards** — Grid layout with top gradient border
+- **Code Blocks** — Dark gradient with left accent border
+- **Tables** — Hover effects with smooth transitions
+- **Footer** — Dark gradient background with warm accent links
 
 ## Responsive Breakpoints
 
-- **Desktop** — 769px and up
-- **Tablet** — 481px to 768px
-- **Mobile** — 480px and down
+- **Desktop**: 769px and up
+- **Tablet**: 481px to 768px
+- **Mobile**: 480px and below
+
+## Customization
+
+### Change Colors
+Edit CSS variables in `style.css`:
+
+```css
+:root {
+  --color-teal: #06b6d4;        /* Primary accent */
+  --color-accent: #f59e0b;      /* Warm highlight */
+  --color-dark: #1a202c;        /* Headings */
+}
+```
+
+### Adjust Typography
+Modify fonts in CSS variables:
+
+```css
+--font-base: your-font-stack;
+--font-mono: your-mono-font;
+```
+
+### Change Spacing
+Update the spacing scale:
+
+```css
+--space-md: 1rem;    /* Base spacing */
+--space-lg: 1.5rem;  /* Larger */
+```
+
+## Layout Templates
+
+- **default.html** — Standard content page with sidebar support
+- **home.html** — Hero-focused landing page
+- **page.html** — Simple article layout
 
 ## Browser Support
 
-- Modern browsers (Chrome, Firefox, Safari, Edge)
-- IE 11 may require polyfills for CSS Grid
-- Graceful degradation for older browsers
+- Chrome/Edge (latest)
+- Firefox (latest)
+- Safari (latest)
+- Mobile browsers
+- IE 11 (graceful degradation)
 
-## Usage
+## File Structure
 
-1. Copy the `_vhp_theme` directory to your Jekyll site root
-2. Update `_config.yml`:
-   ```yaml
-   theme: _vhp_theme
-   ```
-3. Customize navigation in `_config.yml`
-4. Create content pages with appropriate layouts
+```
+_vhp_theme/
+├── _layouts/
+│   ├── default.html
+│   ├── home.html
+│   └── page.html
+├── assets/css/
+│   └── style.css      (~700 lines)
+├── README.md
+├── theme.gemspec
+└── _config.example.yml
+```
 
-### Available Layouts
+## Philosophy
 
-- **default** — Standard page layout with navigation
-- **home** — Hero-focused layout for homepage
-- **page** — Article layout with optional title
+The VHP theme embraces:
+1. **Simplicity** — No unnecessary elements or bloat
+2. **Elegance** — Tasteful colors and smooth interactions
+3. **Readability** — Clean typography and good contrast
+4. **Performance** — Fast load times, no external dependencies
+5. **Accessibility** — Inclusive design for all users
 
 ## License
 
-MIT License — Feel free to use this theme for your projects!
+This theme is part of the VHP project and follows the same license.
 
 ## Credits
 
-Inspired by:
-- [PHP 8.5 Release Page Design](https://www.php.net/releases/8.5/en.php)
-- Modern design best practices
-- Web performance principles
-
-## Contributing
-
-Improvements and suggestions are welcome! Please open an issue or submit a pull request.
+**Theme**: Modern, minimalist design with elegant touches
+**Colors**: Carefully chosen for tech projects (teal/cyan + warm amber)
+**Typography**: System fonts optimized for every platform
+**Interactions**: Smooth transitions and subtle hover effects
