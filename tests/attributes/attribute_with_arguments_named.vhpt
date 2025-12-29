@@ -1,0 +1,16 @@
+--TEST--
+Attributes - named arguments
+--FILE--
+<?php
+#[Route(path: "/api/users", method: "POST")]
+#[RateLimit(requests: 100, period: 60)]
+class UserController {
+    public function create() {
+        echo "POST user";
+    }
+}
+
+$controller = new UserController();
+$controller->create();
+--EXPECT--
+POST user

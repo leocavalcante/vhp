@@ -29,6 +29,8 @@ pub enum ControlFlow {
 pub struct UserFunction {
     pub params: Vec<FunctionParam>,
     pub body: Vec<Stmt>,
+    #[allow(dead_code)] // Will be used for reflection
+    pub attributes: Vec<crate::ast::Attribute>,
 }
 
 /// Class definition stored in the interpreter
@@ -42,6 +44,8 @@ pub struct ClassDefinition {
     pub methods: HashMap<String, UserFunction>,
     #[allow(dead_code)] // Will be used for visibility enforcement
     pub method_visibility: HashMap<String, Visibility>,
+    #[allow(dead_code)] // Will be used for reflection
+    pub attributes: Vec<crate::ast::Attribute>,
 }
 
 /// Interface definition stored in the interpreter
@@ -54,6 +58,8 @@ pub struct InterfaceDefinition {
     pub methods: Vec<(String, Vec<FunctionParam>)>, // (name, params)
     #[allow(dead_code)] // Will be used for interface constants
     pub constants: HashMap<String, Value>,
+    #[allow(dead_code)] // Will be used for reflection
+    pub attributes: Vec<crate::ast::Attribute>,
 }
 
 /// Trait definition stored in the interpreter
@@ -66,6 +72,8 @@ pub struct TraitDefinition {
     pub properties: Vec<Property>,
     pub methods: HashMap<String, UserFunction>,
     pub method_visibility: HashMap<String, Visibility>,
+    #[allow(dead_code)] // Will be used for reflection
+    pub attributes: Vec<crate::ast::Attribute>,
 }
 
 pub struct Interpreter<W: Write> {
@@ -1770,12 +1778,13 @@ impl<W: Write> Interpreter<W> {
             }
             Stmt::Break => Ok(ControlFlow::Break),
             Stmt::Continue => Ok(ControlFlow::Continue),
-            Stmt::Function { name, params, body } => {
+            Stmt::Function { name, params, body, attributes } => {
                 self.functions.insert(
                     name.clone(),
                     UserFunction {
                         params: params.clone(),
                         body: body.clone(),
+                        attributes: attributes.clone(),
                     },
                 );
                 Ok(ControlFlow::None)
@@ -1798,6 +1807,7 @@ impl<W: Write> Interpreter<W> {
                 trait_uses,
                 properties,
                 methods,
+                attributes,
             } => {
                 // Validate all implemented interfaces exist
                 for iface_name in interfaces {
@@ -1881,6 +1891,7 @@ impl<W: Write> Interpreter<W> {
                                     visibility,
                                     default: param.default.clone(),
                                     readonly: param.readonly,
+                                    attributes: param.attributes.clone(),
                                 });
 
                                 // Prepend assignment: $this->param_name = $param_name
@@ -1900,6 +1911,7 @@ impl<W: Write> Interpreter<W> {
                     let func = UserFunction {
                         params: method.params.clone(),
                         body: method_body,
+                        attributes: method.attributes.clone(),
                     };
                     let method_name_lower = method.name.to_lowercase();
                     methods_map.insert(method_name_lower.clone(), func);
@@ -1936,6 +1948,7 @@ impl<W: Write> Interpreter<W> {
                     properties: all_properties,
                     methods: methods_map,
                     method_visibility: visibility_map,
+                    attributes: attributes.clone(),
                 };
 
                 // Store class definition (case-insensitive)
@@ -1947,6 +1960,7 @@ impl<W: Write> Interpreter<W> {
                 parents,
                 methods,
                 constants,
+                attributes,
             } => {
                 // Validate parent interfaces exist
                 for parent_name in parents {
@@ -1984,6 +1998,7 @@ impl<W: Write> Interpreter<W> {
                     parents: parents.clone(),
                     methods: all_methods,
                     constants: const_map,
+                    attributes: attributes.clone(),
                 };
 
                 // Store interface definition (case-insensitive)
@@ -1995,6 +2010,7 @@ impl<W: Write> Interpreter<W> {
                 uses,
                 properties,
                 methods,
+                attributes,
             } => {
                 // Build methods map
                 let mut methods_map = HashMap::new();
@@ -2025,6 +2041,7 @@ impl<W: Write> Interpreter<W> {
                     let func = UserFunction {
                         params: method.params.clone(),
                         body: method.body.clone(),
+                        attributes: method.attributes.clone(),
                     };
                     let method_name_lower = method.name.to_lowercase();
                     methods_map.insert(method_name_lower.clone(), func);
@@ -2037,6 +2054,7 @@ impl<W: Write> Interpreter<W> {
                     properties: all_properties,
                     methods: methods_map,
                     method_visibility: visibility_map,
+                    attributes: attributes.clone(),
                 };
 
                 // Store trait definition (case-insensitive)

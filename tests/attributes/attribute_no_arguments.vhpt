@@ -1,0 +1,16 @@
+--TEST--
+Attributes - without arguments
+--FILE--
+<?php
+#[Deprecated]
+class OldClass {
+    #[Internal]
+    public function legacy() {
+        echo "Legacy method";
+    }
+}
+
+$obj = new OldClass();
+$obj->legacy();
+--EXPECT--
+Legacy method

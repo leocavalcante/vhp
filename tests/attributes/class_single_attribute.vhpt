@@ -1,0 +1,15 @@
+--TEST--
+Attributes - single attribute on class
+--FILE--
+<?php
+#[Route("/api/users")]
+class UserController {
+    public function index() {
+        echo "Users list";
+    }
+}
+
+$controller = new UserController();
+$controller->index();
+--EXPECT--
+Users list

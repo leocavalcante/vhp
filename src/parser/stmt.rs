@@ -1,6 +1,6 @@
 //! Statement parsing
 
-use crate::ast::{Expr, FunctionParam, Method, Property, Stmt, SwitchCase, Visibility, InterfaceMethodSignature, InterfaceConstant, TraitUse, TraitResolution};
+use crate::ast::{Expr, FunctionParam, Method, Property, Stmt, SwitchCase, Visibility, InterfaceMethodSignature, InterfaceConstant, TraitUse, TraitResolution, Attribute, AttributeArgument};
 use crate::token::{Token, TokenKind};
 use super::expr::ExprParser;
 use super::precedence::Precedence;
@@ -52,6 +52,98 @@ impl<'a> StmtParser<'a> {
     fn parse_expression(&mut self, min_prec: Precedence) -> Result<Expr, String> {
         let mut expr_parser = ExprParser::new(self.tokens, self.pos);
         expr_parser.parse_expression(min_prec)
+    }
+
+    /// Parse attributes: #[AttributeName(args)] or #[AttributeName]
+    /// Can have multiple attributes: #[Attr1] #[Attr2(arg)] or #[Attr1, Attr2]
+    fn parse_attributes(&mut self) -> Result<Vec<Attribute>, String> {
+        let mut attributes = Vec::new();
+
+        // Keep parsing while we see #[
+        while self.check(&TokenKind::Hash) {
+            // Check if next token is [
+            let current_pos = *self.pos;
+            self.advance(); // consume '#'
+
+            if !self.check(&TokenKind::LeftBracket) {
+                // Not an attribute, restore position
+                *self.pos = current_pos;
+                break;
+            }
+
+            self.advance(); // consume '['
+
+            // Parse comma-separated list of attributes within the same #[...]
+            loop {
+                // Parse attribute name (identifier)
+                let name = if let TokenKind::Identifier(name) = &self.current().kind {
+                    let name = name.clone();
+                    self.advance();
+                    name
+                } else {
+                    return Err(format!(
+                        "Expected attribute name at line {}, column {}",
+                        self.current().line,
+                        self.current().column
+                    ));
+                };
+
+                // Parse optional arguments
+                let mut arguments = Vec::new();
+                if self.check(&TokenKind::LeftParen) {
+                    self.advance(); // consume '('
+
+                    if !self.check(&TokenKind::RightParen) {
+                        loop {
+                            // Check for named argument (name: value)
+                            let mut arg_name = None;
+                            if let TokenKind::Identifier(id) = &self.current().kind {
+                                // Look ahead for colon
+                                let lookahead_pos = *self.pos + 1;
+                                if lookahead_pos < self.tokens.len() {
+                                    if let TokenKind::Colon = self.tokens[lookahead_pos].kind {
+                                        // This is a named argument
+                                        arg_name = Some(id.clone());
+                                        self.advance(); // consume identifier
+                                        self.advance(); // consume ':'
+                                    }
+                                }
+                            }
+
+                            // Parse argument value
+                            let value = self.parse_expression(Precedence::None)?;
+
+                            arguments.push(AttributeArgument {
+                                name: arg_name,
+                                value,
+                            });
+
+                            if !self.check(&TokenKind::Comma) {
+                                break;
+                            }
+                            self.advance(); // consume ','
+                        }
+                    }
+
+                    self.consume(TokenKind::RightParen, "Expected ')' after attribute arguments")?;
+                }
+
+                attributes.push(Attribute {
+                    name,
+                    arguments,
+                });
+
+                // Check for comma (multiple attributes in same #[...])
+                if !self.check(&TokenKind::Comma) {
+                    break;
+                }
+                self.advance(); // consume ','
+            }
+
+            self.consume(TokenKind::RightBracket, "Expected ']' after attribute")?;
+        }
+
+        Ok(attributes)
     }
 
     /// Parse echo statement
@@ -468,6 +560,9 @@ impl<'a> StmtParser<'a> {
         let mut params = Vec::new();
         if !self.check(&TokenKind::RightParen) {
             loop {
+                // Parse attributes for this parameter
+                let param_attributes = self.parse_attributes()?;
+
                 // Skip type hints (not supported yet)
                 if let TokenKind::Identifier(type_name) = &self.current().kind {
                     let type_lower = type_name.to_lowercase();
@@ -521,6 +616,7 @@ impl<'a> StmtParser<'a> {
                     by_ref,
                     visibility: None,
                     readonly: false,
+                    attributes: param_attributes,
                 });
 
                 if !self.check(&TokenKind::Comma) {
@@ -542,7 +638,7 @@ impl<'a> StmtParser<'a> {
 
         self.consume(TokenKind::RightBrace, "Expected '}' after function body")?;
 
-        Ok(Stmt::Function { name, params, body })
+        Ok(Stmt::Function { name, params, body, attributes: Vec::new() })
     }
 
     /// Parse return statement
@@ -614,6 +710,7 @@ impl<'a> StmtParser<'a> {
             visibility,
             default,
             readonly: false, // Will be set by caller if needed
+            attributes: Vec::new(), // Will be set by caller
         })
     }
 
@@ -641,6 +738,9 @@ impl<'a> StmtParser<'a> {
         let mut params = Vec::new();
         if !self.check(&TokenKind::RightParen) {
             loop {
+                // Parse attributes for this parameter
+                let param_attributes = self.parse_attributes()?;
+
                 // Check for visibility modifiers only on constructors
                 let param_visibility = if is_constructor {
                     match &self.current().kind {
@@ -737,6 +837,7 @@ impl<'a> StmtParser<'a> {
                     by_ref,
                     visibility: param_visibility,
                     readonly: param_readonly,
+                    attributes: param_attributes,
                 });
 
                 if !self.check(&TokenKind::Comma) {
@@ -763,6 +864,7 @@ impl<'a> StmtParser<'a> {
             visibility,
             params,
             body,
+            attributes: Vec::new(), // Will be set by caller
         })
     }
 
@@ -787,6 +889,9 @@ impl<'a> StmtParser<'a> {
         let mut params = Vec::new();
         if !self.check(&TokenKind::RightParen) {
             loop {
+                // Parse attributes for this parameter
+                let param_attributes = self.parse_attributes()?;
+
                 let param_name = if let TokenKind::Variable(name) = &self.current().kind {
                     let name = name.clone();
                     self.advance();
@@ -812,6 +917,7 @@ impl<'a> StmtParser<'a> {
                     by_ref: false,
                     visibility: None,
                     readonly: false,
+                    attributes: param_attributes,
                 });
 
                 if !self.check(&TokenKind::Comma) {
@@ -824,10 +930,11 @@ impl<'a> StmtParser<'a> {
         self.consume(TokenKind::RightParen, "Expected ')' after parameters")?;
         self.consume(TokenKind::Semicolon, "Expected ';' after method signature")?;
 
-        Ok(InterfaceMethodSignature { name, params })
+        Ok(InterfaceMethodSignature { name, params, attributes: Vec::new() })
     }
 
-    /// Parse interface constant
+    /// Parse interface constant (attributes are already parsed by caller)
+    #[allow(dead_code)]
     fn parse_interface_constant(&mut self) -> Result<InterfaceConstant, String> {
         // consume 'const'
         self.advance();
@@ -848,7 +955,7 @@ impl<'a> StmtParser<'a> {
         let value = self.parse_expression(Precedence::None)?;
         self.consume(TokenKind::Semicolon, "Expected ';' after constant value")?;
 
-        Ok(InterfaceConstant { name, value })
+        Ok(InterfaceConstant { name, value, attributes: Vec::new() })
     }
 
     /// Parse interface declaration
@@ -896,15 +1003,39 @@ impl<'a> StmtParser<'a> {
         let mut constants = Vec::new();
 
         while !self.check(&TokenKind::RightBrace) && !self.check(&TokenKind::Eof) {
+            // Parse attributes that may precede method or constant
+            let attributes = self.parse_attributes()?;
+
             if let TokenKind::Identifier(keyword) = &self.current().kind {
                 if keyword.to_lowercase() == "const" {
-                    constants.push(self.parse_interface_constant()?);
+                    // Parse const with the attributes we already parsed
+                    self.advance(); // consume 'const'
+
+                    let name = if let TokenKind::Identifier(name) = &self.current().kind {
+                        let name = name.clone();
+                        self.advance();
+                        name
+                    } else {
+                        return Err(format!(
+                            "Expected constant name at line {}, column {}",
+                            self.current().line,
+                            self.current().column
+                        ));
+                    };
+
+                    self.consume(TokenKind::Assign, "Expected '=' after constant name")?;
+                    let value = self.parse_expression(Precedence::None)?;
+                    self.consume(TokenKind::Semicolon, "Expected ';' after constant value")?;
+
+                    constants.push(InterfaceConstant { name, value, attributes });
                     continue;
                 }
             }
 
             if self.check(&TokenKind::Function) {
-                methods.push(self.parse_interface_method()?);
+                let mut method = self.parse_interface_method()?;
+                method.attributes = attributes;
+                methods.push(method);
             } else {
                 return Err(format!(
                     "Expected method or constant in interface at line {}, column {}",
@@ -921,6 +1052,7 @@ impl<'a> StmtParser<'a> {
             parents,
             methods,
             constants,
+            attributes: Vec::new(),
         })
     }
 
@@ -1105,12 +1237,19 @@ impl<'a> StmtParser<'a> {
         let mut methods = Vec::new();
 
         while !self.check(&TokenKind::RightBrace) && !self.check(&TokenKind::Eof) {
+            // Parse attributes that may precede property or method
+            let attributes = self.parse_attributes()?;
+
             let visibility = self.parse_visibility();
 
             if self.check(&TokenKind::Function) {
-                methods.push(self.parse_method(visibility)?);
+                let mut method = self.parse_method(visibility)?;
+                method.attributes = attributes;
+                methods.push(method);
             } else if self.check(&TokenKind::Variable(String::new())) {
-                properties.push(self.parse_property(visibility)?);
+                let mut prop = self.parse_property(visibility)?;
+                prop.attributes = attributes;
+                properties.push(prop);
             } else {
                 return Err(format!(
                     "Expected property or method in trait at line {}, column {}",
@@ -1127,6 +1266,7 @@ impl<'a> StmtParser<'a> {
             uses,
             properties,
             methods,
+            attributes: Vec::new(),
         })
     }
 
@@ -1208,6 +1348,9 @@ impl<'a> StmtParser<'a> {
         let mut methods = Vec::new();
 
         while !self.check(&TokenKind::RightBrace) && !self.check(&TokenKind::Eof) {
+            // Parse attributes that may precede property or method
+            let attributes = self.parse_attributes()?;
+
             // Check for readonly modifier (can appear before visibility)
             let readonly_first = if self.check(&TokenKind::Readonly) {
                 self.advance();
@@ -1245,11 +1388,14 @@ impl<'a> StmtParser<'a> {
             }
 
             if self.check(&TokenKind::Function) {
-                methods.push(self.parse_method(visibility)?);
+                let mut method = self.parse_method(visibility)?;
+                method.attributes = attributes;
+                methods.push(method);
             } else if self.check(&TokenKind::Variable(String::new())) {
                 // Parse property with readonly modifier
                 let mut prop = self.parse_property(visibility)?;
                 prop.readonly = readonly;
+                prop.attributes = attributes;
                 properties.push(prop);
             } else {
                 return Err(format!(
@@ -1285,6 +1431,7 @@ impl<'a> StmtParser<'a> {
             trait_uses,
             properties,
             methods,
+            attributes: Vec::new(),
         })
     }
 
@@ -1306,6 +1453,9 @@ impl<'a> StmtParser<'a> {
     }
 
     pub fn parse_statement(&mut self) -> Result<Option<Stmt>, String> {
+        // Parse any attributes that may precede declarations
+        let attributes = self.parse_attributes()?;
+
         let token = self.current().clone();
         match token.kind {
             TokenKind::OpenTag => {
@@ -1325,15 +1475,42 @@ impl<'a> StmtParser<'a> {
             TokenKind::Switch => Ok(Some(self.parse_switch()?)),
             TokenKind::Break => Ok(Some(self.parse_break()?)),
             TokenKind::Continue => Ok(Some(self.parse_continue()?)),
-            TokenKind::Function => Ok(Some(self.parse_function()?)),
-            TokenKind::Class => Ok(Some(self.parse_class()?)),
+            TokenKind::Function => {
+                let mut func = self.parse_function()?;
+                if let Stmt::Function { attributes: ref mut attrs, .. } = func {
+                    *attrs = attributes;
+                }
+                Ok(Some(func))
+            }
+            TokenKind::Class => {
+                let mut class = self.parse_class()?;
+                if let Stmt::Class { attributes: ref mut attrs, .. } = class {
+                    *attrs = attributes;
+                }
+                Ok(Some(class))
+            }
             TokenKind::Readonly => {
                 // readonly can be used before class keyword (PHP 8.2)
-                // Just let parse_class handle it since it looks for readonly before the class keyword
-                Ok(Some(self.parse_class()?))
+                let mut class = self.parse_class()?;
+                if let Stmt::Class { attributes: ref mut attrs, .. } = class {
+                    *attrs = attributes;
+                }
+                Ok(Some(class))
             }
-            TokenKind::Interface => Ok(Some(self.parse_interface()?)),
-            TokenKind::Trait => Ok(Some(self.parse_trait()?)),
+            TokenKind::Interface => {
+                let mut iface = self.parse_interface()?;
+                if let Stmt::Interface { attributes: ref mut attrs, .. } = iface {
+                    *attrs = attributes;
+                }
+                Ok(Some(iface))
+            }
+            TokenKind::Trait => {
+                let mut trait_stmt = self.parse_trait()?;
+                if let Stmt::Trait { attributes: ref mut attrs, .. } = trait_stmt {
+                    *attrs = attributes;
+                }
+                Ok(Some(trait_stmt))
+            }
             TokenKind::Return => Ok(Some(self.parse_return()?)),
             TokenKind::Html(html) => {
                 self.advance();

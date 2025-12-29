@@ -1,0 +1,15 @@
+--TEST--
+Attributes - complex argument values
+--FILE--
+<?php
+#[Route("/api/users", methods: ["GET", "POST"], cache: 300)]
+class UserController {
+    public function handle() {
+        echo "Complex attributes";
+    }
+}
+
+$controller = new UserController();
+$controller->handle();
+--EXPECT--
+Complex attributes

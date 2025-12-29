@@ -1,0 +1,13 @@
+--TEST--
+Attributes - attribute on function
+--FILE--
+<?php
+#[Route("/api/health")]
+#[Cache(ttl: 60)]
+function healthCheck() {
+    echo "OK";
+}
+
+healthCheck();
+--EXPECT--
+OK

@@ -1,0 +1,15 @@
+--TEST--
+Attributes - mixed positional and named arguments
+--FILE--
+<?php
+#[Route("/api/users", method: "GET", cache: 300)]
+class UserController {
+    public function index() {
+        echo "Cached GET";
+    }
+}
+
+$controller = new UserController();
+$controller->index();
+--EXPECT--
+Cached GET

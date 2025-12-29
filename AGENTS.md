@@ -61,8 +61,9 @@ src/
         ├── types.rs     # Type checking/conversion functions (14)
         └── output.rs    # Output functions (4)
 
-tests/                   # Test suite organized by feature (216 tests)
+tests/                   # Test suite organized by feature (254 tests)
 ├── arrays/              # Array tests (18)
+├── attributes/          # Attribute syntax tests (15)
 ├── builtins/            # Built-in function tests (21)
 ├── classes/             # Class and object tests (12)
 ├── comments/            # Comment syntax tests (4)
@@ -201,6 +202,17 @@ Source Code → Lexer → Tokens → Parser → AST → Interpreter → Output
 - [x] Strict (===) comparison semantics
 - [x] Match as expression (returns value)
 - [x] Unhandled match error when no arm matches and no default
+
+### Attributes (PHP 8.0)
+- [x] Basic attribute syntax: `#[AttributeName]`
+- [x] Attributes with positional arguments: `#[Route("/path")]`
+- [x] Attributes with named arguments: `#[Route(path: "/path")]`
+- [x] Multiple attributes: `#[Attr1] #[Attr2]` or `#[Attr1, Attr2]`
+- [x] Attributes on classes, interfaces, traits
+- [x] Attributes on methods, properties, functions
+- [x] Attributes on parameters (including constructor promotion)
+- [x] Attributes on interface methods and constants
+- [x] Attributes parsing and storage in AST
 
 ## Adding New Features
 
@@ -400,7 +412,7 @@ partial error message to match
 ### Phase 6: Modern PHP 8.x Features (In Progress)
 - [x] Match Expressions (PHP 8.0)
 - [x] Named Arguments (PHP 8.0)
-- [ ] Attributes (PHP 8.0)
+- [x] Attributes (PHP 8.0)
 - [ ] Enums (PHP 8.1)
 - [ ] Fibers (PHP 8.1)
 - [ ] Pipe Operator (PHP 8.5)

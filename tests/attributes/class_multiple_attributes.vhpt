@@ -1,0 +1,17 @@
+--TEST--
+Attributes - multiple attributes on class
+--FILE--
+<?php
+#[Route("/api/users")]
+#[Middleware("auth")]
+#[Cache(ttl: 300)]
+class UserController {
+    public function index() {
+        echo "Authenticated users list";
+    }
+}
+
+$controller = new UserController();
+$controller->index();
+--EXPECT--
+Authenticated users list

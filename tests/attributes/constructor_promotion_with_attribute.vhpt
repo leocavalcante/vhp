@@ -1,0 +1,20 @@
+--TEST--
+Attributes - with constructor property promotion
+--FILE--
+<?php
+class User {
+    public function __construct(
+        #[NotNull] #[MaxLength(100)]
+        public $name,
+        #[Email]
+        public $email
+    ) {}
+}
+
+$user = new User("Jane", "jane@example.com");
+echo $user->name;
+echo "\n";
+echo $user->email;
+--EXPECT--
+Jane
+jane@example.com

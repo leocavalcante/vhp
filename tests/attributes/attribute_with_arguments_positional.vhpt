@@ -1,0 +1,15 @@
+--TEST--
+Attributes - positional arguments
+--FILE--
+<?php
+#[Route("/api/users", "GET")]
+class UserController {
+    public function index() {
+        echo "GET users";
+    }
+}
+
+$controller = new UserController();
+$controller->index();
+--EXPECT--
+GET users

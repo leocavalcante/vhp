@@ -1,0 +1,14 @@
+--TEST--
+Attributes - attribute on parameter
+--FILE--
+<?php
+function createUser(
+    #[NotBlank] $name,
+    #[Email] #[Unique] $email
+) {
+    echo "User: " . $name . " (" . $email . ")";
+}
+
+createUser("Alice", "alice@example.com");
+--EXPECT--
+User: Alice (alice@example.com)

@@ -8,6 +8,24 @@ pub enum Visibility {
     Private,
 }
 
+/// Attribute argument (can be positional or named)
+#[derive(Debug, Clone)]
+pub struct AttributeArgument {
+    #[allow(dead_code)] // Will be used for reflection
+    pub name: Option<String>, // None for positional, Some("name") for named
+    #[allow(dead_code)] // Will be used for reflection
+    pub value: Expr,
+}
+
+/// Attribute metadata (PHP 8.0)
+#[derive(Debug, Clone)]
+pub struct Attribute {
+    #[allow(dead_code)] // Will be used for reflection
+    pub name: String,
+    #[allow(dead_code)] // Will be used for reflection
+    pub arguments: Vec<AttributeArgument>,
+}
+
 /// Class property definition
 #[derive(Debug, Clone)]
 pub struct Property {
@@ -16,6 +34,7 @@ pub struct Property {
     pub visibility: Visibility,
     pub default: Option<Expr>,
     pub readonly: bool, // PHP 8.1+
+    pub attributes: Vec<Attribute>, // PHP 8.0+
 }
 
 /// Class method definition
@@ -25,6 +44,7 @@ pub struct Method {
     pub visibility: Visibility,
     pub params: Vec<FunctionParam>,
     pub body: Vec<Stmt>,
+    pub attributes: Vec<Attribute>, // PHP 8.0+
 }
 
 /// Interface method signature (no body)
@@ -32,6 +52,8 @@ pub struct Method {
 pub struct InterfaceMethodSignature {
     pub name: String,
     pub params: Vec<FunctionParam>,
+    #[allow(dead_code)] // Will be used for reflection
+    pub attributes: Vec<Attribute>, // PHP 8.0+
 }
 
 /// Interface constant
@@ -39,6 +61,8 @@ pub struct InterfaceMethodSignature {
 pub struct InterfaceConstant {
     pub name: String,
     pub value: Expr,
+    #[allow(dead_code)] // Will be used for reflection
+    pub attributes: Vec<Attribute>, // PHP 8.0+
 }
 
 /// Trait usage in class
@@ -111,6 +135,7 @@ pub enum Stmt {
         name: String,
         params: Vec<FunctionParam>,
         body: Vec<Stmt>,
+        attributes: Vec<Attribute>, // PHP 8.0+
     },
     Return(Option<Expr>),
     Interface {
@@ -118,12 +143,14 @@ pub enum Stmt {
         parents: Vec<String>,
         methods: Vec<InterfaceMethodSignature>,
         constants: Vec<InterfaceConstant>,
+        attributes: Vec<Attribute>, // PHP 8.0+
     },
     Trait {
         name: String,
         uses: Vec<String>,
         properties: Vec<Property>,
         methods: Vec<Method>,
+        attributes: Vec<Attribute>, // PHP 8.0+
     },
     Class {
         name: String,
@@ -133,6 +160,7 @@ pub enum Stmt {
         trait_uses: Vec<TraitUse>,
         properties: Vec<Property>,
         methods: Vec<Method>,
+        attributes: Vec<Attribute>, // PHP 8.0+
     },
 }
 
@@ -155,6 +183,8 @@ pub struct FunctionParam {
     pub visibility: Option<Visibility>,
     /// Readonly modifier for constructor property promotion (PHP 8.1)
     pub readonly: bool,
+    /// Attributes for parameters (PHP 8.0)
+    pub attributes: Vec<Attribute>,
 }
 
 /// Program root

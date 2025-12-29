@@ -1,0 +1,24 @@
+--TEST--
+Attributes - attribute on method
+--FILE--
+<?php
+class UserController {
+    #[Route("/api/users")]
+    public function index() {
+        echo "Users";
+    }
+
+    #[Route("/api/users/create")]
+    #[ValidateRequest]
+    public function create() {
+        echo "Create user";
+    }
+}
+
+$controller = new UserController();
+$controller->index();
+echo "\n";
+$controller->create();
+--EXPECT--
+Users
+Create user

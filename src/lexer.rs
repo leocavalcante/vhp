@@ -276,13 +276,22 @@ impl Lexer {
                     continue;
                 }
 
-                // Check for hash comment
+                // Check for hash comment or attribute
                 if self.current() == Some('#') {
-                    while let Some(ch) = self.current() {
-                        if ch == '\n' {
-                            break;
+                    // Check if this is an attribute (#[) or a comment (#)
+                    if self.peek(1) == Some('[') {
+                        // This is an attribute start
+                        self.advance(); // consume '#'
+                        tokens.push(Token::new(TokenKind::Hash, line, column));
+                        // The '[' will be handled in the next iteration
+                    } else {
+                        // This is a single-line comment
+                        while let Some(ch) = self.current() {
+                            if ch == '\n' {
+                                break;
+                            }
+                            self.advance();
                         }
-                        self.advance();
                     }
                     continue;
                 }

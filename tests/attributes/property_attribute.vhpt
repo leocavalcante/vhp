@@ -1,0 +1,25 @@
+--TEST--
+Attributes - attribute on property
+--FILE--
+<?php
+class User {
+    #[NotNull]
+    #[MaxLength(100)]
+    public $name;
+
+    #[Email]
+    public $email;
+
+    public function __construct($name, $email) {
+        $this->name = $name;
+        $this->email = $email;
+    }
+}
+
+$user = new User("John Doe", "john@example.com");
+echo $user->name;
+echo "\n";
+echo $user->email;
+--EXPECT--
+John Doe
+john@example.com

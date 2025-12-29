@@ -107,6 +107,7 @@ pub enum TokenKind {
     DoubleArrow,       // =>
     Arrow,             // ->
     DoubleColon,       // ::
+    Hash,              // # (for attributes when followed by [)
 
     // Special
     Html(String),      // Raw HTML outside PHP tags

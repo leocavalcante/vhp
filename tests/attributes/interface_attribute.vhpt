@@ -1,0 +1,20 @@
+--TEST--
+Attributes - attribute on interface
+--FILE--
+<?php
+#[Deprecated]
+#[Replaced(by: "UserServiceV2")]
+interface UserService {
+    function getUsers();
+}
+
+class UserServiceImpl implements UserService {
+    public function getUsers() {
+        echo "Legacy users";
+    }
+}
+
+$service = new UserServiceImpl();
+$service->getUsers();
+--EXPECT--
+Legacy users
