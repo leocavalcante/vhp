@@ -62,7 +62,7 @@ src/
         ├── output.rs    # Output functions (4)
         └── reflection.rs # Reflection functions (8)
 
-tests/                   # Test suite organized by feature (296 tests)
+tests/                   # Test suite organized by feature (306 tests)
 ├── arrays/              # Array tests (18)
 ├── attributes/          # Attribute syntax and reflection tests (29)
 ├── builtins/            # Built-in function tests (21)
@@ -77,7 +77,7 @@ tests/                   # Test suite organized by feature (296 tests)
 ├── html/                # HTML passthrough tests (3)
 ├── interfaces/          # Interface tests (7)
 ├── numbers/             # Numeric literal tests (5)
-├── operators/           # Operator tests (23)
+├── operators/           # Operator tests (37)
 ├── strings/             # String literal and escape sequence tests (6)
 ├── tags/                # PHP tag tests (3)
 ├── traits/              # Trait tests (9)
@@ -125,6 +125,7 @@ Source Code → Lexer → Tokens → Parser → AST → Interpreter → Output
 - [x] Ternary: `? :`
 - [x] Increment/decrement: `++$x`, `$x++`, `--$x`, `$x--`
 - [x] Unary negation: `-$x`
+- [x] Pipe operator: `|>` (PHP 8.5)
 
 ### Control Flow
 - [x] `if`/`elseif`/`else` statements
@@ -228,6 +229,28 @@ Source Code → Lexer → Tokens → Parser → AST → Interpreter → Output
 - [x] Built-in methods: `cases()`, `from()`, `tryFrom()`
 - [x] Case-sensitive case names
 - [x] Validation and error handling
+
+### Pipe Operator (PHP 8.5)
+- [x] Basic pipe syntax: `$value |> function(...)`
+- [x] Function chaining: `$x |> f(...) |> g(...) |> h(...)`
+- [x] Additional arguments: `$text |> substr(..., 0, 5)`
+- [x] Left-to-right evaluation
+- [x] Low precedence (higher than assignment, lower than ternary)
+- [x] Works with built-in functions
+- [x] Works with user-defined functions
+- [x] Piped value inserted as first argument
+- [x] Multi-line pipe chains
+
+**Example:**
+```php
+<?php
+$text = "  hello world  ";
+$result = $text
+    |> trim(...)
+    |> strtoupper(...)
+    |> substr(..., 0, 5);
+echo $result; // "HELLO"
+```
 
 ## Adding New Features
 
@@ -430,8 +453,8 @@ partial error message to match
 - [x] Named Arguments (PHP 8.0)
 - [x] Attributes (PHP 8.0) - Full support including reflection API
 - [x] Enums (PHP 8.1) - Pure and backed enums with built-in methods
+- [x] Pipe Operator (PHP 8.5) - Functional-style function chaining
 - [ ] Fibers (PHP 8.1)
-- [ ] Pipe Operator (PHP 8.5)
 
 ## Code Style Guidelines
 

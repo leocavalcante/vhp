@@ -1606,4 +1606,101 @@ enum Level: int {
 - **Boolean Context**: All enum cases are truthy
 - **Comparison**: Use strict comparison (`===`) to compare enum cases
 
+## Pipe Operator (PHP 8.5)
+
+The pipe operator (`|>`) enables functional-style function chaining, making data transformations more readable by flowing left-to-right.
+
+### Basic Usage
+
+Instead of nesting function calls:
+```php
+<?php
+$result = strtoupper(trim("  hello  "));
+echo $result;  // HELLO
+```
+
+Use the pipe operator:
+```php
+<?php
+$text = "  hello  ";
+$result = $text |> trim(...) |> strtoupper(...);
+echo $result;  // HELLO
+```
+
+### With Additional Arguments
+
+The piped value is inserted as the first argument, with additional arguments following:
+
+```php
+<?php
+$text = "hello world";
+$result = $text |> substr(..., 0, 5) |> strtoupper(...);
+echo $result;  // HELLO
+```
+
+### Multiple Transformations
+
+Chain multiple functions for complex data transformations:
+
+```php
+<?php
+$text = "  HELLO WORLD  ";
+$result = $text
+    |> trim(...)
+    |> strtolower(...)
+    |> ucfirst(...);
+echo $result;  // Hello world
+```
+
+### With User-Defined Functions
+
+Works seamlessly with custom functions:
+
+```php
+<?php
+function double($x) {
+    return $x * 2;
+}
+
+function addTen($x) {
+    return $x + 10;
+}
+
+$result = 5 |> double(...) |> addTen(...);
+echo $result;  // 20 (5 * 2 + 10)
+```
+
+### Benefits
+
+- **Readability**: Operations flow in the order they're applied (left-to-right)
+- **Composability**: Easy to add or remove transformation steps
+- **Functional Style**: Enables point-free programming patterns
+- **Clarity**: Avoids deeply nested function calls
+
+### Technical Details
+
+- **Precedence**: Lower precedence than most operators but higher than assignment
+- **Associativity**: Left-associative, so `a |> b |> c` evaluates as `(a |> b) |> c`
+- **Placeholder**: The `...` syntax indicates where the piped value is inserted (always as the first argument)
+- **Function Types**: Works with built-in functions and user-defined functions
+
+### Example: Traditional vs. Pipe
+
+**Traditional nested calls:**
+```php
+<?php
+$result = ucfirst(strtolower(trim("  HELLO WORLD  ")));
+```
+
+**With pipe operator:**
+```php
+<?php
+$result = "  HELLO WORLD  "
+    |> trim(...)
+    |> strtolower(...)
+    |> ucfirst(...);
+```
+
+Both produce the same output (`"Hello world"`), but the pipe version is more readable and easier to modify.
+
 
