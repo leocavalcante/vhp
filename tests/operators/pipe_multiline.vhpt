@@ -1,0 +1,12 @@
+--TEST--
+Pipe operator - works across multiple lines
+--FILE--
+<?php
+$text = "  HELLO WORLD  ";
+$result = $text
+    |> trim(...)
+    |> strtolower(...)
+    |> ucfirst(...);
+echo $result;
+--EXPECT--
+Hello world

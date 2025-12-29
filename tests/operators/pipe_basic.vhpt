@@ -1,0 +1,9 @@
+--TEST--
+Pipe operator - basic function chaining
+--FILE--
+<?php
+$text = "  hello world  ";
+$result = $text |> trim(...) |> strtoupper(...);
+echo $result;
+--EXPECT--
+HELLO WORLD
