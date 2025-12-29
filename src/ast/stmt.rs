@@ -44,11 +44,13 @@ pub struct InterfaceConstant {
 #[derive(Debug, Clone)]
 pub struct TraitUse {
     pub traits: Vec<String>,
+    #[allow(dead_code)] // Will be used for trait conflict resolution
     pub resolutions: Vec<TraitResolution>,
 }
 
 /// Conflict resolution for traits
 #[derive(Debug, Clone)]
+#[allow(dead_code)] // Will be used for trait conflict resolution
 pub enum TraitResolution {
     InsteadOf {
         trait_name: String,

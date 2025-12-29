@@ -10,7 +10,7 @@ pub use value::{ArrayKey, ObjectInstance, Value};
 
 use crate::ast::{
     Argument, AssignOp, BinaryOp, Expr, FunctionParam, MatchArm, Program, Property, Stmt, SwitchCase,
-    UnaryOp, Visibility, InterfaceConstant, TraitUse, TraitResolution,
+    UnaryOp, Visibility,
 };
 use std::collections::HashMap;
 use std::io::{self, Write};
@@ -46,16 +46,21 @@ pub struct ClassDefinition {
 /// Interface definition stored in the interpreter
 #[derive(Debug, Clone)]
 pub struct InterfaceDefinition {
+    #[allow(dead_code)] // Will be used for interface validation
     pub name: String,
+    #[allow(dead_code)] // Will be used for interface inheritance
     pub parents: Vec<String>,
     pub methods: Vec<(String, Vec<FunctionParam>)>, // (name, params)
+    #[allow(dead_code)] // Will be used for interface constants
     pub constants: HashMap<String, Value>,
 }
 
 /// Trait definition stored in the interpreter
 #[derive(Debug, Clone)]
 pub struct TraitDefinition {
+    #[allow(dead_code)] // Will be used for trait validation
     pub name: String,
+    #[allow(dead_code)] // Will be used for trait composition
     pub uses: Vec<String>,
     pub properties: Vec<Property>,
     pub methods: HashMap<String, UserFunction>,
