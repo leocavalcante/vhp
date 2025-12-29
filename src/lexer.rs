@@ -202,6 +202,8 @@ impl Lexer {
             "insteadof" => TokenKind::Insteadof,
             "readonly" => TokenKind::Readonly,
             "enum" => TokenKind::Enum,
+            "clone" => TokenKind::Clone,
+            "with" => TokenKind::With,
             _ => TokenKind::Identifier(ident.to_string()),
         }
     }

@@ -7,6 +7,6 @@ mod expr;
 mod ops;
 mod stmt;
 
-pub use expr::{Argument, ArrayElement, Expr, MatchArm};
+pub use expr::{Argument, ArrayElement, Expr, MatchArm, PropertyModification};
 pub use ops::{AssignOp, BinaryOp, UnaryOp};
 pub use stmt::{FunctionParam, Method, Program, Property, Stmt, SwitchCase, Visibility, InterfaceMethodSignature, InterfaceConstant, TraitUse, TraitResolution, Attribute, AttributeArgument, EnumCase, EnumBackingType};

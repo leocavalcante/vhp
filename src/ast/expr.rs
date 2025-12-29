@@ -7,6 +7,13 @@ pub struct ArrayElement {
     pub value: Box<Expr>,
 }
 
+/// Property modification for clone with syntax (PHP 8.4)
+#[derive(Debug, Clone)]
+pub struct PropertyModification {
+    pub property: String,
+    pub value: Box<Expr>,
+}
+
 /// Function/method call argument with optional name (PHP 8.0 named arguments)
 #[derive(Debug, Clone)]
 pub struct Argument {
@@ -129,5 +136,16 @@ pub enum Expr {
     EnumCase {
         enum_name: String,
         case_name: String,
+    },
+
+    // Clone expression: clone $obj
+    Clone {
+        object: Box<Expr>,
+    },
+
+    // Clone with expression: clone $obj with { prop: value, ... }
+    CloneWith {
+        object: Box<Expr>,
+        modifications: Vec<PropertyModification>,
     },
 }

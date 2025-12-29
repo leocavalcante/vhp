@@ -42,6 +42,8 @@ pub enum TokenKind {
     Insteadof,    // insteadof
     Readonly,     // readonly (PHP 8.1)
     Enum,         // enum (PHP 8.1)
+    Clone,        // clone (PHP 5.0)
+    With,         // with (PHP 8.4) - for clone with syntax
 
     // Identifiers and Variables
     Variable(String),  // $name
