@@ -1,0 +1,24 @@
+--TEST--
+Readonly property - all visibility modifiers
+--FILE--
+<?php
+class Account {
+    public readonly int $id;
+    protected readonly string $username;
+    private readonly string $password;
+
+    public function __construct(int $id, string $username, string $password) {
+        $this->id = $id;
+        $this->username = $username;
+        $this->password = $password;
+    }
+
+    public function getId() {
+        return $this->id;
+    }
+}
+
+$a = new Account(123, "alice", "secret");
+echo $a->getId();
+--EXPECT--
+123

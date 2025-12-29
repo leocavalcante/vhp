@@ -1,0 +1,16 @@
+--TEST--
+Readonly property - explicit declaration
+--FILE--
+<?php
+class User {
+    public readonly string $name;
+
+    public function __construct(string $name) {
+        $this->name = $name;
+    }
+}
+
+$u = new User("Alice");
+echo $u->name;
+--EXPECT--
+Alice

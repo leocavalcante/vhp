@@ -1,0 +1,27 @@
+--TEST--
+Readonly property - mixed with regular properties
+--FILE--
+<?php
+class Product {
+    public readonly int $id;
+    public string $name;
+    public readonly float $price;
+
+    public function __construct(int $id, string $name, float $price) {
+        $this->id = $id;
+        $this->name = $name;
+        $this->price = $price;
+    }
+}
+
+$p = new Product(1, "Widget", 9.99);
+echo $p->id;
+echo "\n";
+echo $p->name;
+echo "\n";
+$p->name = "Gadget";
+echo $p->name;
+--EXPECT--
+1
+Widget
+Gadget

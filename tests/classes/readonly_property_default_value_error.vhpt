@@ -1,0 +1,12 @@
+--TEST--
+Readonly property - default value cannot be modified
+--FILE--
+<?php
+class Logger {
+    public readonly string $level = "info";
+}
+
+$l = new Logger();
+$l->level = "debug";
+--EXPECT_ERROR--
+Cannot modify readonly property

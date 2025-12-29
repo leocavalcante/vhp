@@ -1,0 +1,15 @@
+--TEST--
+Readonly property - modification error
+--FILE--
+<?php
+class Point {
+    public function __construct(
+        public readonly float $x,
+        public readonly float $y
+    ) {}
+}
+
+$p = new Point(1.5, 2.5);
+$p->x = 10.0;
+--EXPECT_ERROR--
+Cannot modify readonly property

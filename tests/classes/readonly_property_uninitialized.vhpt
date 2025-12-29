@@ -1,0 +1,22 @@
+--TEST--
+Readonly property - can be set once in constructor
+--FILE--
+<?php
+class Config {
+    public readonly string $env;
+
+    public function __construct() {
+        $this->env = "production";
+    }
+
+    public function tryModify() {
+        $this->env = "development";
+    }
+}
+
+$c = new Config();
+echo $c->env;
+echo "\n";
+$c->tryModify();
+--EXPECT_ERROR--
+Cannot modify readonly property

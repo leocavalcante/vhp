@@ -1,0 +1,16 @@
+--TEST--
+Readonly property - with default value
+--FILE--
+<?php
+class Logger {
+    public readonly string $level = "info";
+
+    public function getLevel() {
+        return $this->level;
+    }
+}
+
+$l = new Logger();
+echo $l->getLevel();
+--EXPECT--
+info

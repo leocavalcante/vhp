@@ -1,0 +1,16 @@
+--TEST--
+Readonly property - explicit declaration modification error
+--FILE--
+<?php
+class User {
+    public readonly string $name;
+
+    public function __construct(string $name) {
+        $this->name = $name;
+    }
+}
+
+$u = new User("Alice");
+$u->name = "Bob";
+--EXPECT_ERROR--
+Cannot modify readonly property
