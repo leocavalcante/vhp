@@ -86,7 +86,7 @@ docs/
 └── THEME.md           # This file
 ```
 
-The theme files are integrated directly into `docs/` for GitHub Pages compatibility.
+Theme files are integrated directly into `docs/` for GitHub Pages compatibility. This is the only location needed.
 
 ## 🎯 Layout Templates
 
@@ -241,4 +241,4 @@ This theme is part of the VHP project and follows the same license.
 ---
 
 **Live Site**: [VHP Documentation](https://leocavalcante.github.io/vhp/)
-**Theme Directory**: `_vhp_theme/` (reference) | `docs/` (active)
+**Theme Location**: `docs/` (all theme files)
