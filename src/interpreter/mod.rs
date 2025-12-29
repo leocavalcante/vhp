@@ -498,6 +498,32 @@ impl<W: Write> Interpreter<W> {
             "array_key_exists" => builtins::array::array_key_exists(&arg_values),
             "range" => builtins::array::range(&arg_values),
 
+            // Reflection functions (PHP 8.0 attributes)
+            "get_class_attributes" => {
+                builtins::reflection::get_class_attributes(&arg_values, &self.classes)
+            }
+            "get_method_attributes" => {
+                builtins::reflection::get_method_attributes(&arg_values, &self.classes)
+            }
+            "get_property_attributes" => {
+                builtins::reflection::get_property_attributes(&arg_values, &self.classes)
+            }
+            "get_function_attributes" => {
+                builtins::reflection::get_function_attributes(&arg_values, &self.functions)
+            }
+            "get_parameter_attributes" => {
+                builtins::reflection::get_parameter_attributes(&arg_values, &self.functions)
+            }
+            "get_method_parameter_attributes" => {
+                builtins::reflection::get_method_parameter_attributes(&arg_values, &self.classes)
+            }
+            "get_interface_attributes" => {
+                builtins::reflection::get_interface_attributes(&arg_values, &self.interfaces)
+            }
+            "get_trait_attributes" => {
+                builtins::reflection::get_trait_attributes(&arg_values, &self.traits)
+            }
+
             // User-defined function
             _ => {
                 // Look up in user-defined functions (case-insensitive)
