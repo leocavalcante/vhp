@@ -1,0 +1,9 @@
+--TEST--
+Basic arrow function
+--FILE--
+<?php
+$double = fn($n) => $n * 2;
+var_dump($double);
+--EXPECT--
+object(Closure)#1 {
+}

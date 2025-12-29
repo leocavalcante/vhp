@@ -4,6 +4,20 @@ use std::collections::HashMap;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 
+/// Closure (arrow function or anonymous function)
+#[derive(Debug, Clone)]
+pub struct Closure {
+    pub params: Vec<crate::ast::FunctionParam>,
+    pub body: ClosureBody,
+    pub captured_vars: HashMap<String, Value>, // Auto-captured from scope
+}
+
+/// Closure body type
+#[derive(Debug, Clone)]
+pub enum ClosureBody {
+    Expression(Box<crate::ast::Expr>), // For arrow functions: fn($x) => $x * 2
+}
+
 /// Fiber instance representation
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
@@ -99,6 +113,7 @@ impl ArrayKey {
             Value::Array(_) => ArrayKey::String("Array".to_string()),
             Value::Object(obj) => ArrayKey::String(format!("Object({})", obj.class_name)),
             Value::Fiber(fiber) => ArrayKey::String(format!("Object(Fiber#{:06})", fiber.id)),
+            Value::Closure(_) => ArrayKey::String("Object(Closure)".to_string()),
             Value::EnumCase {
                 enum_name,
                 case_name,
@@ -127,6 +142,7 @@ pub enum Value {
     Array(Vec<(ArrayKey, Value)>),
     Object(ObjectInstance),
     Fiber(Box<FiberInstance>), // Add Fiber support
+    Closure(Box<Closure>),     // Arrow function or closure
     EnumCase {
         enum_name: String,
         case_name: String,
@@ -206,6 +222,7 @@ impl Value {
             Value::Array(_) => "Array".to_string(),
             Value::Object(obj) => format!("Object({})", obj.class_name),
             Value::Fiber(fiber) => format!("Object(Fiber#{:06})", fiber.id),
+            Value::Closure(_) => "Object(Closure)".to_string(),
             Value::EnumCase {
                 enum_name,
                 case_name,
@@ -225,6 +242,7 @@ impl Value {
             Value::Array(arr) => !arr.is_empty(),
             Value::Object(_) => true,       // Objects are always truthy
             Value::Fiber(_) => true,        // Fibers are always truthy
+            Value::Closure(_) => true,      // Closures are always truthy
             Value::EnumCase { .. } => true, // Enum cases are always truthy
         }
     }
@@ -252,6 +270,7 @@ impl Value {
             }
             Value::Object(_) => 1,
             Value::Fiber(_) => 0,        // Fibers convert to 0
+            Value::Closure(_) => 1,      // Closures convert to 1
             Value::EnumCase { .. } => 1, // Enum cases convert to 1
         }
     }
@@ -279,6 +298,7 @@ impl Value {
             }
             Value::Object(_) => 1.0,
             Value::Fiber(_) => 0.0,        // Fibers convert to 0.0
+            Value::Closure(_) => 1.0,      // Closures convert to 1.0
             Value::EnumCase { .. } => 1.0, // Enum cases convert to 1.0
         }
     }
@@ -306,6 +326,7 @@ impl Value {
             Value::Array(_) => "Array".to_string(),
             Value::Object(obj) => format!("Object({})", obj.class_name),
             Value::Fiber(_) => "Object(Fiber)".to_string(),
+            Value::Closure(_) => "Object(Closure)".to_string(),
             Value::EnumCase {
                 enum_name,
                 case_name,
@@ -357,6 +378,10 @@ impl Value {
             (Value::Fiber(a), Value::Fiber(b)) => {
                 // Fibers are equal if they have the same ID
                 a.id == b.id
+            }
+            (Value::Closure(_), Value::Closure(_)) => {
+                // Closures are never strictly equal (even to themselves in this comparison)
+                false
             }
             (
                 Value::EnumCase {
@@ -423,6 +448,10 @@ impl Value {
             (Value::Fiber(a), Value::Fiber(b)) => {
                 a.id == b.id
             }
+            // Closure comparisons
+            (Value::Closure(_), Value::Closure(_)) => {
+                false // Closures are never loosely equal
+            }
             // Enum case comparisons
             (
                 Value::EnumCase {
@@ -451,6 +480,7 @@ impl Value {
             Value::Array(_) => "array",
             Value::Object(_) => "object",
             Value::Fiber(_) => "object",        // Fibers are treated as objects for type purposes
+            Value::Closure(_) => "object",      // Closures are treated as objects for type purposes
             Value::EnumCase { .. } => "object", // Enum cases are treated as objects for type purposes
         }
     }

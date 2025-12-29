@@ -175,6 +175,7 @@ impl Lexer {
             "break" => TokenKind::Break,
             "continue" => TokenKind::Continue,
             "function" => TokenKind::Function,
+            "fn" => TokenKind::Fn,
             "return" => TokenKind::Return,
             "match" => TokenKind::Match,
             "class" => TokenKind::Class,

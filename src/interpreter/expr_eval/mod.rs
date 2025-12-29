@@ -137,6 +137,9 @@ impl<W: Write> Interpreter<W> {
                         .to_string(),
                 )
             }
+            Expr::ArrowFunction { params, body } => {
+                self.eval_arrow_function(params, body)
+            }
         }
     }
 
@@ -289,5 +292,31 @@ impl<W: Write> Interpreter<W> {
             (Value::Float(a), Value::Integer(b)) => Ok(Value::Float(float_op(*a, *b as f64))),
             _ => Ok(Value::Float(float_op(left.to_float(), right.to_float()))),
         }
+    }
+
+    /// Evaluate arrow function (PHP 7.4): capture variables and create closure
+    fn eval_arrow_function(
+        &self,
+        params: &[crate::ast::FunctionParam],
+        body: &Expr,
+    ) -> Result<Value, String> {
+        use crate::interpreter::value::{Closure, ClosureBody};
+        use std::collections::HashMap;
+
+        // Capture ALL variables from current scope by value
+        // This is the key feature of arrow functions
+        let mut captured_vars = HashMap::new();
+        for (name, value) in &self.variables {
+            captured_vars.insert(name.clone(), value.clone());
+        }
+
+        // Create the closure value
+        let closure = Closure {
+            params: params.to_vec(),
+            body: ClosureBody::Expression(Box::new(body.clone())),
+            captured_vars,
+        };
+
+        Ok(Value::Closure(Box::new(closure)))
     }
 }

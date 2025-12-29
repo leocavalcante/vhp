@@ -166,4 +166,10 @@ pub enum Expr {
 
     // Spread/unpack expression: ...$array
     Spread(Box<Expr>),
+
+    // Arrow function (PHP 7.4): fn($params) => expr
+    ArrowFunction {
+        params: Vec<crate::ast::FunctionParam>,
+        body: Box<Expr>, // Single expression (not statement block)
+    },
 }

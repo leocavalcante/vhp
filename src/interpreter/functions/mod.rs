@@ -252,4 +252,60 @@ impl<W: Write> Interpreter<W> {
             Err(format!("Undefined function: {}", name))
         }
     }
+
+    /// Call a closure (arrow function or anonymous function)
+    pub(super) fn call_closure(
+        &mut self,
+        closure: &crate::interpreter::value::Closure,
+        args: &[Argument],
+    ) -> Result<Value, String> {
+        use crate::interpreter::value::{ArrayKey, ClosureBody};
+
+        // Evaluate arguments
+        let mut arg_values = Vec::new();
+        for arg in args {
+            if let crate::ast::Expr::Spread(inner) = arg.value.as_ref() {
+                // Spread: unpack array into multiple arguments
+                let value = self.eval_expr(inner)?;
+                match value {
+                    Value::Array(arr) => {
+                        for (_, v) in arr {
+                            arg_values.push(v);
+                        }
+                    }
+                    _ => return Err("Cannot unpack non-array value".to_string()),
+                }
+            } else {
+                arg_values.push(self.eval_expr(&arg.value)?);
+            }
+        }
+
+        // Save current variables
+        let saved_vars = self.variables.clone();
+
+        // Set up new scope with captured variables
+        self.variables = closure.captured_vars.clone();
+
+        // Bind parameters
+        for (i, param) in closure.params.iter().enumerate() {
+            let value = if i < arg_values.len() {
+                arg_values[i].clone()
+            } else if let Some(ref default) = param.default {
+                self.eval_expr(default)?
+            } else {
+                return Err(format!("Missing argument for parameter ${}", param.name));
+            };
+            self.variables.insert(param.name.clone(), value);
+        }
+
+        // Execute closure body
+        let result = match &closure.body {
+            ClosureBody::Expression(expr) => self.eval_expr(expr)?,
+        };
+
+        // Restore variables
+        self.variables = saved_vars;
+
+        Ok(result)
+    }
 }

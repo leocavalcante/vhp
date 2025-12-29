@@ -481,10 +481,95 @@ impl<'a> ExprParser<'a> {
                 let match_expr = parse_match(self)?;
                 parse_postfix(self, match_expr)
             }
+            TokenKind::Fn => {
+                self.advance(); // consume 'fn'
+                let arrow_func = self.parse_arrow_function()?;
+                parse_postfix(self, arrow_func)
+            }
             _ => Err(format!(
                 "Expected expression but found {:?} at line {}, column {}",
                 token.kind, token.line, token.column
             )),
         }
+    }
+
+    /// Parse arrow function: fn(params) => expression
+    /// PHP 7.4+ feature for short closures
+    pub fn parse_arrow_function(&mut self) -> Result<Expr, String> {
+        // 'fn' already consumed
+        
+        self.consume(TokenKind::LeftParen, "Expected '(' after 'fn'")?;
+        
+        // Parse parameters (simplified version without type hints)
+        let mut params = Vec::new();
+        
+        if !self.check(&TokenKind::RightParen) {
+            loop {
+                // Parse by-reference &
+                let by_ref = if self.check(&TokenKind::And) {
+                    self.advance();
+                    true
+                } else {
+                    false
+                };
+                
+                // Parse ellipsis for variadic
+                let is_variadic = if self.check(&TokenKind::Ellipsis) {
+                    self.advance();
+                    true
+                } else {
+                    false
+                };
+                
+                // Parse parameter name
+                let param_name = if let TokenKind::Variable(name) = &self.current().kind {
+                    let n = name.clone();
+                    self.advance();
+                    n
+                } else {
+                    return Err(format!(
+                        "Expected parameter name at line {}, column {}",
+                        self.current().line,
+                        self.current().column
+                    ));
+                };
+                
+                // Parse default value
+                let default = if self.check(&TokenKind::Assign) {
+                    self.advance();
+                    Some(self.parse_expression(super::super::precedence::Precedence::None)?)
+                } else {
+                    None
+                };
+                
+                params.push(crate::ast::FunctionParam {
+                    name: param_name,
+                    default,
+                    by_ref,
+                    is_variadic,
+                    visibility: None,
+                    readonly: false,
+                    attributes: Vec::new(),
+                });
+                
+                if !self.check(&TokenKind::Comma) {
+                    break;
+                }
+                self.advance();
+            }
+        }
+        
+        self.consume(TokenKind::RightParen, "Expected ')' after parameters")?;
+        
+        // Expect => (fat arrow / double arrow)
+        self.consume(TokenKind::DoubleArrow, "Expected '=>' after arrow function parameters")?;
+        
+        // Parse the expression body (NOT a statement block)
+        let body = self.parse_expression(super::super::precedence::Precedence::None)?;
+        
+        Ok(Expr::ArrowFunction {
+            params,
+            body: Box::new(body),
+        })
     }
 }

@@ -24,6 +24,7 @@ pub enum TokenKind {
     Continue, // continue
     Do,       // do
     Function, // function
+    Fn,       // fn (arrow function, PHP 7.4)
     Return,   // return
     Match,    // match (PHP 8.0)
 
