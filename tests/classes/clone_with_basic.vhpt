@@ -1,0 +1,19 @@
+--TEST--
+Clone with - basic property modification
+--FILE--
+<?php
+class Point {
+    public function __construct(
+        public float $x,
+        public float $y
+    ) {}
+}
+
+$p1 = new Point(1.0, 2.0);
+$p2 = clone $p1 with { x: 3.0 };
+
+echo "p1: " . $p1->x . ", " . $p1->y . "\n";
+echo "p2: " . $p2->x . ", " . $p2->y . "\n";
+--EXPECT--
+p1: 1, 2
+p2: 3, 2

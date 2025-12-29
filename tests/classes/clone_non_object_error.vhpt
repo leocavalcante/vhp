@@ -1,0 +1,8 @@
+--TEST--
+Clone - error when cloning non-object
+--FILE--
+<?php
+$x = 42;
+$y = clone $x;
+--EXPECT_ERROR--
+__clone method called on non-object

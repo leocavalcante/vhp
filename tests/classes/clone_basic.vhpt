@@ -1,0 +1,30 @@
+--TEST--
+Basic clone - simple object cloning
+--FILE--
+<?php
+class Point {
+    public function __construct(
+        public float $x,
+        public float $y
+    ) {}
+}
+
+$p1 = new Point(1.0, 2.0);
+$p2 = clone $p1;
+
+echo "p1: " . $p1->x . ", " . $p1->y . "\n";
+echo "p2: " . $p2->x . ", " . $p2->y . "\n";
+
+// Modify clone
+$p2->x = 3.0;
+$p2->y = 4.0;
+
+echo "After modification:\n";
+echo "p1: " . $p1->x . ", " . $p1->y . "\n";
+echo "p2: " . $p2->x . ", " . $p2->y . "\n";
+--EXPECT--
+p1: 1, 2
+p2: 1, 2
+After modification:
+p1: 1, 2
+p2: 3, 4

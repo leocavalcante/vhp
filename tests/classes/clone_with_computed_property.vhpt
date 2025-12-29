@@ -1,0 +1,19 @@
+--TEST--
+Clone with - using computed values from original object
+--FILE--
+<?php
+class Rectangle {
+    public function __construct(
+        public float $width,
+        public float $height
+    ) {}
+}
+
+$r1 = new Rectangle(10.0, 5.0);
+$r2 = clone $r1 with { width: $r1->width * 2.0 };
+
+echo "r1: " . $r1->width . "x" . $r1->height . "\n";
+echo "r2: " . $r2->width . "x" . $r2->height;
+--EXPECT--
+r1: 10x5
+r2: 20x5

@@ -1,0 +1,29 @@
+--TEST--
+Clone - nested objects are shallow copied
+--FILE--
+<?php
+class Container {
+    public $data;
+
+    public function __construct($data) {
+        $this->data = $data;
+    }
+}
+
+$c1 = new Container(10);
+$c2 = clone $c1;
+
+echo "c1 data: " . $c1->data . "\n";
+echo "c2 data: " . $c2->data . "\n";
+
+// Modify through clone
+$c2->data = 20;
+echo "After modification:\n";
+echo "c1 data: " . $c1->data . "\n";
+echo "c2 data: " . $c2->data;
+--EXPECT--
+c1 data: 10
+c2 data: 10
+After modification:
+c1 data: 10
+c2 data: 20
