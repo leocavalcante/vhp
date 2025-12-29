@@ -40,6 +40,7 @@ pub enum TokenKind {
     Trait,        // trait
     Use,          // use (for traits in class)
     Insteadof,    // insteadof
+    Readonly,     // readonly (PHP 8.1)
 
     // Identifiers and Variables
     Variable(String),  // $name

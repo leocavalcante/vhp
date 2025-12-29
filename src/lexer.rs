@@ -200,6 +200,7 @@ impl Lexer {
             "trait" => TokenKind::Trait,
             "use" => TokenKind::Use,
             "insteadof" => TokenKind::Insteadof,
+            "readonly" => TokenKind::Readonly,
             _ => TokenKind::Identifier(ident.to_string()),
         }
     }
