@@ -1,0 +1,55 @@
+# VHP Theme Configuration Example
+
+# Site information
+title: Your Site Title
+description: Your site description
+url: https://example.com
+logo: /assets/logo.png  # Optional logo for header
+
+# Theme
+theme: _vhp_theme
+
+# GitHub Pages
+plugins:
+  - jekyll-mentions
+  - jekyll-redirect-from
+  - jekyll-sitemap
+  - jekyll-feed
+
+# Build settings
+markdown: kramdown
+kramdown:
+  input: GFM
+  hard_wrap: false
+
+# Collections
+collections:
+  docs:
+    output: true
+    permalink: /:collection/:path/
+
+# Navigation menu
+nav:
+  - title: Home
+    url: /
+  - title: Documentation
+    url: /docs
+  - title: Examples
+    url: /examples
+  - title: API
+    url: /api
+  - title: GitHub
+    url: https://github.com/your-username/your-repo
+
+# Exclude files from the build
+exclude:
+  - node_modules
+  - vendor
+  - Gemfile
+  - Gemfile.lock
+  - README.md
+  - LICENSE
+  - .github
+
+# Analytics (optional)
+google_analytics: UA-XXXXXXXX-X

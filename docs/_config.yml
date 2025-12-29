@@ -1,8 +1,6 @@
-title: VHP Documentation
-description: Vibe-coded Hypertext Preprocessor - A PHP superset built in Rust
-remote_theme: pages-themes/minimal@v0.2.0
-plugins:
-  - jekyll-remote-theme
+title: VHP
+description: Vibe-coded Hypertext Preprocessor - A PHP superset built entirely in Rust through AI-assisted development
+theme: _vhp_theme
 
 # Navigation
 nav:

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="{{ page.description | default: site.description }}">
+  <meta name="author" content="Leo Cavalcante">
+
+  <title>{% if page.title %}{{ page.title }} | {% endif %}{{ site.title }}</title>
+
+  <link rel="stylesheet" href="{{ '/assets/css/style.css' | relative_url }}">
+  <link rel="canonical" href="{{ page.url | absolute_url }}">
+
+  {% if site.google_analytics %}
+  <script async src="https://www.googletagmanager.com/gtag/js?id={{ site.google_analytics }}"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', '{{ site.google_analytics }}');
+  </script>
+  {% endif %}
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <a href="{{ '/' | relative_url }}" class="site-title">
+        {% if site.logo %}
+          <img src="{{ site.logo | relative_url }}" alt="{{ site.title }}">
+        {% endif %}
+        {{ site.title | default: "VHP" }}
+      </a>
+      <button class="menu-toggle" id="menu-toggle" aria-label="Toggle navigation">☰</button>
+      <nav id="site-nav">
+        <ul>
+          {% for item in site.nav %}
+            <li>
+              <a href="{{ item.url | relative_url }}"
+                 {% if page.url == item.url %}class="current"{% endif %}>
+                {{ item.title }}
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="page-content">
+      {{ content }}
+    </div>
+  </main>
+
+  <footer>
+    <p>
+      &copy; {% now "%Y" %} {{ site.title | default: "VHP" }}.
+      <a href="https://github.com/leocavalcante/vhp" target="_blank">View on GitHub</a>
+    </p>
+  </footer>
+
+  <script>
+    // Mobile menu toggle
+    const menuToggle = document.getElementById('menu-toggle');
+    const nav = document.getElementById('site-nav');
+
+    if (menuToggle) {
+      menuToggle.addEventListener('click', () => {
+        nav.classList.toggle('hidden');
+      });
+
+      // Close menu when a link is clicked
+      nav.querySelectorAll('a').forEach(link => {
+        link.addEventListener('click', () => {
+          nav.classList.add('hidden');
+        });
+      });
+    }
+
+    // Highlight current navigation item
+    const currentPath = window.location.pathname;
+    document.querySelectorAll('nav a').forEach(link => {
+      if (link.getAttribute('href') === currentPath) {
+        link.classList.add('current');
+      }
+    });
+  </script>
+</body>
+</html>

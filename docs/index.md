@@ -1,31 +1,23 @@
 ---
-layout: default
+layout: home
 title: Home
 nav_order: 1
 ---
 
-<h1 align="center">
-  <br>
-  <img src="assets/logo.png" alt="VHP Logo" width="200">
-  <br>
-  VHP
-  <br>
-</h1>
+# <img src="assets/logo.png" alt="VHP Logo" style="width: 64px; vertical-align: middle; margin-right: 1rem;"> VHP
 
-<h4 align="center">Vibe-coded Hypertext Preprocessor</h4>
+### Vibe-coded Hypertext Preprocessor
 
-<p align="center">
-  <em>A PHP superset built entirely in Rust through AI-assisted development</em>
-</p>
+_A PHP superset built entirely in Rust through AI-assisted development_
 
-<p align="center">
-  <a href="features">Features</a> •
-  <a href="installation">Installation</a> •
-  <a href="usage">Usage</a> •
-  <a href="examples">Examples</a> •
-  <a href="roadmap">Roadmap</a> •
+<div class="hero-links">
+  <a href="features">Features</a>
+  <a href="installation">Installation</a>
+  <a href="usage">Usage</a>
+  <a href="examples">Examples</a>
+  <a href="roadmap">Roadmap</a>
   <a href="architecture">Architecture</a>
-</p>
+</div>
 
 ---
 
