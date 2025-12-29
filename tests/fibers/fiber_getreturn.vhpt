@@ -1,0 +1,13 @@
+--TEST--
+Fiber getReturn method
+--FILE--
+<?php
+function returnValue() {
+    return "final value";
+}
+
+$fiber = new Fiber('returnValue');
+$fiber->start();
+echo "Return value: " . $fiber->getReturn();
+--EXPECT--
+Return value: final value

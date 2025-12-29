@@ -1,0 +1,19 @@
+--TEST--
+Fiber getCurrent static method
+--FILE--
+<?php
+echo "Outside fiber: ";
+$current = Fiber::getCurrent();
+echo ($current === null ? "null" : "not null") . "\n";
+
+function testCurrent() {
+    echo "Inside fiber: ";
+    $current = Fiber::getCurrent();
+    echo ($current === null ? "null" : "not null") . "\n";
+}
+
+$fiber = new Fiber('testCurrent');
+$fiber->start();
+--EXPECT--
+Outside fiber: null
+Inside fiber: not null

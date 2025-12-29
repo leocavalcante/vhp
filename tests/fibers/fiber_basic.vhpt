@@ -1,0 +1,15 @@
+--TEST--
+Basic fiber creation and execution
+--FILE--
+<?php
+function test() {
+    echo "In fiber\n";
+    return "done";
+}
+
+$fiber = new Fiber('test');
+$result = $fiber->start();
+echo "Fiber returned: " . $result;
+--EXPECT--
+In fiber
+Fiber returned: done

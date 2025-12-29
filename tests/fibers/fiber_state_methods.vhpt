@@ -1,0 +1,30 @@
+--TEST--
+Fiber state checking methods
+--FILE--
+<?php
+function testFunction() {
+    return 42;
+}
+
+$fiber = new Fiber('testFunction');
+
+echo "Before start:\n";
+echo "isStarted: " . ($fiber->isStarted() ? "true" : "false") . "\n";
+echo "isSuspended: " . ($fiber->isSuspended() ? "true" : "false") . "\n";
+echo "isTerminated: " . ($fiber->isTerminated() ? "true" : "false") . "\n";
+
+$fiber->start();
+
+echo "After start (terminated):\n";
+echo "isStarted: " . ($fiber->isStarted() ? "true" : "false") . "\n";
+echo "isSuspended: " . ($fiber->isSuspended() ? "true" : "false") . "\n";
+echo "isTerminated: " . ($fiber->isTerminated() ? "true" : "false") . "\n";
+--EXPECT--
+Before start:
+isStarted: false
+isSuspended: false
+isTerminated: false
+After start (terminated):
+isStarted: true
+isSuspended: false
+isTerminated: true
