@@ -61,7 +61,7 @@ src/
         ├── types.rs     # Type checking/conversion functions (14)
         └── output.rs    # Output functions (4)
 
-tests/                   # Test suite organized by feature (197 tests)
+tests/                   # Test suite organized by feature (216 tests)
 ├── arrays/              # Array tests (18)
 ├── builtins/            # Built-in function tests (21)
 ├── classes/             # Class and object tests (12)
@@ -72,10 +72,12 @@ tests/                   # Test suite organized by feature (197 tests)
 ├── expressions/         # Expression evaluation tests (17)
 ├── functions/           # User-defined function tests (18)
 ├── html/                # HTML passthrough tests (3)
+├── interfaces/          # Interface tests (7)
 ├── numbers/             # Numeric literal tests (5)
 ├── operators/           # Operator tests (23)
 ├── strings/             # String literal and escape sequence tests (6)
 ├── tags/                # PHP tag tests (3)
+├── traits/              # Trait tests (9)
 └── variables/           # Variable assignment and scope tests (5)
 
 Makefile                 # Build automation (build, lint, test targets)
@@ -181,6 +183,13 @@ Source Code → Lexer → Tokens → Parser → AST → Interpreter → Output
 - [x] Case-insensitive class and method names (PHP-compatible)
 - [x] Inheritance with `extends` keyword
 - [x] Parent method calls with `parent::method()`
+- [x] Interfaces with method signatures and constants
+- [x] Interface inheritance (`extends Interface1, Interface2`)
+- [x] Class implementation of interfaces (`implements Interface1, Interface2`)
+- [x] Traits with properties and methods
+- [x] Trait composition in classes (`use Trait1, Trait2`)
+- [x] Trait conflict resolution (`insteadof`, `as`)
+- [x] Traits using other traits
 
 ### Match Expressions (PHP 8.0)
 - [x] Basic match syntax: `match($expr) { value => result }`
@@ -369,11 +378,19 @@ partial error message to match
 - [x] Property access and method calls
 - [x] Static method calls (`ClassName::method()`)
 - [x] Default property values
+- [x] Multiple objects from same class with independent state
+- [x] Case-insensitive class and method names (PHP-compatible)
 - [x] Inheritance with `extends` keyword
 - [x] Parent method calls with `parent::method()`
+- [x] Interfaces with method signatures and constants
+- [x] Interface inheritance (`extends Interface1, Interface2`)
+- [x] Class implementation of interfaces (`implements Interface1, Interface2`)
+- [x] Traits with properties and methods
+- [x] Trait composition in classes (`use Trait1, Trait2`)
+- [x] Trait conflict resolution (`insteadof`, `as`)
+- [x] Traits using other traits
 
 **Remaining for Phase 5 (future):**
-- [ ] Interfaces and traits
 - [ ] Constructor Property Promotion (PHP 8.0)
 - [ ] Readonly Properties (PHP 8.1) & Classes (PHP 8.2)
 - [ ] "Clone with" functionality (PHP 8.5)

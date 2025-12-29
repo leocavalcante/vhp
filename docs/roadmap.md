@@ -74,9 +74,15 @@ VHP is being developed incrementally, with each phase adding new capabilities wh
 - Default property values
 - Multiple objects from same class
 - Inheritance (`extends`) with property/method inheritance and `parent::` calls
+- Interfaces with method signatures and constants
+- Interface inheritance (`extends Interface1, Interface2`)
+- Class implementation of interfaces (`implements Interface1, Interface2`)
+- Traits with properties and methods
+- Trait composition in classes (`use Trait1, Trait2`)
+- Trait conflict resolution (`insteadof`, `as`)
+- Traits using other traits
 
 **Remaining for Phase 5:**
-- Interfaces and traits
 - Constructor Property Promotion (PHP 8.0)
 - Readonly Properties (PHP 8.1) & Classes (PHP 8.2)
 - "Clone with" functionality (PHP 8.5)

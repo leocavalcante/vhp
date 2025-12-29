@@ -543,3 +543,287 @@ function build($type, $size, $color = "white") {
 echo build("box", 10, color: "blue");
 ```
 
+## Interfaces
+
+Interfaces define contracts that classes must follow, specifying method signatures without implementations.
+
+### Basic Interface
+
+```php
+<?php
+interface Drawable {
+    function draw();
+    function getColor();
+}
+
+class Circle implements Drawable {
+    function draw() {
+        echo "Drawing a circle";
+    }
+
+    function getColor() {
+        return "red";
+    }
+}
+
+$shape = new Circle();
+$shape->draw();  // Drawing a circle
+```
+
+### Multiple Interfaces
+
+Classes can implement multiple interfaces:
+
+```php
+<?php
+interface Drawable {
+    function draw();
+}
+
+interface Resizable {
+    function resize($scale);
+}
+
+class Rectangle implements Drawable, Resizable {
+    function draw() {
+        echo "Drawing rectangle";
+    }
+
+    function resize($scale) {
+        echo "Resizing by $scale";
+    }
+}
+```
+
+### Interface Inheritance
+
+Interfaces can extend other interfaces:
+
+```php
+<?php
+interface Shape {
+    function area();
+}
+
+interface Colorable {
+    function getColor();
+}
+
+interface ColoredShape extends Shape, Colorable {
+    function render();
+}
+
+class Square implements ColoredShape {
+    function area() {
+        return 100;
+    }
+
+    function getColor() {
+        return "blue";
+    }
+
+    function render() {
+        echo "Rendering colored shape";
+    }
+}
+```
+
+### Interface Constants
+
+Interfaces can define constants:
+
+```php
+<?php
+interface Config {
+    const VERSION = "1.0";
+    const MAX_SIZE = 100;
+}
+
+echo Config::VERSION;  // 1.0
+```
+
+## Traits
+
+Traits enable code reuse in single inheritance languages by allowing methods to be shared across multiple classes.
+
+### Basic Trait
+
+```php
+<?php
+trait Logger {
+    function log($message) {
+        echo "[LOG] $message\n";
+    }
+}
+
+class Application {
+    use Logger;
+
+    function run() {
+        $this->log("Application started");
+    }
+}
+
+$app = new Application();
+$app->run();  // [LOG] Application started
+```
+
+### Multiple Traits
+
+Classes can use multiple traits:
+
+```php
+<?php
+trait Timestampable {
+    function timestamp() {
+        return "2024-01-01";
+    }
+}
+
+trait Identifiable {
+    function getId() {
+        return 42;
+    }
+}
+
+class Entity {
+    use Timestampable, Identifiable;
+}
+
+$entity = new Entity();
+echo $entity->getId();  // 42
+```
+
+### Trait Properties
+
+Traits can define properties that become part of the using class:
+
+```php
+<?php
+trait Counter {
+    public $count = 0;
+
+    function increment() {
+        $this->count = $this->count + 1;
+    }
+}
+
+class Session {
+    use Counter;
+}
+
+$session = new Session();
+$session->increment();
+echo $session->count;  // 1
+```
+
+### Overriding Trait Methods
+
+Class methods override trait methods:
+
+```php
+<?php
+trait DefaultBehavior {
+    function greet() {
+        return "Hello from trait";
+    }
+}
+
+class CustomClass {
+    use DefaultBehavior;
+
+    function greet() {
+        return "Hello from class";
+    }
+}
+
+$obj = new CustomClass();
+echo $obj->greet();  // Hello from class
+```
+
+### Traits Using Other Traits
+
+Traits can use other traits:
+
+```php
+<?php
+trait A {
+    function methodA() {
+        echo "A";
+    }
+}
+
+trait B {
+    use A;
+
+    function methodB() {
+        echo "B";
+    }
+}
+
+class MyClass {
+    use B;
+}
+
+$obj = new MyClass();
+$obj->methodA();  // A (inherited through trait B)
+$obj->methodB();  // B
+```
+
+### Conflict Resolution
+
+When multiple traits define the same method, conflicts must be resolved:
+
+```php
+<?php
+trait A {
+    function conflict() {
+        echo "From A";
+    }
+}
+
+trait B {
+    function conflict() {
+        echo "From B";
+    }
+}
+
+// This would cause an error without resolution:
+// class MyClass {
+//     use A, B;  // Error: conflict() defined in both traits
+// }
+
+// Use 'insteadof' to resolve conflicts
+class MyClass {
+    use A, B {
+        A::conflict insteadof B;
+    }
+}
+
+$obj = new MyClass();
+$obj->conflict();  // From A
+```
+
+### Method Aliasing
+
+Create aliases for trait methods:
+
+```php
+<?php
+trait Greeter {
+    function greet() {
+        echo "Hello";
+    }
+}
+
+class Welcome {
+    use Greeter {
+        greet as sayHello;
+    }
+}
+
+$w = new Welcome();
+$w->greet();      // Hello
+$w->sayHello();   // Hello
+```
+
