@@ -1,0 +1,14 @@
+--TEST--
+Attribute Reflection - get_trait_attributes()
+--FILE--
+<?php
+#[Timestampable]
+trait Timestamps {}
+
+$attrs = get_trait_attributes("Timestamps");
+echo count($attrs);
+echo "\n";
+echo $attrs[0]["name"];
+--EXPECT--
+1
+Timestampable

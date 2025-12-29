@@ -1,0 +1,18 @@
+--TEST--
+Attribute Reflection - get_class_attributes()
+--FILE--
+<?php
+#[Route("/api/users")]
+#[Middleware("auth")]
+class UserController {}
+
+$attrs = get_class_attributes("UserController");
+echo count($attrs);
+echo "\n";
+echo $attrs[0]["name"];
+echo "\n";
+echo $attrs[1]["name"];
+--EXPECT--
+2
+Route
+Middleware

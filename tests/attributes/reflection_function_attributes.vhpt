@@ -1,0 +1,20 @@
+--TEST--
+Attribute Reflection - get_function_attributes()
+--FILE--
+<?php
+#[Route("/health")]
+#[Cache(ttl: 60)]
+function healthCheck() {
+    return "OK";
+}
+
+$attrs = get_function_attributes("healthCheck");
+echo count($attrs);
+echo "\n";
+echo $attrs[0]["name"];
+echo "\n";
+echo $attrs[1]["name"];
+--EXPECT--
+2
+Route
+Cache

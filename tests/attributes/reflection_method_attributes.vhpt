@@ -1,0 +1,20 @@
+--TEST--
+Attribute Reflection - get_method_attributes()
+--FILE--
+<?php
+class UserController {
+    #[Route("/api/users")]
+    #[ValidateRequest]
+    public function index() {}
+}
+
+$attrs = get_method_attributes("UserController", "index");
+echo count($attrs);
+echo "\n";
+echo $attrs[0]["name"];
+echo "\n";
+echo $attrs[1]["name"];
+--EXPECT--
+2
+Route
+ValidateRequest

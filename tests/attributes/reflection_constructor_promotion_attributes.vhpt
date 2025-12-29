@@ -1,0 +1,18 @@
+--TEST--
+Attribute Reflection - constructor promoted property attributes
+--FILE--
+<?php
+class User {
+    public function __construct(
+        #[MaxLength(100)]
+        public $name
+    ) {}
+}
+
+$attrs = get_property_attributes("User", "name");
+echo count($attrs);
+echo "\n";
+echo $attrs[0]["name"];
+--EXPECT--
+1
+MaxLength

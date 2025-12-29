@@ -1,0 +1,16 @@
+--TEST--
+Attribute Reflection - get_parameter_attributes()
+--FILE--
+<?php
+function createUser(#[NotBlank] #[Email] $email) {}
+
+$attrs = get_parameter_attributes("createUser", "email");
+echo count($attrs);
+echo "\n";
+echo $attrs[0]["name"];
+echo "\n";
+echo $attrs[1]["name"];
+--EXPECT--
+2
+NotBlank
+Email

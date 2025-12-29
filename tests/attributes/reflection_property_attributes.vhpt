@@ -1,0 +1,20 @@
+--TEST--
+Attribute Reflection - get_property_attributes()
+--FILE--
+<?php
+class User {
+    #[MaxLength(100)]
+    #[NotNull]
+    public $name;
+}
+
+$attrs = get_property_attributes("User", "name");
+echo count($attrs);
+echo "\n";
+echo $attrs[0]["name"];
+echo "\n";
+echo $attrs[1]["name"];
+--EXPECT--
+2
+MaxLength
+NotNull

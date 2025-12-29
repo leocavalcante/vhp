@@ -1,0 +1,7 @@
+--TEST--
+Attribute Reflection - class not found error
+--FILE--
+<?php
+$attrs = get_class_attributes("NonExistentClass");
+--EXPECT_ERROR--
+Class 'NonExistentClass' not found

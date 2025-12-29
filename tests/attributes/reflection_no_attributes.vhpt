@@ -1,0 +1,10 @@
+--TEST--
+Attribute Reflection - class with no attributes
+--FILE--
+<?php
+class PlainClass {}
+
+$attrs = get_class_attributes("PlainClass");
+echo count($attrs);
+--EXPECT--
+0

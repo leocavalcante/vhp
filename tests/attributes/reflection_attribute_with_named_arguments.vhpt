@@ -1,0 +1,24 @@
+--TEST--
+Attribute Reflection - attribute with named arguments
+--FILE--
+<?php
+#[Route(path: "/api/users", method: "POST")]
+class UserController {}
+
+$attrs = get_class_attributes("UserController");
+$args = $attrs[0]["arguments"];
+echo count($args);
+echo "\n";
+echo $args[0]["name"];
+echo "\n";
+echo $args[0]["value"];
+echo "\n";
+echo $args[1]["name"];
+echo "\n";
+echo $args[1]["value"];
+--EXPECT--
+2
+path
+/api/users
+method
+POST
