@@ -2525,7 +2525,7 @@ impl<W: Write> Interpreter<W> {
                 }
 
                 match object_value {
-                    Value::Object(mut instance) => {
+                    Value::Object(instance) => {
                         let method_lower = method.to_lowercase();
 
                         // Look up the method in the class definition
@@ -2539,11 +2539,6 @@ impl<W: Write> Interpreter<W> {
 
                                 // Call the method
                                 let result = self.call_user_function(method_func, &arg_values);
-
-                                // Update instance if properties were modified
-                                if let Some(updated) = self.current_object.take() {
-                                    instance = updated;
-                                }
 
                                 // Restore context
                                 self.current_object = saved_object;
