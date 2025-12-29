@@ -259,6 +259,30 @@ impl<'a> ExprParser<'a> {
                     // Check if this is a method call (with parentheses) or enum case access
                     if self.check(&TokenKind::LeftParen) {
                         self.advance(); // consume '('
+                        
+                        // Special case for Fiber static methods
+                        if name.to_lowercase() == "fiber" {
+                            match method_or_case.to_lowercase().as_str() {
+                                "suspend" => {
+                                    let value = if self.check(&TokenKind::RightParen) {
+                                        None
+                                    } else {
+                                        Some(Box::new(self.parse_expression(super::super::precedence::Precedence::None)?))
+                                    };
+                                    self.consume(TokenKind::RightParen, "Expected ')' after Fiber::suspend arguments")?;
+                                    let expr = Expr::FiberSuspend { value };
+                                    return parse_postfix(self, expr);
+                                }
+                                "getcurrent" => {
+                                    self.consume(TokenKind::RightParen, "Expected ')' after Fiber::getCurrent")?;
+                                    let expr = Expr::FiberGetCurrent;
+                                    return parse_postfix(self, expr);
+                                }
+                                _ => {} // Fall through to regular static call
+                            }
+                        }
+                        
+                        // Regular static method call
                         let args = self.parse_arguments()?;
                         self.consume(
                             TokenKind::RightParen,
@@ -293,6 +317,71 @@ impl<'a> ExprParser<'a> {
                         "Unexpected identifier '{}' at line {}, column {}",
                         name, token.line, token.column
                     ))
+                }
+            }
+            TokenKind::Fiber => {
+                let name = "Fiber".to_string();
+                self.advance();
+
+                // Only allow Fiber:: static calls
+                if self.check(&TokenKind::DoubleColon) {
+                    self.advance(); // consume '::'
+                    let method_name = if let TokenKind::Identifier(id) = &self.current().kind {
+                        let id = id.clone();
+                        self.advance();
+                        id
+                    } else {
+                        return Err(format!(
+                            "Expected method name after 'Fiber::' at line {}, column {}",
+                            self.current().line,
+                            self.current().column
+                        ));
+                    };
+
+                    if self.check(&TokenKind::LeftParen) {
+                        self.advance(); // consume '('
+                        
+                        match method_name.to_lowercase().as_str() {
+                            "suspend" => {
+                                let value = if self.check(&TokenKind::RightParen) {
+                                    None
+                                } else {
+                                    Some(Box::new(self.parse_expression(super::super::precedence::Precedence::None)?))
+                                };
+                                self.consume(TokenKind::RightParen, "Expected ')' after Fiber::suspend arguments")?;
+                                let expr = Expr::FiberSuspend { value };
+                                return parse_postfix(self, expr);
+                            }
+                            "getcurrent" => {
+                                self.consume(TokenKind::RightParen, "Expected ')' after Fiber::getCurrent")?;
+                                let expr = Expr::FiberGetCurrent;
+                                return parse_postfix(self, expr);
+                            }
+                            _ => {
+                                let args = self.parse_arguments()?;
+                                self.consume(
+                                    TokenKind::RightParen,
+                                    "Expected ')' after static method arguments",
+                                )?;
+                                let call = Expr::StaticMethodCall {
+                                    class_name: name,
+                                    method: method_name,
+                                    args,
+                                };
+                                return parse_postfix(self, call);
+                            }
+                        }
+                    } else {
+                        return Err(format!(
+                            "Expected '(' after 'Fiber::{}' at line {}, column {}",
+                            method_name, self.current().line, self.current().column
+                        ));
+                    }
+                } else {
+                    return Err(format!(
+                        "Unexpected 'Fiber' token at line {}, column {}",
+                        token.line, token.column
+                    ));
                 }
             }
             TokenKind::Parent => {
@@ -337,18 +426,37 @@ impl<'a> ExprParser<'a> {
             }
             TokenKind::New => {
                 self.advance(); // consume 'new'
-                let class_name = if let TokenKind::Identifier(name) = &self.current().kind {
-                    let name = name.clone();
-                    self.advance();
-                    name
-                } else {
-                    return Err(format!(
-                        "Expected class name after 'new' at line {}, column {}",
-                        self.current().line,
-                        self.current().column
-                    ));
+                let class_name = match &self.current().kind {
+                    TokenKind::Identifier(name) => {
+                        let name = name.clone();
+                        self.advance();
+                        name
+                    }
+                    TokenKind::Fiber => {
+                        self.advance();
+                        "Fiber".to_string()
+                    }
+                    _ => {
+                        return Err(format!(
+                            "Expected class name after 'new' at line {}, column {}",
+                            self.current().line,
+                            self.current().column
+                        ));
+                    }
                 };
 
+                // Special case for Fiber constructor
+                if class_name.to_lowercase() == "fiber" {
+                    self.consume(TokenKind::LeftParen, "Expected '(' after 'new Fiber'")?;
+                    let callback = self.parse_expression(super::super::precedence::Precedence::None)?;
+                    self.consume(TokenKind::RightParen, "Expected ')' after fiber callback")?;
+                    let fiber_expr = Expr::NewFiber {
+                        callback: Box::new(callback),
+                    };
+                    return parse_postfix(self, fiber_expr);
+                }
+
+                // Regular class instantiation
                 let mut args = Vec::new();
                 if self.check(&TokenKind::LeftParen) {
                     self.advance(); // consume '('

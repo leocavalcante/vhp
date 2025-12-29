@@ -36,6 +36,10 @@ impl<W: Write> Interpreter<W> {
         let obj_value = self.eval_expr(object)?;
 
         match obj_value {
+            Value::Fiber(fiber) => {
+                // Handle Fiber method calls
+                self.call_fiber_method(fiber.id, method, args)
+            }
             Value::Object(mut instance) => {
                 let class_name = instance.class_name.clone();
 
@@ -458,5 +462,60 @@ impl<W: Write> Interpreter<W> {
         self.current_class = saved_current_class;
 
         Ok(return_value)
+    }
+
+    /// Handle Fiber method calls
+    fn call_fiber_method(&mut self, fiber_id: usize, method: &str, args: &[Argument]) -> Result<Value, String> {
+        // Evaluate arguments
+        let arg_values: Result<Vec<Value>, String> = args
+            .iter()
+            .map(|arg| self.eval_expr(&arg.value))
+            .collect();
+        let arg_values = arg_values?;
+
+        match method.to_lowercase().as_str() {
+            "start" => {
+                self.fiber_start(fiber_id, arg_values)
+            }
+            "resume" => {
+                let value = arg_values.get(0).cloned().unwrap_or(Value::Null);
+                self.fiber_resume(fiber_id, value)
+            }
+            "throw" => {
+                // TODO: Implement exception throwing into fiber
+                Err("Fiber::throw() not yet implemented".to_string())
+            }
+            "getreturn" => {
+                let fiber = self.fibers.get(&fiber_id)
+                    .ok_or("Invalid fiber ID")?;
+                
+                if fiber.state != crate::interpreter::value::FiberState::Terminated {
+                    return Err("Cannot get return value of non-terminated fiber".to_string());
+                }
+                
+                Ok(fiber.return_value.as_ref().map(|v| v.as_ref()).unwrap_or(&Value::Null).clone())
+            }
+            "isstarted" => {
+                let fiber = self.fibers.get(&fiber_id)
+                    .ok_or("Invalid fiber ID")?;
+                Ok(Value::Bool(fiber.state != crate::interpreter::value::FiberState::NotStarted))
+            }
+            "issuspended" => {
+                let fiber = self.fibers.get(&fiber_id)
+                    .ok_or("Invalid fiber ID")?;
+                Ok(Value::Bool(fiber.state == crate::interpreter::value::FiberState::Suspended))
+            }
+            "isrunning" => {
+                let fiber = self.fibers.get(&fiber_id)
+                    .ok_or("Invalid fiber ID")?;
+                Ok(Value::Bool(fiber.state == crate::interpreter::value::FiberState::Running))
+            }
+            "isterminated" => {
+                let fiber = self.fibers.get(&fiber_id)
+                    .ok_or("Invalid fiber ID")?;
+                Ok(Value::Bool(fiber.state == crate::interpreter::value::FiberState::Terminated))
+            }
+            _ => Err(format!("Unknown Fiber method: {}", method))
+        }
     }
 }

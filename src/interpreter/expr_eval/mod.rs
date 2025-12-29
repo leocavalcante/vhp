@@ -103,6 +103,11 @@ impl<W: Write> Interpreter<W> {
             // Function calls
             Expr::FunctionCall { name, args } => self.call_function(name, args),
 
+            // Fiber expressions
+            Expr::NewFiber { callback } => self.eval_new_fiber(callback),
+            Expr::FiberSuspend { value } => self.eval_fiber_suspend(value.as_ref().map(|v| v.as_ref())),
+            Expr::FiberGetCurrent => Ok(self.eval_fiber_get_current()),
+
             // Special expressions
             Expr::Match {
                 expr,

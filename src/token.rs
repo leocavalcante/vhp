@@ -43,6 +43,7 @@ pub enum TokenKind {
     Readonly,   // readonly (PHP 8.1)
     Enum,       // enum (PHP 8.1)
     Clone,      // clone (PHP 5.0)
+    Fiber,      // fiber (PHP 8.1)
     With,       // with (PHP 8.4) - for clone with syntax
 
     // Identifiers and Variables

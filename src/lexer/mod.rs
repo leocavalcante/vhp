@@ -192,6 +192,7 @@ impl Lexer {
             "readonly" => TokenKind::Readonly,
             "enum" => TokenKind::Enum,
             "clone" => TokenKind::Clone,
+            "fiber" => TokenKind::Fiber,
             "with" => TokenKind::With,
             _ => TokenKind::Identifier(ident.to_string()),
         }

@@ -4,6 +4,37 @@ use std::collections::HashMap;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 
+/// Fiber instance representation
+#[derive(Debug, Clone)]
+pub struct FiberInstance {
+    pub id: usize,
+    pub state: FiberState,
+    pub callback: Option<crate::interpreter::UserFunction>, // The callback function to execute
+    pub call_stack: Vec<CallFrame>,     // Fiber's own call stack
+    pub variables: HashMap<String, Value>, // Fiber's local variables
+    pub suspended_value: Option<Box<Value>>, // Value passed to Fiber::suspend()
+    pub return_value: Option<Box<Value>>,    // Final return value
+    pub error: Option<String>,          // Error if fiber failed
+}
+
+/// Fiber execution state
+#[derive(Debug, Clone, PartialEq)]
+pub enum FiberState {
+    NotStarted,
+    Running,
+    Suspended,
+    Terminated,
+}
+
+/// Call frame for fiber execution context
+#[derive(Debug, Clone)]
+pub struct CallFrame {
+    pub function_name: String,
+    pub variables: HashMap<String, Value>,
+    pub statements: Vec<crate::ast::Stmt>,
+    pub current_statement: usize,
+}
+
 /// Array key type - PHP arrays support both integer and string keys
 #[derive(Debug, Clone)]
 pub enum ArrayKey {
@@ -65,6 +96,7 @@ impl ArrayKey {
             }
             Value::Array(_) => ArrayKey::String("Array".to_string()),
             Value::Object(obj) => ArrayKey::String(format!("Object({})", obj.class_name)),
+            Value::Fiber(fiber) => ArrayKey::String(format!("Object(Fiber#{:06})", fiber.id)),
             Value::EnumCase {
                 enum_name,
                 case_name,
@@ -92,6 +124,7 @@ pub enum Value {
     String(String),
     Array(Vec<(ArrayKey, Value)>),
     Object(ObjectInstance),
+    Fiber(Box<FiberInstance>), // Add Fiber support
     EnumCase {
         enum_name: String,
         case_name: String,
@@ -170,6 +203,7 @@ impl Value {
             Value::String(s) => s.clone(),
             Value::Array(_) => "Array".to_string(),
             Value::Object(obj) => format!("Object({})", obj.class_name),
+            Value::Fiber(fiber) => format!("Object(Fiber#{:06})", fiber.id),
             Value::EnumCase {
                 enum_name,
                 case_name,
@@ -188,6 +222,7 @@ impl Value {
             Value::String(s) => !s.is_empty() && s != "0",
             Value::Array(arr) => !arr.is_empty(),
             Value::Object(_) => true,       // Objects are always truthy
+            Value::Fiber(_) => true,        // Fibers are always truthy
             Value::EnumCase { .. } => true, // Enum cases are always truthy
         }
     }
@@ -214,6 +249,7 @@ impl Value {
                 }
             }
             Value::Object(_) => 1,
+            Value::Fiber(_) => 0,        // Fibers convert to 0
             Value::EnumCase { .. } => 1, // Enum cases convert to 1
         }
     }
@@ -240,6 +276,7 @@ impl Value {
                 }
             }
             Value::Object(_) => 1.0,
+            Value::Fiber(_) => 0.0,        // Fibers convert to 0.0
             Value::EnumCase { .. } => 1.0, // Enum cases convert to 1.0
         }
     }
@@ -266,6 +303,7 @@ impl Value {
             Value::String(s) => s.clone(),
             Value::Array(_) => "Array".to_string(),
             Value::Object(obj) => format!("Object({})", obj.class_name),
+            Value::Fiber(_) => "Object(Fiber)".to_string(),
             Value::EnumCase {
                 enum_name,
                 case_name,
@@ -313,6 +351,10 @@ impl Value {
             (Value::Object(a), Value::Object(b)) => {
                 // Objects are equal if they have the same class and same properties
                 a.class_name == b.class_name && a.properties == b.properties
+            }
+            (Value::Fiber(a), Value::Fiber(b)) => {
+                // Fibers are equal if they have the same ID
+                a.id == b.id
             }
             (
                 Value::EnumCase {
@@ -375,6 +417,10 @@ impl Value {
             (Value::Object(a), Value::Object(b)) => {
                 a.class_name == b.class_name && a.properties == b.properties
             }
+            // Fiber comparisons  
+            (Value::Fiber(a), Value::Fiber(b)) => {
+                a.id == b.id
+            }
             // Enum case comparisons
             (
                 Value::EnumCase {
@@ -402,6 +448,7 @@ impl Value {
             Value::String(_) => "string",
             Value::Array(_) => "array",
             Value::Object(_) => "object",
+            Value::Fiber(_) => "object",        // Fibers are treated as objects for type purposes
             Value::EnumCase { .. } => "object", // Enum cases are treated as objects for type purposes
         }
     }

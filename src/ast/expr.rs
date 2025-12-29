@@ -94,6 +94,11 @@ pub enum Expr {
         class_name: String,
         args: Vec<Argument>,
     },
+    
+    // Fiber instantiation: new Fiber(callback) - Special case
+    NewFiber {
+        callback: Box<Expr>, // Function name or closure
+    },
 
     // Property access: $obj->property
     PropertyAccess {
@@ -124,6 +129,13 @@ pub enum Expr {
         method: String,
         args: Vec<Argument>,
     },
+    
+    // Fiber static calls - Special cases for suspend/getCurrent
+    FiberSuspend {
+        value: Option<Box<Expr>>, // Optional value to suspend with
+    },
+    
+    FiberGetCurrent,
 
     // Match expression (PHP 8.0)
     Match {

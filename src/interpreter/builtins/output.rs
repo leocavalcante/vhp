@@ -69,6 +69,17 @@ fn var_dump_value<W: Write>(output: &mut W, value: &Value, indent: usize) -> Res
             }
             writeln!(output, "{}}}", prefix).map_err(|e| e.to_string())?;
         }
+        Value::Fiber(fiber) => {
+            writeln!(
+                output,
+                "{}object(Fiber#{:06}) {{",
+                prefix,
+                fiber.id
+            )
+            .map_err(|e| e.to_string())?;
+            writeln!(output, "{}  state: {:?}", prefix, fiber.state).map_err(|e| e.to_string())?;
+            writeln!(output, "{}}}", prefix).map_err(|e| e.to_string())?;
+        }
         Value::EnumCase {
             enum_name,
             case_name,
