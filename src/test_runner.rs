@@ -61,10 +61,16 @@ impl TestCase {
 
         // Validation
         if test.name.is_empty() {
-            return Err(format!("Test file {} is missing --TEST-- section", file_path));
+            return Err(format!(
+                "Test file {} is missing --TEST-- section",
+                file_path
+            ));
         }
         if test.code.is_empty() {
-            return Err(format!("Test file {} is missing --FILE-- section", file_path));
+            return Err(format!(
+                "Test file {} is missing --FILE-- section",
+                file_path
+            ));
         }
         if test.expected.is_none() && test.expected_error.is_none() {
             return Err(format!(
@@ -199,8 +205,7 @@ impl TestRunner {
             fs::read_dir(dir).map_err(|e| format!("Failed to read directory {:?}: {}", dir, e))?;
 
         for entry in entries {
-            let entry =
-                entry.map_err(|e| format!("Failed to read directory entry: {}", e))?;
+            let entry = entry.map_err(|e| format!("Failed to read directory entry: {}", e))?;
             let path = entry.path();
 
             if path.is_dir() {
@@ -287,9 +292,11 @@ impl TestRunner {
                 }
                 Err(e) => {
                     summary.errors += 1;
-                    summary
-                        .failures
-                        .push((relative_path.clone(), "Valid test file".to_string(), e.clone()));
+                    summary.failures.push((
+                        relative_path.clone(),
+                        "Valid test file".to_string(),
+                        e.clone(),
+                    ));
                     if self.verbose {
                         println!("  \x1b[31mERROR\x1b[0m {}: {}", relative_path, e);
                     } else {

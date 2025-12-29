@@ -1,0 +1,12 @@
+--TEST--
+Pipe operator - multiple transformations
+--FILE--
+<?php
+$numbers = [1, 2, 3, 4, 5];
+$result = $numbers
+    |> array_reverse(...)
+    |> array_pop(...)
+    |> pow(..., 2);
+echo $result;
+--EXPECT--
+1

@@ -1,0 +1,12 @@
+--TEST--
+Pipe operator - left associativity
+--FILE--
+<?php
+function add5($x) { return $x + 5; }
+function mul2($x) { return $x * 2; }
+function sub3($x) { return $x - 3; }
+
+$result = 10 |> add5(...) |> mul2(...) |> sub3(...);
+echo $result;
+--EXPECT--
+27

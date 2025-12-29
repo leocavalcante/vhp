@@ -98,7 +98,10 @@ impl Lexer {
             }
         }
 
-        Err(format!("Unterminated string starting at line {}", start_line))
+        Err(format!(
+            "Unterminated string starting at line {}",
+            start_line
+        ))
     }
 
     fn read_number(&mut self) -> TokenKind {
@@ -493,9 +496,12 @@ impl Lexer {
                         if self.current() == Some('|') {
                             self.advance();
                             TokenKind::Or
+                        } else if self.current() == Some('>') {
+                            self.advance();
+                            TokenKind::Pipe
                         } else {
                             return Err(format!(
-                                "Unexpected character '|' at line {}, column {} (bitwise operators not yet supported)",
+                                "Unexpected character '|' at line {}, column {}. Did you mean '|>' (pipe operator)?",
                                 line, column
                             ));
                         }

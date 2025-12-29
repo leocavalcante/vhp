@@ -1,0 +1,9 @@
+--TEST--
+Pipe operator - function with additional arguments
+--FILE--
+<?php
+$text = "hello world";
+$result = $text |> substr(..., 0, 5) |> strtoupper(...);
+echo $result;
+--EXPECT--
+HELLO

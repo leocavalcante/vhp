@@ -1,0 +1,16 @@
+--TEST--
+Pipe operator - with user-defined functions
+--FILE--
+<?php
+function double($x) {
+    return $x * 2;
+}
+
+function addTen($x) {
+    return $x + 10;
+}
+
+$result = 5 |> double(...) |> addTen(...);
+echo $result;
+--EXPECT--
+20

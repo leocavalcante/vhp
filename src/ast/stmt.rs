@@ -33,7 +33,7 @@ pub struct Property {
     #[allow(dead_code)] // Will be used for visibility enforcement
     pub visibility: Visibility,
     pub default: Option<Expr>,
-    pub readonly: bool, // PHP 8.1+
+    pub readonly: bool,             // PHP 8.1+
     pub attributes: Vec<Attribute>, // PHP 8.0+
 }
 
@@ -181,7 +181,7 @@ pub enum Stmt {
         name: String,
         backing_type: EnumBackingType,
         cases: Vec<EnumCase>,
-        methods: Vec<Method>, // Enums can have methods
+        methods: Vec<Method>,       // Enums can have methods
         attributes: Vec<Attribute>, // PHP 8.0+
     },
 }

@@ -1,0 +1,8 @@
+--TEST--
+Pipe operator - error when right side is not a function call
+--FILE--
+<?php
+$x = 10;
+$result = $x |> 5;
+--EXPECT_ERROR--
+Pipe operator right-hand side must be a function call

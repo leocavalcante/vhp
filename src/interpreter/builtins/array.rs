@@ -246,9 +246,10 @@ pub fn array_merge(args: &[Value]) -> Result<Value, String> {
                         }
                         ArrayKey::String(s) => {
                             // String keys overwrite existing
-                            if let Some(pos) = result.iter().position(|(rk, _)| {
-                                matches!(rk, ArrayKey::String(rs) if rs == s)
-                            }) {
+                            if let Some(pos) = result
+                                .iter()
+                                .position(|(rk, _)| matches!(rk, ArrayKey::String(rs) if rs == s))
+                            {
                                 result[pos] = (k.clone(), v.clone());
                             } else {
                                 result.push((k.clone(), v.clone()));

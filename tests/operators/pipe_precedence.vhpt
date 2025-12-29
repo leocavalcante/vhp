@@ -1,0 +1,9 @@
+--TEST--
+Pipe operator - precedence with other operators
+--FILE--
+<?php
+$x = 10;
+$result = $x + 5 |> pow(..., 2);
+echo $result;
+--EXPECT--
+225

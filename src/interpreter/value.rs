@@ -65,9 +65,11 @@ impl ArrayKey {
             }
             Value::Array(_) => ArrayKey::String("Array".to_string()),
             Value::Object(obj) => ArrayKey::String(format!("Object({})", obj.class_name)),
-            Value::EnumCase { enum_name, case_name, .. } => {
-                ArrayKey::String(format!("{}::{}", enum_name, case_name))
-            }
+            Value::EnumCase {
+                enum_name,
+                case_name,
+                ..
+            } => ArrayKey::String(format!("{}::{}", enum_name, case_name)),
         }
     }
 
@@ -168,7 +170,11 @@ impl Value {
             Value::String(s) => s.clone(),
             Value::Array(_) => "Array".to_string(),
             Value::Object(obj) => format!("Object({})", obj.class_name),
-            Value::EnumCase { enum_name, case_name, .. } => format!("{}::{}", enum_name, case_name),
+            Value::EnumCase {
+                enum_name,
+                case_name,
+                ..
+            } => format!("{}::{}", enum_name, case_name),
         }
     }
 
@@ -181,7 +187,7 @@ impl Value {
             Value::Float(n) => *n != 0.0,
             Value::String(s) => !s.is_empty() && s != "0",
             Value::Array(arr) => !arr.is_empty(),
-            Value::Object(_) => true, // Objects are always truthy
+            Value::Object(_) => true,       // Objects are always truthy
             Value::EnumCase { .. } => true, // Enum cases are always truthy
         }
     }
@@ -260,7 +266,11 @@ impl Value {
             Value::String(s) => s.clone(),
             Value::Array(_) => "Array".to_string(),
             Value::Object(obj) => format!("Object({})", obj.class_name),
-            Value::EnumCase { enum_name, case_name, .. } => format!("{}::{}", enum_name, case_name),
+            Value::EnumCase {
+                enum_name,
+                case_name,
+                ..
+            } => format!("{}::{}", enum_name, case_name),
         }
     }
 

@@ -1,0 +1,10 @@
+--TEST--
+Pipe operator - using variables in arguments
+--FILE--
+<?php
+$text = "hello";
+$length = 3;
+$result = $text |> substr(..., 0, $length) |> strtoupper(...);
+echo $result;
+--EXPECT--
+HEL

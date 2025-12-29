@@ -45,7 +45,10 @@ fn run_tests(test_dir: &str, verbose: bool) -> Result<(), String> {
 }
 
 fn print_usage(program: &str) {
-    eprintln!("VHP: Vibe-coded Hypertext Preprocessor v{}", env!("CARGO_PKG_VERSION"));
+    eprintln!(
+        "VHP: Vibe-coded Hypertext Preprocessor v{}",
+        env!("CARGO_PKG_VERSION")
+    );
     eprintln!();
     eprintln!("Usage:");
     eprintln!("  {} <file.php>           Run a PHP file", program);
