@@ -33,6 +33,7 @@ impl<W: Write> Interpreter<W> {
     }
 
     /// Handle class declarations
+    #[allow(clippy::too_many_arguments)]
     pub(super) fn handle_class_decl(
         &mut self,
         name: &str,

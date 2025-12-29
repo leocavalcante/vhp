@@ -229,7 +229,7 @@ pub(crate) fn eval_pipe<W: Write>(
                             interpreter.current_class = Some(class_def.name.clone());
 
                             // Call the method with piped value as first argument
-                            let result = interpreter.call_user_function(&method_func, &arg_values);
+                            let result = interpreter.call_user_function(method_func, &arg_values);
 
                             // Restore context
                             interpreter.current_object = saved_object;

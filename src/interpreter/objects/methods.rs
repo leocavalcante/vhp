@@ -478,7 +478,7 @@ impl<W: Write> Interpreter<W> {
                 self.fiber_start(fiber_id, arg_values)
             }
             "resume" => {
-                let value = arg_values.get(0).cloned().unwrap_or(Value::Null);
+                let value = arg_values.first().cloned().unwrap_or(Value::Null);
                 self.fiber_resume(fiber_id, value)
             }
             "throw" => {

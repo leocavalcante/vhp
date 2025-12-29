@@ -135,8 +135,8 @@ impl<W: Write> Interpreter<W> {
         let callback_function = match callback_expr {
             Expr::Variable(name) => {
                 // Look up function by name (strip $ prefix if present)
-                let func_name = if name.starts_with('$') {
-                    &name[1..]
+                let func_name = if let Some(stripped) = name.strip_prefix('$') {
+                    stripped
                 } else {
                     name
                 };

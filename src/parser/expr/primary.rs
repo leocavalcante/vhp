@@ -350,12 +350,12 @@ impl<'a> ExprParser<'a> {
                                 };
                                 self.consume(TokenKind::RightParen, "Expected ')' after Fiber::suspend arguments")?;
                                 let expr = Expr::FiberSuspend { value };
-                                return parse_postfix(self, expr);
+                                parse_postfix(self, expr)
                             }
                             "getcurrent" => {
                                 self.consume(TokenKind::RightParen, "Expected ')' after Fiber::getCurrent")?;
                                 let expr = Expr::FiberGetCurrent;
-                                return parse_postfix(self, expr);
+                                parse_postfix(self, expr)
                             }
                             _ => {
                                 let args = self.parse_arguments()?;
@@ -368,20 +368,20 @@ impl<'a> ExprParser<'a> {
                                     method: method_name,
                                     args,
                                 };
-                                return parse_postfix(self, call);
+                                parse_postfix(self, call)
                             }
                         }
                     } else {
-                        return Err(format!(
+                        Err(format!(
                             "Expected '(' after 'Fiber::{}' at line {}, column {}",
                             method_name, self.current().line, self.current().column
-                        ));
+                        ))
                     }
                 } else {
-                    return Err(format!(
+                    Err(format!(
                         "Unexpected 'Fiber' token at line {}, column {}",
                         token.line, token.column
-                    ));
+                    ))
                 }
             }
             TokenKind::Parent => {

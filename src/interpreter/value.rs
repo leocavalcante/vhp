@@ -6,6 +6,7 @@ use std::hash::{Hash, Hasher};
 
 /// Fiber instance representation
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct FiberInstance {
     pub id: usize,
     pub state: FiberState,
@@ -28,6 +29,7 @@ pub enum FiberState {
 
 /// Call frame for fiber execution context
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct CallFrame {
     pub function_name: String,
     pub variables: HashMap<String, Value>,
