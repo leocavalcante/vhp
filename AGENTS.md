@@ -62,7 +62,7 @@ src/
         ├── output.rs    # Output functions (4)
         └── reflection.rs # Reflection functions (8)
 
-tests/                   # Test suite organized by feature (268 tests)
+tests/                   # Test suite organized by feature (284 tests)
 ├── arrays/              # Array tests (18)
 ├── attributes/          # Attribute syntax and reflection tests (29)
 ├── builtins/            # Built-in function tests (21)
@@ -70,6 +70,7 @@ tests/                   # Test suite organized by feature (268 tests)
 ├── comments/            # Comment syntax tests (4)
 ├── control_flow/        # Control flow tests (25)
 ├── echo/                # Echo statement tests (6)
+├── enums/               # Enum tests (16)
 ├── errors/              # Error handling tests (3)
 ├── expressions/         # Expression evaluation tests (17)
 ├── functions/           # User-defined function tests (18)
@@ -216,6 +217,15 @@ Source Code → Lexer → Tokens → Parser → AST → Interpreter → Output
 - [x] Attributes on interface methods and constants
 - [x] Attributes parsing and storage in AST
 - [x] Attribute reflection API (retrieving attributes at runtime)
+
+### Enums (PHP 8.1)
+- [x] Pure enums (cases without values)
+- [x] Backed enums (int and string backing types)
+- [x] Enum case access (`EnumName::CASE` syntax)
+- [x] Case properties (`->name`, `->value`)
+- [x] Built-in methods: `cases()`, `from()`, `tryFrom()`
+- [x] Case-sensitive case names
+- [x] Validation and error handling
 
 ## Adding New Features
 
@@ -416,7 +426,7 @@ partial error message to match
 - [x] Match Expressions (PHP 8.0)
 - [x] Named Arguments (PHP 8.0)
 - [x] Attributes (PHP 8.0) - Full support including reflection API
-- [ ] Enums (PHP 8.1)
+- [x] Enums (PHP 8.1) - Pure and backed enums with built-in methods
 - [ ] Fibers (PHP 8.1)
 - [ ] Pipe Operator (PHP 8.5)
 

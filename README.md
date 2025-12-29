@@ -70,6 +70,7 @@ cargo build --release
 - ✅ Match expressions (PHP 8.0)
 - ✅ Named arguments (PHP 8.0)
 - ✅ Attributes with reflection API (PHP 8.0)
+- ✅ Enums - pure and backed (PHP 8.1)
 - ✅ 71 built-in functions (string, math, array, type, output, reflection)
 - ✅ PHP-compatible type coercion
 - ✅ Mixed HTML/PHP support

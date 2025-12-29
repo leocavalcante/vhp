@@ -1142,4 +1142,317 @@ VHP fully supports:
 - ✅ Attributes on all declarations (classes, methods, properties, functions, parameters, etc.)
 - ✅ Attribute reflection API for runtime retrieval
 
+## Enums (PHP 8.1)
+
+Enums (Enumerations) provide a way to define a type with a fixed set of possible values. VHP supports both pure enums (cases without values) and backed enums (cases backed by int or string values).
+
+### Pure Enums
+
+Pure enums define named cases without scalar backing values.
+
+**Syntax:**
+
+```php
+<?php
+enum EnumName {
+    case CaseName;
+    case AnotherCase;
+}
+```
+
+**Example:**
+
+```php
+<?php
+enum Status {
+    case Pending;
+    case Active;
+    case Archived;
+}
+
+$status = Status::Active;
+echo $status->name;  // Active
+```
+
+**Key Points:**
+- Cases have no backing values
+- Access the case name via the `->name` property
+- No `->value` property available
+
+### Backed Enums (Int)
+
+Backed enums with integer values provide both name and value properties.
+
+**Syntax:**
+
+```php
+<?php
+enum EnumName: int {
+    case CaseName = value;
+}
+```
+
+**Example:**
+
+```php
+<?php
+enum Priority: int {
+    case Low = 1;
+    case Medium = 5;
+    case High = 10;
+}
+
+$priority = Priority::High;
+echo $priority->name;   // High
+echo $priority->value;  // 10
+```
+
+### Backed Enums (String)
+
+Backed enums with string values work similarly to int-backed enums.
+
+**Syntax:**
+
+```php
+<?php
+enum EnumName: string {
+    case CaseName = 'value';
+}
+```
+
+**Example:**
+
+```php
+<?php
+enum Color: string {
+    case Red = 'red';
+    case Green = 'green';
+    case Blue = 'blue';
+}
+
+$color = Color::Red;
+echo $color->name;   // Red
+echo $color->value;  // red
+```
+
+### Built-in Enum Methods
+
+All enums have access to built-in methods for introspection and validation.
+
+#### cases()
+
+Returns an array of all enum cases.
+
+```php
+<?php
+enum Status {
+    case Pending;
+    case Active;
+    case Archived;
+}
+
+$cases = Status::cases();
+echo count($cases);        // 3
+echo $cases[0]->name;      // Pending
+echo $cases[1]->name;      // Active
+```
+
+**Works with:** Pure and backed enums
+
+#### from()
+
+Retrieves an enum case by its backing value. Throws an error if the value is not found.
+
+```php
+<?php
+enum Priority: int {
+    case Low = 1;
+    case Medium = 5;
+    case High = 10;
+}
+
+$priority = Priority::from(5);
+echo $priority->name;  // Medium
+
+// Error: Value not found
+$invalid = Priority::from(99);  // Error: Value '99' is not a valid backing value
+```
+
+**Works with:** Backed enums only (int or string)
+**Throws:** Error if value not found
+
+#### tryFrom()
+
+Retrieves an enum case by its backing value. Returns `null` if the value is not found (safe version of `from()`).
+
+```php
+<?php
+enum Priority: int {
+    case Low = 1;
+    case Medium = 5;
+    case High = 10;
+}
+
+$priority = Priority::tryFrom(5);
+echo $priority->name;  // Medium
+
+$invalid = Priority::tryFrom(99);
+var_dump($invalid);  // NULL
+```
+
+**Works with:** Backed enums only (int or string)
+**Returns:** Enum case or `null` if not found
+
+### Enum Case Properties
+
+Enum cases expose properties for introspection:
+
+| Property | Available On | Description |
+|----------|--------------|-------------|
+| `->name` | All enums | String name of the case |
+| `->value` | Backed enums only | Backing value (int or string) |
+
+**Example:**
+
+```php
+<?php
+enum Status {
+    case Pending;
+}
+
+enum Priority: int {
+    case Low = 1;
+}
+
+$status = Status::Pending;
+echo $status->name;   // Pending
+// $status->value;    // Error: Pure enum case doesn't have 'value' property
+
+$priority = Priority::Low;
+echo $priority->name;   // Low
+echo $priority->value;  // 1
+```
+
+### Using Enums
+
+#### In Variables
+
+```php
+<?php
+enum Status {
+    case Active;
+    case Inactive;
+}
+
+$current = Status::Active;
+echo $current->name;  // Active
+```
+
+#### In Arrays
+
+```php
+<?php
+enum Status {
+    case Pending;
+    case Active;
+    case Archived;
+}
+
+$statuses = [Status::Pending, Status::Active];
+echo $statuses[0]->name;  // Pending
+echo $statuses[1]->name;  // Active
+```
+
+#### In Switch Statements
+
+```php
+<?php
+enum Status {
+    case Pending;
+    case Active;
+    case Archived;
+}
+
+$status = Status::Active;
+
+switch ($status->name) {
+    case "Pending":
+        echo "Waiting";
+        break;
+    case "Active":
+        echo "Running";
+        break;
+    case "Archived":
+        echo "Done";
+        break;
+}
+// Output: Running
+```
+
+#### In Comparisons
+
+```php
+<?php
+enum Status {
+    case Pending;
+    case Active;
+}
+
+$s1 = Status::Active;
+$s2 = Status::Active;
+$s3 = Status::Pending;
+
+var_dump($s1 === $s2);  // bool(true)
+var_dump($s1 === $s3);  // bool(false)
+```
+
+### Enum Validation
+
+VHP enforces strict validation rules for enums:
+
+**Pure Enums:**
+- Cannot have case values
+- Must have at least one case
+- Case names must be unique
+
+**Backed Enums:**
+- Must declare backing type (`: int` or `: string`)
+- All cases must have values matching the backing type
+- Backing values must be unique
+- Must have at least one case
+
+**Error Examples:**
+
+```php
+<?php
+// Error: Pure enum cannot have case values
+enum Status {
+    case Pending = 1;  // Error
+}
+
+// Error: Backed enum must have case values
+enum Priority: int {
+    case Low;  // Error: missing value
+}
+
+// Error: Wrong backing type
+enum Color: int {
+    case Red = "red";  // Error: string value for int-backed enum
+}
+
+// Error: Duplicate values
+enum Level: int {
+    case Low = 1;
+    case Medium = 1;  // Error: duplicate value
+}
+```
+
+### Notes
+
+- **Case Sensitivity**: Enum names are case-insensitive (like classes), but case names are case-sensitive (`Status::Active` ≠ `Status::ACTIVE`)
+- **Type Safety**: Enum cases don't automatically coerce to other types
+- **String Representation**: When converted to string, displays as `EnumName::CaseName`
+- **Boolean Context**: All enum cases are truthy
+- **Comparison**: Use strict comparison (`===`) to compare enum cases
+
 
