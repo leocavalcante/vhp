@@ -1,0 +1,18 @@
+--TEST--
+Readonly class - basic usage with constructor promotion
+--FILE--
+<?php
+readonly class Point {
+    public function __construct(
+        public float $x,
+        public float $y
+    ) {}
+}
+
+$p = new Point(1.5, 2.5);
+echo $p->x;
+echo "\n";
+echo $p->y;
+--EXPECT--
+1.5
+2.5

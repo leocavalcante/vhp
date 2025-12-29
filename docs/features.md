@@ -682,6 +682,96 @@ interface Config {
 echo Config::VERSION;  // 1.0
 ```
 
+## Readonly Properties (PHP 8.1)
+
+Readonly properties can only be assigned once and cannot be modified afterward. They're useful for immutable data structures.
+
+### Basic Readonly Properties
+
+```php
+<?php
+class Point {
+    public readonly $x;
+    public readonly $y;
+
+    public function __construct($x, $y) {
+        $this->x = $x;  // Assignment in constructor is allowed
+        $this->y = $y;
+    }
+}
+
+$p = new Point(10, 20);
+echo $p->x;  // 10
+$p->x = 30;  // Error: Cannot modify readonly property
+```
+
+### Constructor Property Promotion with Readonly
+
+```php
+<?php
+class User {
+    public function __construct(
+        public readonly string $id,
+        public readonly string $email
+    ) {}
+}
+
+$user = new User("123", "user@example.com");
+echo $user->id;  // 123
+// Cannot modify $user->id or $user->email
+```
+
+## Readonly Classes (PHP 8.2)
+
+Readonly classes make all properties implicitly readonly without needing to mark each property individually.
+
+### Basic Readonly Class
+
+```php
+<?php
+readonly class Point {
+    public function __construct(
+        public $x,
+        public $y
+    ) {}
+}
+
+$p = new Point(1.5, 2.5);
+echo $p->x;  // 1.5
+$p->x = 3.0; // Error: Cannot modify readonly property
+```
+
+### Readonly Class with Explicit Properties
+
+```php
+<?php
+readonly class User {
+    public $name;
+    private $age;
+
+    public function __construct($name, $age) {
+        $this->name = $name;
+        $this->age = $age;
+    }
+
+    public function getAge() {
+        return $this->age;
+    }
+}
+
+$user = new User("John", 30);
+echo $user->name;  // John
+echo $user->getAge();  // 30
+$user->name = "Jane";  // Error: Cannot modify readonly property
+```
+
+### Key Differences from Explicit Readonly Properties
+
+- All properties are implicitly readonly (no need for `readonly` keyword on each property)
+- Properties cannot have explicit `readonly` modifier (redundant)
+- More concise for immutable classes
+- All visibility modifiers work (public, protected, private)
+
 ## Traits
 
 Traits enable code reuse in single inheritance languages by allowing methods to be shared across multiple classes.

@@ -66,6 +66,7 @@ cargo build --release
 - ✅ Interfaces and Traits
 - ✅ Constructor Property Promotion (PHP 8.0)
 - ✅ Readonly properties (PHP 8.1)
+- ✅ Readonly classes (PHP 8.2)
 - ✅ Match expressions (PHP 8.0)
 - ✅ Named arguments (PHP 8.0)
 - ✅ 65+ built-in functions (string, math, array, type, output)

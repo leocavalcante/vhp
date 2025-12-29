@@ -1,0 +1,34 @@
+--TEST--
+Readonly class - readonly child can extend readonly parent
+--FILE--
+<?php
+readonly class Point2D {
+    public $x;
+    public $y;
+
+    public function __construct($x, $y) {
+        $this->x = $x;
+        $this->y = $y;
+    }
+}
+
+readonly class Point3D extends Point2D {
+    public $z;
+
+    public function __construct($x, $y, $z) {
+        $this->x = $x;
+        $this->y = $y;
+        $this->z = $z;
+    }
+}
+
+$p = new Point3D(1.0, 2.0, 3.0);
+echo $p->x;
+echo "\n";
+echo $p->y;
+echo "\n";
+echo $p->z;
+--EXPECT--
+1
+2
+3

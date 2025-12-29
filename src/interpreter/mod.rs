@@ -35,6 +35,7 @@ pub struct UserFunction {
 #[derive(Debug, Clone)]
 pub struct ClassDefinition {
     pub name: String,
+    pub readonly: bool, // PHP 8.2+: if true, all properties are implicitly readonly
     #[allow(dead_code)] // Will be used for inheritance support
     pub parent: Option<String>,
     pub properties: Vec<Property>,
@@ -981,6 +982,12 @@ impl<W: Write> Interpreter<W> {
             }
         }
 
+        // Get the readonly flag before we borrow class_def mutably
+        let class_readonly = {
+            let class_def = self.classes.get(&class_name_lower).unwrap();
+            class_def.readonly
+        };
+
         // Also handle constructor promoted properties
         let class_def = self.classes.get(&class_name_lower).unwrap();
         if let Some(constructor) = class_def.methods.get("__construct") {
@@ -1001,6 +1008,21 @@ impl<W: Write> Interpreter<W> {
         for prop_name in instance.readonly_properties.iter() {
             if instance.properties.contains_key(prop_name) {
                 instance.initialized_readonly.insert(prop_name.clone());
+            }
+        }
+
+        // If class itself is readonly (PHP 8.2), all properties are implicitly readonly
+        if class_readonly {
+            // Get all property names from the instance and mark them as readonly
+            let all_property_names: Vec<String> = instance.properties.keys()
+                .map(|k| k.to_string())
+                .collect();
+
+            // Add all properties to readonly set
+            for prop_name in all_property_names {
+                instance.readonly_properties.insert(prop_name.clone());
+                // Mark as initialized since constructor has completed
+                instance.initialized_readonly.insert(prop_name);
             }
         }
 
@@ -1770,6 +1792,7 @@ impl<W: Write> Interpreter<W> {
             }
             Stmt::Class {
                 name,
+                readonly,
                 parent,
                 interfaces,
                 trait_uses,
@@ -1908,6 +1931,7 @@ impl<W: Write> Interpreter<W> {
 
                 let class_def = ClassDefinition {
                     name: name.clone(),
+                    readonly: *readonly,
                     parent: parent.clone(),
                     properties: all_properties,
                     methods: methods_map,

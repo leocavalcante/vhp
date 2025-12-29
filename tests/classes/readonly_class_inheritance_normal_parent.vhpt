@@ -1,0 +1,29 @@
+--TEST--
+Readonly class - readonly child can extend non-readonly parent
+--FILE--
+<?php
+class Point2D {
+    public $x;
+    public $y;
+
+    public function __construct($x, $y) {
+        $this->x = $x;
+        $this->y = $y;
+    }
+}
+
+readonly class Point3D extends Point2D {
+    public $z;
+
+    public function __construct($x, $y, $z) {
+        $this->x = $x;
+        $this->y = $y;
+        $this->z = $z;
+    }
+}
+
+$p = new Point3D(1.0, 2.0, 3.0);
+echo $p->z;
+$p->z = 5.0; // Error: child class is readonly
+--EXPECT_ERROR--
+Cannot modify readonly property

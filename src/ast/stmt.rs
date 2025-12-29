@@ -127,6 +127,7 @@ pub enum Stmt {
     },
     Class {
         name: String,
+        readonly: bool, // PHP 8.2+: all properties are implicitly readonly
         parent: Option<String>,
         interfaces: Vec<String>,
         trait_uses: Vec<TraitUse>,

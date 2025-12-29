@@ -1,0 +1,10 @@
+--TEST--
+Readonly class - error when property has explicit readonly modifier
+--FILE--
+<?php
+readonly class Point {
+    public readonly float $x;
+    public readonly float $y;
+}
+--EXPECT_ERROR--
+cannot have explicit 'readonly' modifier in readonly class

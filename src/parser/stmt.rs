@@ -1133,7 +1133,15 @@ impl<'a> StmtParser<'a> {
 
     /// Parse class declaration
     pub fn parse_class(&mut self) -> Result<Stmt, String> {
-        self.advance(); // consume 'class'
+        // Check for readonly modifier before class keyword
+        let readonly = if self.check(&TokenKind::Readonly) {
+            self.advance();
+            true
+        } else {
+            false
+        };
+
+        self.consume(TokenKind::Class, "Expected 'class' keyword")?;
 
         let name = if let TokenKind::Identifier(name) = &self.current().kind {
             let name = name.clone();
@@ -1254,8 +1262,24 @@ impl<'a> StmtParser<'a> {
 
         self.consume(TokenKind::RightBrace, "Expected '}' after class body")?;
 
+        // If class is readonly, validate that properties don't have explicit readonly modifier
+        if readonly {
+            for property in &properties {
+                if property.readonly {
+                    return Err(format!(
+                        "Property '{}' cannot have explicit 'readonly' modifier in readonly class '{}' at line {}, column {}",
+                        property.name,
+                        name,
+                        self.current().line,
+                        self.current().column
+                    ));
+                }
+            }
+        }
+
         Ok(Stmt::Class {
             name,
+            readonly,
             parent,
             interfaces,
             trait_uses,
@@ -1303,6 +1327,11 @@ impl<'a> StmtParser<'a> {
             TokenKind::Continue => Ok(Some(self.parse_continue()?)),
             TokenKind::Function => Ok(Some(self.parse_function()?)),
             TokenKind::Class => Ok(Some(self.parse_class()?)),
+            TokenKind::Readonly => {
+                // readonly can be used before class keyword (PHP 8.2)
+                // Just let parse_class handle it since it looks for readonly before the class keyword
+                Ok(Some(self.parse_class()?))
+            }
             TokenKind::Interface => Ok(Some(self.parse_interface()?)),
             TokenKind::Trait => Ok(Some(self.parse_trait()?)),
             TokenKind::Return => Ok(Some(self.parse_return()?)),

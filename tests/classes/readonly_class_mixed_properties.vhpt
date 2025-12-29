@@ -1,0 +1,34 @@
+--TEST--
+Readonly class - all visibility modifiers work
+--FILE--
+<?php
+readonly class Data {
+    public $public_prop;
+    protected $protected_prop;
+    private $private_prop;
+
+    public function __construct() {
+        $this->public_prop = "public";
+        $this->protected_prop = "protected";
+        $this->private_prop = "private";
+    }
+
+    public function getProtected() {
+        return $this->protected_prop;
+    }
+
+    public function getPrivate() {
+        return $this->private_prop;
+    }
+}
+
+$d = new Data();
+echo $d->public_prop;
+echo "\n";
+echo $d->getProtected();
+echo "\n";
+echo $d->getPrivate();
+--EXPECT--
+public
+protected
+private

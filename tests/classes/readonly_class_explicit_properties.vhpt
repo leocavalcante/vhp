@@ -1,0 +1,25 @@
+--TEST--
+Readonly class - explicit property declarations
+--FILE--
+<?php
+readonly class User {
+    public $name;
+    private $age;
+
+    public function __construct($name, $age) {
+        $this->name = $name;
+        $this->age = $age;
+    }
+
+    public function getAge() {
+        return $this->age;
+    }
+}
+
+$user = new User("John", 30);
+echo $user->name;
+echo "\n";
+echo $user->getAge();
+--EXPECT--
+John
+30
