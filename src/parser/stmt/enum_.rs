@@ -170,6 +170,7 @@ impl<'a> StmtParser<'a> {
                             name: param_name,
                             default,
                             by_ref: false,
+                            is_variadic: false,
                             visibility: None,
                             readonly: false,
                             attributes: Vec::new(),

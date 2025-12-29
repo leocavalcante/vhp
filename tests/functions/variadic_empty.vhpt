@@ -1,0 +1,13 @@
+--TEST--
+Variadic function called with no variadic arguments
+--FILE--
+<?php
+function process($required, ...$extras) {
+    echo "Required: " . $required . "\n";
+    echo "Count of extras: " . count($extras) . "\n";
+}
+
+process("test");
+--EXPECT--
+Required: test
+Count of extras: 0

@@ -163,4 +163,7 @@ pub enum Expr {
 
     // Placeholder for pipe operator: ... (PHP 8.5)
     Placeholder,
+
+    // Spread/unpack expression: ...$array
+    Spread(Box<Expr>),
 }

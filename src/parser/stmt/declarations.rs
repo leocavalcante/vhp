@@ -27,6 +27,7 @@ impl<'a> StmtParser<'a> {
         self.consume(TokenKind::LeftParen, "Expected '(' after function name")?;
 
         let mut params = Vec::new();
+        let mut found_variadic = false;
         if !self.check(&TokenKind::RightParen) {
             loop {
                 // Parse attributes for this parameter
@@ -76,6 +77,14 @@ impl<'a> StmtParser<'a> {
                     false
                 };
 
+                // Check for variadic: ...
+                let is_variadic = if self.check(&TokenKind::Ellipsis) {
+                    self.advance();
+                    true
+                } else {
+                    false
+                };
+
                 let param_name = if let TokenKind::Variable(name) = &self.current().kind {
                     let name = name.clone();
                     self.advance();
@@ -89,16 +98,36 @@ impl<'a> StmtParser<'a> {
                 };
 
                 let default = if self.check(&TokenKind::Assign) {
+                    if is_variadic {
+                        return Err(format!(
+                            "Variadic parameter cannot have a default value at line {}, column {}",
+                            self.current().line,
+                            self.current().column
+                        ));
+                    }
                     self.advance();
                     Some(self.parse_expression(Precedence::None)?)
                 } else {
                     None
                 };
 
+                // Variadic must be the last parameter
+                if found_variadic {
+                    return Err(format!(
+                        "Only the last parameter can be variadic at line {}, column {}",
+                        self.current().line,
+                        self.current().column
+                    ));
+                }
+                if is_variadic {
+                    found_variadic = true;
+                }
+
                 params.push(FunctionParam {
                     name: param_name,
                     default,
                     by_ref,
+                    is_variadic,
                     visibility: None,
                     readonly: false,
                     attributes: param_attributes,

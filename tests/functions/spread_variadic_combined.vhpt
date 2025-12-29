@@ -1,0 +1,17 @@
+--TEST--
+Spread operator with variadic function
+--FILE--
+<?php
+function sumAll(...$nums) {
+    $total = 0;
+    foreach ($nums as $n) {
+        $total += $n;
+    }
+    return $total;
+}
+
+$arr1 = [1, 2];
+$arr2 = [3, 4, 5];
+echo sumAll(...$arr1, ...$arr2);
+--EXPECT--
+15

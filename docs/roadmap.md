@@ -187,8 +187,8 @@ This phase focuses on implementing core PHP language features that are essential
 #### Function Features
 
 - [ ] **Arrow functions** (PHP 7.4) - `fn($x) => $x * 2`
-- [ ] **Variadic functions** - `function f(...$args)`
-- [ ] **Argument unpacking** - `f(...$array)`
+- [x] **Variadic functions** - `function f(...$args)`
+- [x] **Argument unpacking** - `f(...$array)`
 - [ ] **First-class callables** (PHP 8.1) - `$fn = strlen(...)`
 - [ ] **Closures in constants** (PHP 8.5) - Static closures in constant expressions
 

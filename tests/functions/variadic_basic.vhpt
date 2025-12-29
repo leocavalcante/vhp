@@ -1,0 +1,21 @@
+--TEST--
+Basic variadic function collects arguments into array
+--FILE--
+<?php
+function sum(...$numbers) {
+    $total = 0;
+    foreach ($numbers as $n) {
+        $total += $n;
+    }
+    return $total;
+}
+
+echo sum(1, 2, 3) . "\n";
+echo sum(10, 20) . "\n";
+echo sum(5) . "\n";
+echo sum() . "\n";
+--EXPECT--
+6
+30
+5
+0

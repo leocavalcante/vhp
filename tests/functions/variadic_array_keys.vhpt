@@ -1,0 +1,15 @@
+--TEST--
+Variadic parameter has sequential integer keys
+--FILE--
+<?php
+function showKeys(...$args) {
+    foreach ($args as $key => $value) {
+        echo $key . ": " . $value . "\n";
+    }
+}
+
+showKeys("a", "b", "c");
+--EXPECT--
+0: a
+1: b
+2: c

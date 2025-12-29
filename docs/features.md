@@ -279,7 +279,53 @@ function factorial($n) {
 echo factorial(5); // 120
 ```
 
-### Built-in Functions (71)
+### Variadic Functions
+
+Variadic functions accept a variable number of arguments using the `...` operator:
+
+```php
+<?php
+function sum(...$numbers) {
+    $total = 0;
+    foreach ($numbers as $n) {
+        $total += $n;
+    }
+    return $total;
+}
+echo sum(1, 2, 3);       // 6
+echo sum(1, 2, 3, 4, 5); // 15
+
+// Mix regular and variadic parameters
+function greet($greeting, ...$names) {
+    foreach ($names as $name) {
+        echo $greeting . ", " . $name . "!\n";
+    }
+}
+greet("Hello", "Alice", "Bob", "Charlie");
+// Hello, Alice!
+// Hello, Bob!
+// Hello, Charlie!
+```
+
+### Argument Unpacking
+
+Use `...` to unpack arrays into function arguments:
+
+```php
+<?php
+function add($a, $b, $c) {
+    return $a + $b + $c;
+}
+
+$numbers = [1, 2, 3];
+echo add(...$numbers); // 6
+
+// Works with built-in functions too
+$values = [3, 1, 4, 1, 5];
+echo max(...$values); // 5
+```
+
+### Built-in Functions (73)
 
 ```php
 <?php

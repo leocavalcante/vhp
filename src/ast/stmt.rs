@@ -206,6 +206,8 @@ pub struct FunctionParam {
     /// By-reference parameter (will be used when reference semantics are implemented)
     #[allow(dead_code)]
     pub by_ref: bool,
+    /// Variadic parameter (...$param) collects remaining arguments
+    pub is_variadic: bool,
     /// Visibility for constructor property promotion (PHP 8.0)
     pub visibility: Option<Visibility>,
     /// Readonly modifier for constructor property promotion (PHP 8.1)

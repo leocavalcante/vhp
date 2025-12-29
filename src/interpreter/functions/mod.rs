@@ -8,7 +8,7 @@
 mod dispatch;
 
 use crate::ast::Argument;
-use crate::interpreter::value::Value;
+use crate::interpreter::value::{ArrayKey, Value};
 use crate::interpreter::Interpreter;
 use std::collections::HashMap;
 use std::io::Write;
@@ -16,10 +16,24 @@ use std::io::Write;
 impl<W: Write> Interpreter<W> {
     /// Call a function with Argument nodes (handles both built-in and user-defined)
     pub(super) fn call_function(&mut self, name: &str, args: &[Argument]) -> Result<Value, String> {
-        // Evaluate arguments
+        // Evaluate arguments, handling spread expressions
         let mut arg_values = Vec::new();
         for arg in args {
-            arg_values.push(self.eval_expr(&arg.value)?);
+            if let crate::ast::Expr::Spread(inner) = arg.value.as_ref() {
+                // Spread: unpack array into multiple arguments
+                let value = self.eval_expr(inner)?;
+                match value {
+                    Value::Array(arr) => {
+                        // Flatten array values into arguments
+                        for (_, v) in arr {
+                            arg_values.push(v);
+                        }
+                    }
+                    _ => return Err("Cannot unpack non-array value".to_string()),
+                }
+            } else {
+                arg_values.push(self.eval_expr(&arg.value)?);
+            }
         }
 
         // Try to dispatch built-in function first (case-insensitive)
@@ -64,15 +78,27 @@ impl<W: Write> Interpreter<W> {
         let saved_current_class = self.current_class.take();
 
         // Bind parameters
-        for (i, param) in func.params.iter().enumerate() {
-            let value = if i < args.len() {
-                args[i].clone()
+        for (arg_idx, param) in func.params.iter().enumerate() {
+            if param.is_variadic {
+                // Variadic parameter: collect all remaining arguments into an array
+                let remaining: Vec<Value> = args[arg_idx..].to_vec();
+                let arr: Vec<(ArrayKey, Value)> = remaining
+                    .into_iter()
+                    .enumerate()
+                    .map(|(i, v)| (ArrayKey::Integer(i as i64), v))
+                    .collect();
+                self.variables.insert(param.name.clone(), Value::Array(arr));
+                break; // Variadic must be last
+            }
+
+            let value = if arg_idx < args.len() {
+                args[arg_idx].clone()
             } else if let Some(default) = &param.default {
                 self.eval_expr(default)?
             } else {
                 return Err(format!(
                     "Missing argument {} for parameter ${}",
-                    i + 1,
+                    arg_idx + 1,
                     param.name
                 ));
             };
@@ -96,7 +122,7 @@ impl<W: Write> Interpreter<W> {
         Ok(return_value)
     }
 
-    /// Call user-defined function with support for named arguments (PHP 8.0)
+    /// Call user-defined function with support for named arguments (PHP 8.0) and variadic params
     pub(super) fn call_user_function_with_arguments(
         &mut self,
         func: &crate::interpreter::UserFunction,
@@ -107,38 +133,55 @@ impl<W: Write> Interpreter<W> {
         // Clear current class context for global functions
         let saved_current_class = self.current_class.take();
 
-        // First, evaluate all argument values
+        // First, evaluate all argument values, handling spread expressions
         let mut arg_values = Vec::new();
-        for arg in args {
-            arg_values.push(self.eval_expr(&arg.value)?);
-        }
-
-        // Build a map of named arguments for quick lookup
         let mut named_args: HashMap<String, Value> = HashMap::new();
-        let mut positional_idx = 0;
-
-        for (i, arg) in args.iter().enumerate() {
+        
+        for arg in args {
             if let Some(ref name) = arg.name {
-                // Named argument: validate that we haven't used positional args after named
-                if positional_idx < i {
-                    // We have positional args before named args - this is allowed
+                // Named argument
+                let value = self.eval_expr(&arg.value)?;
+                named_args.insert(name.clone(), value);
+            } else if let crate::ast::Expr::Spread(inner) = arg.value.as_ref() {
+                // Spread: unpack array into positional arguments
+                let value = self.eval_expr(inner)?;
+                match value {
+                    Value::Array(arr) => {
+                        for (_, v) in arr {
+                            arg_values.push(v);
+                        }
+                    }
+                    _ => return Err("Cannot unpack non-array value".to_string()),
                 }
-                named_args.insert(name.clone(), arg_values[i].clone());
             } else {
                 // Positional argument
-                positional_idx = i + 1;
+                arg_values.push(self.eval_expr(&arg.value)?);
             }
         }
 
         // Bind parameters
         let mut positional_arg_idx = 0;
         for param in &func.params {
+            if param.is_variadic {
+                // Variadic parameter: collect all remaining positional arguments into an array
+                let remaining: Vec<Value> = arg_values[positional_arg_idx..].to_vec();
+                let arr: Vec<(ArrayKey, Value)> = remaining
+                    .into_iter()
+                    .enumerate()
+                    .map(|(i, v)| (ArrayKey::Integer(i as i64), v))
+                    .collect();
+                self.variables.insert(param.name.clone(), Value::Array(arr));
+                break; // Variadic must be last
+            }
+
             let value = if let Some(named_value) = named_args.get(&param.name) {
                 // Named argument matched
                 named_value.clone()
-            } else if positional_arg_idx < positional_idx {
+            } else if positional_arg_idx < arg_values.len() {
                 // Use positional argument
-                arg_values[positional_arg_idx].clone()
+                let v = arg_values[positional_arg_idx].clone();
+                positional_arg_idx += 1;
+                v
             } else if let Some(default) = &param.default {
                 self.eval_expr(default)?
             } else {
@@ -148,36 +191,13 @@ impl<W: Write> Interpreter<W> {
                 ));
             };
 
-            if positional_arg_idx < positional_idx {
-                positional_arg_idx += 1;
-            }
-
             self.variables.insert(param.name.clone(), value);
         }
 
         // Check for unknown named arguments
-        for arg in args {
-            if let Some(ref name) = arg.name {
-                if !func.params.iter().any(|p| p.name == *name) {
-                    return Err(format!("Unknown named parameter ${}", name));
-                }
-            }
-        }
-
-        // Check for duplicate arguments (both positional and named for same param)
-        for arg in args {
-            if let Some(ref name) = arg.name {
-                // Check if this parameter was already provided positionally
-                if positional_arg_idx > 0 {
-                    if let Some(param) = func.params.get(positional_arg_idx - 1) {
-                        if param.name == *name {
-                            return Err(format!(
-                                "Cannot use positional argument after named argument for parameter ${}",
-                                name
-                            ));
-                        }
-                    }
-                }
+        for name in named_args.keys() {
+            if !func.params.iter().any(|p| p.name == *name) {
+                return Err(format!("Unknown named parameter ${}", name));
             }
         }
 

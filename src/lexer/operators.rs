@@ -84,10 +84,15 @@ impl Lexer {
                 }
             }
 
-            // Concatenation operator
+            // Concatenation and ellipsis operators
             '.' => {
                 self.advance();
-                if self.current() == Some('=') {
+                if self.current() == Some('.') && self.peek(1) == Some('.') {
+                    // ... ellipsis for variadic/spread
+                    self.advance(); // consume second .
+                    self.advance(); // consume third .
+                    TokenKind::Ellipsis
+                } else if self.current() == Some('=') {
                     self.advance();
                     TokenKind::ConcatAssign
                 } else {

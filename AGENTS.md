@@ -62,7 +62,7 @@ src/
         ├── output.rs    # Output functions (4)
         └── reflection.rs # Reflection functions (8)
 
-tests/                   # Test suite organized by feature (306 tests)
+tests/                   # Test suite organized by feature (337 tests)
 ├── arrays/              # Array tests (18)
 ├── attributes/          # Attribute syntax and reflection tests (29)
 ├── builtins/            # Built-in function tests (26)
@@ -73,7 +73,7 @@ tests/                   # Test suite organized by feature (306 tests)
 ├── enums/               # Enum tests (16)
 ├── errors/              # Error handling tests (8)
 ├── expressions/         # Expression evaluation tests (17)
-├── functions/           # User-defined function tests (20)
+├── functions/           # User-defined function tests (28)
 ├── html/                # HTML passthrough tests (5)
 ├── interfaces/          # Interface tests (7)
 ├── numbers/             # Numeric literal tests (5)
@@ -159,6 +159,8 @@ Source Code → Lexer → Tokens → Parser → AST → Interpreter → Output
 - [x] Recursive functions
 - [x] Case-insensitive function names (PHP-compatible)
 - [x] Local scope (function variables don't leak to global)
+- [x] Variadic functions (`...$args`)
+- [x] Argument unpacking (`func(...$array)`)
 
 ### Built-in Functions (73)
 - [x] **String** (23): `strlen`, `substr`, `strtoupper`, `strtolower`, `trim`, `ltrim`, `rtrim`, `str_repeat`, `str_replace`, `strpos`, `strrev`, `ucfirst`, `lcfirst`, `ucwords`, `str_starts_with`, `str_ends_with`, `str_contains`, `str_pad`, `explode`, `implode`/`join`, `sprintf`, `chr`, `ord`
@@ -510,7 +512,7 @@ Essential PHP features for compatibility with standard PHP code.
 
 **Functions:**
 - [ ] Arrow functions (PHP 7.4) - `fn($x) => $x * 2`
-- [ ] Variadic functions and argument unpacking
+- [x] Variadic functions and argument unpacking
 - [ ] First-class callables (PHP 8.1) - `strlen(...)`
 
 ### Phase 8: PHP 8.5 Features (Planned)

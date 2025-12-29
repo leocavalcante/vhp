@@ -1,0 +1,15 @@
+--TEST--
+Variadic function with regular parameters before variadic
+--FILE--
+<?php
+function greet($greeting, ...$names) {
+    foreach ($names as $name) {
+        echo $greeting . ", " . $name . "!\n";
+    }
+}
+
+greet("Hello", "Alice", "Bob", "Charlie");
+--EXPECT--
+Hello, Alice!
+Hello, Bob!
+Hello, Charlie!

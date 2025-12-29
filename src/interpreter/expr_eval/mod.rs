@@ -130,6 +130,13 @@ impl<W: Write> Interpreter<W> {
                         .to_string(),
                 )
             }
+            Expr::Spread(_) => {
+                // Spread is only valid inside function call argument lists
+                Err(
+                    "Spread operator (...) can only be used in function call arguments"
+                        .to_string(),
+                )
+            }
         }
     }
 

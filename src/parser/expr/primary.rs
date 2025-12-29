@@ -51,23 +51,25 @@ impl<'a> ExprParser<'a> {
                         ));
                     }
 
-                    // Check for placeholder ... (three dots)
-                    if self.check(&TokenKind::Concat)
-                        && *self.pos + 1 < self.tokens.len()
-                        && std::mem::discriminant(&self.tokens[*self.pos + 1].kind)
-                            == std::mem::discriminant(&TokenKind::Concat)
-                        && *self.pos + 2 < self.tokens.len()
-                        && std::mem::discriminant(&self.tokens[*self.pos + 2].kind)
-                            == std::mem::discriminant(&TokenKind::Concat)
-                    {
-                        // This is a placeholder (...)
-                        self.advance(); // consume first .
-                        self.advance(); // consume second .
-                        self.advance(); // consume third .
-                        args.push(Argument {
-                            name: None,
-                            value: Box::new(Expr::Placeholder),
-                        });
+                    // Check for ellipsis ... (spread or placeholder)
+                    if self.check(&TokenKind::Ellipsis) {
+                        self.advance(); // consume ...
+                        
+                        // Check if there's an expression after (spread) or not (placeholder)
+                        if self.check(&TokenKind::RightParen) || self.check(&TokenKind::Comma) {
+                            // This is a placeholder (...)
+                            args.push(Argument {
+                                name: None,
+                                value: Box::new(Expr::Placeholder),
+                            });
+                        } else {
+                            // This is a spread expression ...$array
+                            let expr = self.parse_expression(super::super::precedence::Precedence::None)?;
+                            args.push(Argument {
+                                name: None,
+                                value: Box::new(Expr::Spread(Box::new(expr))),
+                            });
+                        }
                     } else {
                         let value =
                             self.parse_expression(super::super::precedence::Precedence::None)?;

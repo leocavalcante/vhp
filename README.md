@@ -62,6 +62,7 @@ cargo build --release
 - ✅ Control flow (`if`/`else`, `while`, `for`, `foreach`, `switch`)
 - ✅ Arrays (indexed, associative, nested)
 - ✅ User-defined and recursive functions
+- ✅ Variadic functions and argument unpacking (`...$args`)
 - ✅ Classes & Objects (properties, methods, constructors, `$this`, static calls, inheritance)
 - ✅ Interfaces and Traits
 - ✅ Abstract classes and methods

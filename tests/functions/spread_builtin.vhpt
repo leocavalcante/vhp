@@ -1,0 +1,10 @@
+--TEST--
+Spread operator with built-in functions
+--FILE--
+<?php
+$values = [3, 1, 4, 1, 5];
+echo max(...$values) . "\n";
+echo min(...$values);
+--EXPECT--
+5
+1

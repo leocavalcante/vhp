@@ -1,0 +1,12 @@
+--TEST--
+Spread operator combined with regular arguments
+--FILE--
+<?php
+function concat($sep, $a, $b, $c) {
+    return $a . $sep . $b . $sep . $c;
+}
+
+$parts = ["hello", "world"];
+echo concat("-", "start", ...$parts);
+--EXPECT--
+start-hello-world

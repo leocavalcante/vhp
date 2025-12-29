@@ -1,0 +1,12 @@
+--TEST--
+Spread operator unpacks array into function arguments
+--FILE--
+<?php
+function add($a, $b, $c) {
+    return $a + $b + $c;
+}
+
+$numbers = [1, 2, 3];
+echo add(...$numbers);
+--EXPECT--
+6

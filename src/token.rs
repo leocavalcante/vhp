@@ -115,6 +115,7 @@ pub enum TokenKind {
     DoubleColon,  // ::
     Pipe,         // |> (PHP 8.5 pipe operator)
     Hash,         // # (for attributes when followed by [)
+    Ellipsis,     // ... (variadic/spread operator)
 
     // Special
     Html(String), // Raw HTML outside PHP tags
