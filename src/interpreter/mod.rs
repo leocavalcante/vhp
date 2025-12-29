@@ -1781,9 +1781,39 @@ impl<W: Write> Interpreter<W> {
 
                 // Add current class methods (can override parent/trait methods)
                 for method in methods {
+                    let mut method_body = method.body.clone();
+
+                    // Handle constructor property promotion (PHP 8.0)
+                    if method.name.to_lowercase() == "__construct" {
+                        let mut promoted_statements = Vec::new();
+
+                        // Extract promoted properties and prepend assignments
+                        for param in &method.params {
+                            if let Some(visibility) = param.visibility {
+                                // Add promoted property
+                                all_properties.push(Property {
+                                    name: param.name.clone(),
+                                    visibility,
+                                    default: param.default.clone(),
+                                });
+
+                                // Prepend assignment: $this->param_name = $param_name
+                                promoted_statements.push(Stmt::Expression(Expr::PropertyAssign {
+                                    object: Box::new(Expr::This),
+                                    property: param.name.clone(),
+                                    value: Box::new(Expr::Variable(param.name.clone())),
+                                }));
+                            }
+                        }
+
+                        // Prepend promoted property assignments to constructor body
+                        promoted_statements.extend(method_body);
+                        method_body = promoted_statements;
+                    }
+
                     let func = UserFunction {
                         params: method.params.clone(),
-                        body: method.body.clone(),
+                        body: method_body,
                     };
                     let method_name_lower = method.name.to_lowercase();
                     methods_map.insert(method_name_lower.clone(), func);

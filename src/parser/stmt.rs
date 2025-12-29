@@ -502,6 +502,7 @@ impl<'a> StmtParser<'a> {
                     name: param_name,
                     default,
                     by_ref,
+                    visibility: None,
                 });
 
                 if !self.check(&TokenKind::Comma) {
@@ -613,11 +614,45 @@ impl<'a> StmtParser<'a> {
             ));
         };
 
+        // Detect if this is a constructor
+        let is_constructor = name.to_lowercase() == "__construct";
+
         self.consume(TokenKind::LeftParen, "Expected '(' after method name")?;
 
         let mut params = Vec::new();
         if !self.check(&TokenKind::RightParen) {
             loop {
+                // Check for visibility modifiers only on constructors
+                let param_visibility = if is_constructor {
+                    match &self.current().kind {
+                        TokenKind::Public => {
+                            self.advance();
+                            Some(Visibility::Public)
+                        }
+                        TokenKind::Protected => {
+                            self.advance();
+                            Some(Visibility::Protected)
+                        }
+                        TokenKind::Private => {
+                            self.advance();
+                            Some(Visibility::Private)
+                        }
+                        _ => None,
+                    }
+                } else {
+                    // Error if visibility is used on non-constructor method
+                    match &self.current().kind {
+                        TokenKind::Public | TokenKind::Protected | TokenKind::Private => {
+                            return Err(format!(
+                                "Constructor property promotion can only be used in __construct at line {}, column {}",
+                                self.current().line,
+                                self.current().column
+                            ));
+                        }
+                        _ => None,
+                    }
+                };
+
                 let by_ref = if let TokenKind::Identifier(s) = &self.current().kind {
                     if s == "&" {
                         self.advance();
@@ -652,6 +687,7 @@ impl<'a> StmtParser<'a> {
                     name: param_name,
                     default,
                     by_ref,
+                    visibility: param_visibility,
                 });
 
                 if !self.check(&TokenKind::Comma) {
@@ -725,6 +761,7 @@ impl<'a> StmtParser<'a> {
                     name: param_name,
                     default,
                     by_ref: false,
+                    visibility: None,
                 });
 
                 if !self.check(&TokenKind::Comma) {
