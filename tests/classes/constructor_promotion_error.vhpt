@@ -1,0 +1,11 @@
+--TEST--
+Constructor property promotion - error when used on non-constructor
+--FILE--
+<?php
+class BadClass {
+    public function foo(public $x) {}
+}
+--EXPECT_ERROR--
+Constructor property promotion can only be used in __construct at line
+
+

@@ -1,0 +1,16 @@
+--TEST--
+Constructor property promotion - all visibility modifiers
+--FILE--
+<?php
+class Product {
+    public function __construct(
+        public $name,
+        protected $price,
+        private $cost
+    ) {}
+}
+
+$p = new Product("Widget", 10, 5);
+echo $p->name;
+--EXPECT--
+Widget

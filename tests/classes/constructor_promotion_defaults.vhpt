@@ -1,0 +1,16 @@
+--TEST--
+Constructor property promotion - with default values
+--FILE--
+<?php
+class Config {
+    public function __construct(
+        public $host = "localhost",
+        public $port = 8080,
+        public $debug = false
+    ) {}
+}
+
+$c = new Config();
+echo $c->host . ":" . $c->port . " (debug=" . ($c->debug ? "true" : "false") . ")";
+--EXPECT--
+localhost:8080 (debug=false)

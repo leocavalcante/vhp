@@ -1,0 +1,19 @@
+--TEST--
+Constructor property promotion - mixed with regular parameters
+--FILE--
+<?php
+class Point {
+    public function __construct(
+        public $x,
+        public $y,
+        $label = "point"
+    ) {
+        echo "Created: " . $label . "\n";
+    }
+}
+
+$p = new Point(10, 20, "origin");
+echo $p->x . "," . $p->y;
+--EXPECT--
+Created: origin
+10,20

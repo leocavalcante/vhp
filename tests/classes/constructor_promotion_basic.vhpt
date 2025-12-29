@@ -1,0 +1,15 @@
+--TEST--
+Constructor property promotion - basic usage
+--FILE--
+<?php
+class User {
+    public function __construct(
+        public $name,
+        private $age
+    ) {}
+}
+
+$user = new User("Alice", 30);
+echo $user->name;
+--EXPECT--
+Alice

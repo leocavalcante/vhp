@@ -1,0 +1,19 @@
+--TEST--
+Constructor property promotion - with method body
+--FILE--
+<?php
+class Counter {
+    public function __construct(
+        public $count = 0,
+        private $multiplier = 1
+    ) {
+        echo "Initializing counter\n";
+        $this->count = $this->count * $this->multiplier;
+    }
+}
+
+$c = new Counter(5, 3);
+echo "Final count: " . $c->count;
+--EXPECT--
+Initializing counter
+Final count: 15
