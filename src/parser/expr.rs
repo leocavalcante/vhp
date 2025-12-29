@@ -1,6 +1,6 @@
 //! Expression parsing
 
-use crate::ast::{Argument, ArrayElement, AssignOp, BinaryOp, Expr, MatchArm, UnaryOp};
+use crate::ast::{Argument, ArrayElement, AssignOp, BinaryOp, Expr, MatchArm, PropertyModification, UnaryOp};
 use crate::token::{Token, TokenKind};
 use super::precedence::{Precedence, get_precedence, is_right_assoc};
 
@@ -222,6 +222,98 @@ impl<'a> ExprParser<'a> {
             arms,
             default,
         })
+    }
+
+    /// Parse clone or clone with expression
+    /// clone $obj
+    /// clone $obj with { prop: value, ... }
+    fn parse_clone(&mut self) -> Result<Expr, String> {
+        // Parse the object expression
+        let object = Box::new(self.parse_unary()?);
+
+        // Check if followed by 'with'
+        if self.check(&TokenKind::With) {
+            self.advance(); // consume 'with'
+
+            // Expect opening brace
+            if !self.check(&TokenKind::LeftBrace) {
+                return Err(format!(
+                    "Expected '{{' after 'with' at line {}",
+                    self.current().line
+                ));
+            }
+            self.advance(); // consume '{'
+
+            let mut modifications = Vec::new();
+
+            // Parse property modifications
+            loop {
+                // Check for closing brace
+                if self.check(&TokenKind::RightBrace) {
+                    self.advance();
+                    break;
+                }
+
+                // Parse property name (identifier)
+                let property = match &self.current().kind {
+                    TokenKind::Identifier(name) => name.clone(),
+                    _ => {
+                        return Err(format!(
+                            "Expected property name at line {}",
+                            self.current().line
+                        ))
+                    }
+                };
+                self.advance();
+
+                // Expect colon
+                if !self.check(&TokenKind::Colon) {
+                    return Err(format!(
+                        "Expected ':' after property name at line {}",
+                        self.current().line
+                    ));
+                }
+                self.advance(); // consume ':'
+
+                // Parse value expression
+                let value = Box::new(self.parse_expression(Precedence::None)?);
+
+                modifications.push(PropertyModification { property, value });
+
+                // Check for comma or closing brace
+                if self.check(&TokenKind::Comma) {
+                    self.advance();
+                    // Allow trailing comma before closing brace
+                    if self.check(&TokenKind::RightBrace) {
+                        self.advance();
+                        break;
+                    }
+                } else if self.check(&TokenKind::RightBrace) {
+                    self.advance();
+                    break;
+                } else {
+                    return Err(format!(
+                        "Expected ',' or '}}' after property value at line {}",
+                        self.current().line
+                    ));
+                }
+            }
+
+            if modifications.is_empty() {
+                return Err(format!(
+                    "Clone with syntax requires at least one property modification at line {}",
+                    self.current().line
+                ));
+            }
+
+            Ok(Expr::CloneWith {
+                object,
+                modifications,
+            })
+        } else {
+            // Simple clone without modifications
+            Ok(Expr::Clone { object })
+        }
     }
 
     /// Parse postfix operations (array access, property access, method calls, increment/decrement)
@@ -523,6 +615,11 @@ impl<'a> ExprParser<'a> {
 
                 let new_expr = Expr::New { class_name, args };
                 self.parse_postfix(new_expr)
+            }
+            TokenKind::Clone => {
+                self.advance(); // consume 'clone'
+                let clone_expr = self.parse_clone()?;
+                self.parse_postfix(clone_expr)
             }
             TokenKind::Match => {
                 let match_expr = self.parse_match()?;
