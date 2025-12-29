@@ -1,0 +1,34 @@
+--TEST--
+array_last() - Get last element of an array
+--DESCRIPTION--
+Tests the PHP 8.5 array_last() function that returns the last element of an array
+--FILE--
+<?php
+// Basic indexed array
+$arr = [10, 20, 30, 40];
+echo array_last($arr);
+echo "\n";
+
+// Associative array
+$assoc = ['a' => 1, 'b' => 2, 'c' => 3];
+echo array_last($assoc);
+echo "\n";
+
+// Empty array returns null
+$empty = [];
+var_dump(array_last($empty));
+
+// Single element array
+$single = [42];
+echo array_last($single);
+echo "\n";
+
+// Array with mixed values
+$mixed = ['hello', 123, true, null];
+var_dump(array_last($mixed));
+--EXPECT--
+40
+3
+NULL
+42
+NULL

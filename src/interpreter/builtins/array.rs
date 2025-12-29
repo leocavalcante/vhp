@@ -325,3 +325,39 @@ pub fn range(args: &[Value]) -> Result<Value, String> {
 
     Ok(Value::Array(result))
 }
+
+/// array_first - Get the first value of an array (PHP 8.5)
+pub fn array_first(args: &[Value]) -> Result<Value, String> {
+    if args.is_empty() {
+        return Err("array_first() expects at least 1 parameter, 0 given".to_string());
+    }
+
+    match &args[0] {
+        Value::Array(arr) => {
+            if arr.is_empty() {
+                Ok(Value::Null)
+            } else {
+                Ok(arr.first().map(|(_, v)| v.clone()).unwrap_or(Value::Null))
+            }
+        }
+        _ => Err("array_first() expects parameter 1 to be array".to_string()),
+    }
+}
+
+/// array_last - Get the last value of an array (PHP 8.5)
+pub fn array_last(args: &[Value]) -> Result<Value, String> {
+    if args.is_empty() {
+        return Err("array_last() expects at least 1 parameter, 0 given".to_string());
+    }
+
+    match &args[0] {
+        Value::Array(arr) => {
+            if arr.is_empty() {
+                Ok(Value::Null)
+            } else {
+                Ok(arr.last().map(|(_, v)| v.clone()).unwrap_or(Value::Null))
+            }
+        }
+        _ => Err("array_last() expects parameter 1 to be array".to_string()),
+    }
+}

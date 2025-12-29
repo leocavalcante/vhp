@@ -1,0 +1,9 @@
+--TEST--
+array_first() - Error with no arguments
+--DESCRIPTION--
+Tests that array_first() throws an error when called with no arguments
+--FILE--
+<?php
+array_first();
+--EXPECT_ERROR--
+array_first() expects at least 1 parameter, 0 given

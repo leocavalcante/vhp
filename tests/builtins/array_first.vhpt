@@ -1,0 +1,34 @@
+--TEST--
+array_first() - Get first element of an array
+--DESCRIPTION--
+Tests the PHP 8.5 array_first() function that returns the first element of an array
+--FILE--
+<?php
+// Basic indexed array
+$arr = [10, 20, 30, 40];
+echo array_first($arr);
+echo "\n";
+
+// Associative array
+$assoc = ['a' => 1, 'b' => 2, 'c' => 3];
+echo array_first($assoc);
+echo "\n";
+
+// Empty array returns null
+$empty = [];
+var_dump(array_first($empty));
+
+// Single element array
+$single = [42];
+echo array_first($single);
+echo "\n";
+
+// Array with mixed values
+$mixed = ['hello', 123, true, null];
+echo array_first($mixed);
+--EXPECT--
+10
+1
+NULL
+42
+hello

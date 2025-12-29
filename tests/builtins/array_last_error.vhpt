@@ -1,0 +1,9 @@
+--TEST--
+array_last() - Error with no arguments
+--DESCRIPTION--
+Tests that array_last() throws an error when called with no arguments
+--FILE--
+<?php
+array_last();
+--EXPECT_ERROR--
+array_last() expects at least 1 parameter, 0 given

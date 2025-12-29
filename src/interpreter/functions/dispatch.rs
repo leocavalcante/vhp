@@ -89,6 +89,8 @@ impl<W: Write> Interpreter<W> {
             "array_merge" => builtins::array::array_merge(arg_values),
             "array_key_exists" => builtins::array::array_key_exists(arg_values),
             "range" => builtins::array::range(arg_values),
+            "array_first" => builtins::array::array_first(arg_values),
+            "array_last" => builtins::array::array_last(arg_values),
 
             // Reflection functions (PHP 8.0 attributes)
             "get_class_attributes" => {
