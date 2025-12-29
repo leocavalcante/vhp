@@ -1,5 +1,6 @@
 title: VHP
 description: Vibe-coded Hypertext Preprocessor - A PHP superset built entirely in Rust through AI-assisted development
+logo: /assets/logo.png
 # Custom layouts and styles are in docs/_layouts and docs/assets/css
 
 # Navigation

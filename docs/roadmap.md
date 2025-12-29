@@ -16,7 +16,7 @@ VHP is being developed incrementally, with each phase adding new capabilities wh
 | **2. Control Flow** | ✅ Complete | `if`/`else`, `while`, `for`, `do-while`, `switch`, `break`/`continue` |
 | **3. Functions** | ✅ Complete | Declarations, calls, returns, parameters, 50+ built-ins |
 | **4. Arrays** | ✅ Complete | Literals, access, modification, `foreach`, 13 array functions |
-| **5. Classes & Objects** | ✅ Complete | Classes, properties, methods, constructors, `$this`, static calls |
+| **5. Classes & Objects** | ✅ Complete | Classes, properties, methods, constructors, inheritance, interfaces, traits, readonly, cloning |
 | **6. Modern PHP 8.x Features** | 🚧 In Progress | Match Expressions ✅, Named Arguments ✅, Attributes ✅, Enums ✅, Pipe Operator ✅, Fibers |
 
 ## Phase Details
@@ -81,13 +81,11 @@ VHP is being developed incrementally, with each phase adding new capabilities wh
 - Trait composition in classes (`use Trait1, Trait2`)
 - Trait conflict resolution (`insteadof`, `as`)
 - Traits using other traits
-
-**Remaining for Phase 5:**
-- ✅ **Constructor Property Promotion** (PHP 8.0) - Shorthand syntax for declaring and initializing properties in constructor.
-- ✅ **Readonly Properties** (PHP 8.1) - Properties that can only be initialized once.
-- ✅ **Readonly Classes** (PHP 8.2) - Classes where all properties are implicitly readonly.
-- ✅ **Object Cloning** (PHP 5.0) - `clone` operator for creating object copies.
-- ✅ **Clone With** (PHP 8.4) - `clone with` syntax for modifying properties during clone.
+- Constructor Property Promotion (PHP 8.0)
+- Readonly Properties (PHP 8.1)
+- Readonly Classes (PHP 8.2)
+- Object cloning with `clone` keyword (PHP 5.0)
+- Clone with property modification syntax (PHP 8.4)
 
 ### Phase 6: Modern PHP 8.x Features 🚧
 
