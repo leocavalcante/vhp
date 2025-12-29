@@ -151,3 +151,44 @@ for ($i = 2; $i <= 50; $i++) {
 }
 // Output: 2 3 5 7 11 13 17 19 23 29 31 37 41 43 47
 ```
+
+## Fibers (Cooperative Multitasking)
+
+```php
+<?php
+function worker($name) {
+    echo "Worker $name starting\n";
+    
+    for ($i = 1; $i <= 3; $i++) {
+        echo "Worker $name: Step $i\n";
+        
+        // Suspend execution and pass control back
+        $data = Fiber::suspend("step_$i");
+        
+        if ($data) {
+            echo "Worker $name received: $data\n";
+        }
+    }
+    
+    return "Worker $name completed";
+}
+
+$fiber = new Fiber('worker');
+
+// Start the fiber
+$result = $fiber->start('Alice');
+echo "Fiber returned: $result\n";
+
+// Resume multiple times
+$result = $fiber->resume('resume_1');  
+echo "Fiber returned: $result\n";
+
+$result = $fiber->resume('resume_2');
+echo "Fiber returned: $result\n"; 
+
+$result = $fiber->resume('resume_3');
+echo "Final result: $result\n";
+
+// Check final state
+echo "Terminated: " . ($fiber->isTerminated() ? "Yes" : "No") . "\n";
+```

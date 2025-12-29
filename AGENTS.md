@@ -448,13 +448,87 @@ partial error message to match
 - [x] Object cloning with `clone` keyword (PHP 5.0)
 - [x] Clone with property modification syntax (PHP 8.4)
 
-### Phase 6: Modern PHP 8.x Features (In Progress)
+### Phase 6: Modern PHP 8.x Features ✅
 - [x] Match Expressions (PHP 8.0)
 - [x] Named Arguments (PHP 8.0)
 - [x] Attributes (PHP 8.0) - Full support including reflection API
 - [x] Enums (PHP 8.1) - Pure and backed enums with built-in methods
 - [x] Pipe Operator (PHP 8.5) - Functional-style function chaining
-- [ ] Fibers (PHP 8.1)
+- [x] Fibers (PHP 8.1)
+
+### Phase 7: PHP Core Language Compatibility (Planned)
+Essential PHP features for compatibility with standard PHP code.
+
+**Exception Handling:**
+- [ ] try/catch/finally statements
+- [ ] throw keyword and expressions (PHP 8.0)
+- [ ] Exception class and multiple catch blocks
+- [ ] Multi-catch (PHP 7.1) - `catch (TypeA | TypeB $e)`
+
+**Type System:**
+- [ ] Type declarations (int, string, float, bool, array, callable, object)
+- [ ] Nullable types (PHP 7.1) - `?int`
+- [ ] Union types (PHP 8.0) - `int|string`
+- [ ] Intersection types (PHP 8.1) - `Iterator&Countable`
+- [ ] DNF types (PHP 8.2) - `(A&B)|C`
+- [ ] mixed, void, never, static return types
+
+**Namespaces:**
+- [ ] namespace declaration
+- [ ] use statements and aliases
+- [ ] Group use declarations (PHP 7.0)
+
+**Generators:**
+- [ ] yield keyword and yield from (PHP 7.0)
+- [ ] Generator return values (PHP 7.0)
+- [ ] Iterator interfaces
+
+**Abstract & Final:**
+- [ ] abstract classes and methods
+- [ ] final classes, methods, and constants (PHP 8.1)
+
+**Magic Methods:**
+- [ ] __toString(), __invoke(), __get()/__set()
+- [ ] __isset()/__unset(), __call()/__callStatic()
+- [ ] __clone(), __debugInfo()
+- [ ] __serialize()/__unserialize() (PHP 7.4)
+
+**Additional OOP:**
+- [ ] Anonymous classes (PHP 7.0)
+- [ ] Property hooks (PHP 8.4)
+- [ ] Asymmetric visibility (PHP 8.4)
+- [ ] Static properties and late static binding
+- [ ] #[\Override] attribute (PHP 8.3)
+
+**Control Flow:**
+- [ ] Alternative syntax (`if:`, `endif;`, etc.)
+- [ ] goto statement
+- [ ] declare directive (`strict_types`)
+
+**Functions:**
+- [ ] Arrow functions (PHP 7.4) - `fn($x) => $x * 2`
+- [ ] Variadic functions and argument unpacking
+- [ ] First-class callables (PHP 8.1) - `strlen(...)`
+
+### Phase 8: PHP 8.5 Features (Planned)
+- [ ] URI Extension - `Uri\Rfc3986\Uri` class
+- [ ] Clone with syntax - `clone($obj, ['prop' => 'value'])`
+- [ ] #[\NoDiscard] attribute
+- [ ] Closures in constant expressions
+- [ ] First-class callables in constants
+- [ ] array_first() / array_last()
+- [ ] #[\DelayedTargetValidation]
+- [ ] Final property promotion
+- [ ] Attributes on constants
+- [ ] Error backtraces for fatal errors
+
+### Phase 9: Standard Library Expansion (Planned)
+- [ ] PCRE regex (preg_match, preg_replace, etc.)
+- [ ] Array functions (array_map, array_filter, array_reduce, sorting)
+- [ ] Math functions (trigonometry, logarithms)
+- [ ] JSON functions (json_encode, json_decode)
+- [ ] DateTime classes
+- [ ] File system functions
 
 ## Code Style Guidelines
 

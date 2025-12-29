@@ -1703,4 +1703,106 @@ $result = "  HELLO WORLD  "
 
 Both produce the same output (`"Hello world"`), but the pipe version is more readable and easier to modify.
 
+## Fibers (PHP 8.1)
+
+Fibers provide cooperative multitasking with full-stack, interruptible functions. Unlike generators, Fibers can be suspended from anywhere in the call stack and maintain their own execution context.
+
+### Core Concepts
+
+- **Full-stack interruption**: Can suspend from deeply nested function calls
+- **Cooperative multitasking**: Explicit suspend/resume control
+- **Own call stack**: Each Fiber maintains independent execution state
+
+### Basic Usage
+
+```php
+<?php
+function fiberFunction() {
+    echo "Start of fiber\n";
+    $value = Fiber::suspend("suspended");
+    echo "Resumed with: " . $value . "\n";
+    return "fiber_result";
+}
+
+$fiber = new Fiber('fiberFunction');
+
+// Start the fiber - runs until suspend
+$suspendedValue = $fiber->start();
+echo "Fiber suspended with: " . $suspendedValue . "\n";
+
+// Resume with a value
+$result = $fiber->resume("resume_data");
+echo "Fiber returned: " . $result . "\n";
+```
+
+Output:
+```
+Start of fiber
+Fiber suspended with: suspended
+Resumed with: resume_data
+Fiber returned: fiber_result
+```
+
+### Fiber API
+
+#### Constructor
+```php
+$fiber = new Fiber(callable $callback);
+```
+
+#### Control Methods
+```php
+$fiber->start(mixed ...$args): mixed     // Start execution
+$fiber->resume(mixed $value = null): mixed  // Resume from suspension
+$fiber->getReturn(): mixed               // Get return value after termination
+```
+
+#### Status Methods
+```php
+$fiber->isStarted(): bool      // Has the fiber been started?
+$fiber->isSuspended(): bool    // Is currently suspended?
+$fiber->isTerminated(): bool   // Has execution completed?
+```
+
+#### Static Methods
+```php
+Fiber::suspend(mixed $value = null): mixed  // Suspend current fiber
+Fiber::getCurrent(): ?Fiber                 // Get currently running fiber
+```
+
+### State Management
+
+```php
+<?php
+function testFunction() {
+    return 42;
+}
+
+$fiber = new Fiber('testFunction');
+
+// Before starting
+echo $fiber->isStarted() ? "true" : "false";    // false
+echo $fiber->isSuspended() ? "true" : "false";  // false
+echo $fiber->isTerminated() ? "true" : "false"; // false
+
+$result = $fiber->start();
+
+// After completion
+echo $fiber->isStarted() ? "true" : "false";    // true
+echo $fiber->isSuspended() ? "true" : "false";  // false
+echo $fiber->isTerminated() ? "true" : "false"; // true
+```
+
+### Current Implementation Limitations
+
+VHP's Fiber implementation provides the core API and basic functionality:
+
+- ✅ Basic Fiber creation and execution
+- ✅ State checking methods (`isStarted`, `isSuspended`, `isTerminated`)
+- ✅ `Fiber::getCurrent()` and `Fiber::suspend()`
+- ✅ Return value handling with `getReturn()`
+- ⚠️ **Suspend/resume is MVP-limited** - Full call-stack suspension requires additional runtime support
+
+The current implementation covers the essential Fiber API and enables basic cooperative multitasking patterns. Advanced suspend/resume scenarios may require additional development.
+
 
