@@ -1,0 +1,17 @@
+--TEST--
+Cannot override final method
+--FILE--
+<?php
+class Base {
+    final public function noOverride() {
+        return "final";
+    }
+}
+
+class Child extends Base {
+    public function noOverride() {
+        return "override";
+    }
+}
+--EXPECT_ERROR--
+Cannot override final method

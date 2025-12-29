@@ -44,6 +44,7 @@ pub struct Method {
     pub visibility: Visibility,
     pub is_static: bool,
     pub is_abstract: bool,
+    pub is_final: bool,
     pub params: Vec<FunctionParam>,
     pub body: Vec<Stmt>,
     pub attributes: Vec<Attribute>, // PHP 8.0+
@@ -172,6 +173,7 @@ pub enum Stmt {
     Class {
         name: String,
         is_abstract: bool, // abstract class modifier
+        is_final: bool,    // final class modifier
         readonly: bool, // PHP 8.2+: all properties are implicitly readonly
         parent: Option<String>,
         interfaces: Vec<String>,

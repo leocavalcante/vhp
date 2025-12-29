@@ -46,7 +46,7 @@ impl<'a> StmtParser<'a> {
             let visibility = self.parse_visibility();
 
             if self.check(&TokenKind::Function) {
-                let mut method = self.parse_method(visibility, false)?; // traits don't have abstract methods
+                let mut method = self.parse_method(visibility, false, false)?; // traits don't have abstract/final methods
                 method.attributes = attributes;
                 methods.push(method);
             } else if self.check(&TokenKind::Variable(String::new())) {

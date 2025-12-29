@@ -1,0 +1,8 @@
+--TEST--
+Cannot extend final class
+--FILE--
+<?php
+final class Base {}
+class Child extends Base {}
+--EXPECT_ERROR--
+cannot extend final class Base

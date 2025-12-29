@@ -46,6 +46,7 @@ pub enum TokenKind {
     Fiber,      // fiber (PHP 8.1)
     With,       // with (PHP 8.4) - for clone with syntax
     Abstract,   // abstract (for abstract classes and methods)
+    Final,      // final (for final classes, methods, and constants)
 
     // Identifiers and Variables
     Variable(String),   // $name

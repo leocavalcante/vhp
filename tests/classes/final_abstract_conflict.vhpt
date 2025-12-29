@@ -1,0 +1,7 @@
+--TEST--
+Cannot use final and abstract together on class
+--FILE--
+<?php
+final abstract class Invalid {}
+--EXPECT_ERROR--
+Cannot use 'abstract' with 'final'

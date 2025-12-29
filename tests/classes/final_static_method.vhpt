@@ -1,0 +1,13 @@
+--TEST--
+Final static method
+--FILE--
+<?php
+class Util {
+    final public static function helper() {
+        return "helped";
+    }
+}
+
+echo Util::helper();
+--EXPECT--
+helped

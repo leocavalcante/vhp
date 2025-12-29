@@ -15,21 +15,39 @@ use crate::token::TokenKind;
 impl<'a> StmtParser<'a> {
     /// Parse class declaration
     pub fn parse_class(&mut self) -> Result<Stmt, String> {
-        // Check for abstract modifier before class keyword
-        let is_abstract = if self.check(&TokenKind::Abstract) {
-            self.advance();
-            true
-        } else {
-            false
-        };
+        // Parse class modifiers in any order: abstract, final, readonly
+        let mut is_abstract = false;
+        let mut is_final = false;
+        let mut readonly = false;
 
-        // Check for readonly modifier before class keyword
-        let readonly = if self.check(&TokenKind::Readonly) {
-            self.advance();
-            true
-        } else {
-            false
-        };
+        loop {
+            if self.check(&TokenKind::Abstract) {
+                if is_final {
+                    return Err(format!(
+                        "Cannot use 'abstract' with 'final' at line {}, column {}",
+                        self.current().line,
+                        self.current().column
+                    ));
+                }
+                is_abstract = true;
+                self.advance();
+            } else if self.check(&TokenKind::Final) {
+                if is_abstract {
+                    return Err(format!(
+                        "Cannot use 'final' with 'abstract' at line {}, column {}",
+                        self.current().line,
+                        self.current().column
+                    ));
+                }
+                is_final = true;
+                self.advance();
+            } else if self.check(&TokenKind::Readonly) {
+                readonly = true;
+                self.advance();
+            } else {
+                break;
+            }
+        }
 
         self.consume(TokenKind::Class, "Expected 'class' keyword")?;
 
@@ -117,6 +135,21 @@ impl<'a> StmtParser<'a> {
                 false
             };
 
+            // Check for final modifier for method
+            let member_is_final = if self.check(&TokenKind::Final) {
+                if member_is_abstract {
+                    return Err(format!(
+                        "Cannot use 'final' with 'abstract' at line {}, column {}",
+                        self.current().line,
+                        self.current().column
+                    ));
+                }
+                self.advance();
+                true
+            } else {
+                false
+            };
+
             // Check for readonly modifier (can appear before visibility)
             let readonly_first = if self.check(&TokenKind::Readonly) {
                 self.advance();
@@ -183,7 +216,7 @@ impl<'a> StmtParser<'a> {
             }
 
             if self.check(&TokenKind::Function) {
-                let mut method = self.parse_method(visibility, member_is_abstract)?;
+                let mut method = self.parse_method(visibility, member_is_abstract, member_is_final)?;
                 method.is_static = is_static;
                 method.attributes = attributes;
                 methods.push(method);
@@ -222,6 +255,7 @@ impl<'a> StmtParser<'a> {
         Ok(Stmt::Class {
             name,
             is_abstract,
+            is_final,
             readonly,
             parent,
             interfaces,

@@ -1,0 +1,22 @@
+--TEST--
+Final class with constructor and properties
+--FILE--
+<?php
+final class Configuration {
+    public $name;
+    public $value;
+    
+    public function __construct($name, $value) {
+        $this->name = $name;
+        $this->value = $value;
+    }
+    
+    public function toString() {
+        return $this->name . ": " . $this->value;
+    }
+}
+
+$config = new Configuration("debug", "true");
+echo $config->toString();
+--EXPECT--
+debug: true

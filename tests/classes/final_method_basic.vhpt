@@ -1,0 +1,26 @@
+--TEST--
+Final method in non-final class
+--FILE--
+<?php
+class Base {
+    final public function locked() {
+        return "locked";
+    }
+    
+    public function unlocked() {
+        return "base";
+    }
+}
+
+class Child extends Base {
+    public function unlocked() {
+        return "child";
+    }
+}
+
+$c = new Child();
+echo $c->locked() . "\n";
+echo $c->unlocked();
+--EXPECT--
+locked
+child

@@ -27,6 +27,7 @@ impl<W: Write> Interpreter<W> {
                 params: params.to_vec(),
                 body: body.to_vec(),
                 is_abstract: false, // regular functions are never abstract
+                is_final: false,    // regular functions are never final
                 attributes: attributes.to_vec(),
             },
         );
@@ -39,6 +40,7 @@ impl<W: Write> Interpreter<W> {
         &mut self,
         name: &str,
         is_abstract: bool,
+        is_final: bool,
         readonly: bool,
         parent: &Option<String>,
         interfaces: &[String],
@@ -57,10 +59,18 @@ impl<W: Write> Interpreter<W> {
             }
         }
         
-        // If extending a class, check parent isn't abstract or that we implement all abstract methods
+        // If extending a class, check parent isn't final and validate abstract methods
         if let Some(parent_name) = parent {
             let parent_name_lower = parent_name.to_lowercase();
             if let Some(parent_class) = self.classes.get(&parent_name_lower).cloned() {
+                // Cannot extend final class
+                if parent_class.is_final {
+                    return Err(std::io::Error::other(format!(
+                        "Class {} cannot extend final class {}",
+                        name, parent_name
+                    )));
+                }
+                
                 // If this class is not abstract, it must implement all abstract methods from parent
                 if !is_abstract && parent_class.is_abstract {
                     for (method_name, method_func) in parent_class.methods.iter() {
@@ -140,6 +150,18 @@ impl<W: Write> Interpreter<W> {
 
         // Add current class methods (can override parent/trait methods)
         for method in methods {
+            let method_name_lower = method.name.to_lowercase();
+            
+            // Check if we're trying to override a final method
+            if let Some(existing_method) = methods_map.get(&method_name_lower) {
+                if existing_method.is_final {
+                    return Err(std::io::Error::other(format!(
+                        "Cannot override final method {}",
+                        method.name
+                    )));
+                }
+            }
+            
             let mut method_body = method.body.clone();
 
             // Handle constructor property promotion (PHP 8.0)
@@ -178,9 +200,9 @@ impl<W: Write> Interpreter<W> {
                 params: method.params.clone(),
                 body: method_body,
                 is_abstract: method.is_abstract,
+                is_final: method.is_final,
                 attributes: method.attributes.clone(),
             };
-            let method_name_lower = method.name.to_lowercase();
             methods_map.insert(method_name_lower.clone(), func);
             visibility_map.insert(method_name_lower, method.visibility);
         }
@@ -211,6 +233,7 @@ impl<W: Write> Interpreter<W> {
         let class_def = ClassDefinition {
             name: name.to_string(),
             is_abstract,
+            is_final,
             readonly,
             parent: parent.clone(),
             properties: all_properties,
@@ -317,6 +340,7 @@ impl<W: Write> Interpreter<W> {
                 params: method.params.clone(),
                 body: method.body.clone(),
                 is_abstract: method.is_abstract,
+                is_final: method.is_final,
                 attributes: method.attributes.clone(),
             };
             let method_name_lower = method.name.to_lowercase();
@@ -420,6 +444,7 @@ impl<W: Write> Interpreter<W> {
                     params: method.params.clone(),
                     body: method.body.clone(),
                     is_abstract: method.is_abstract,
+                    is_final: method.is_final,
                     attributes: method.attributes.clone(),
                 },
             );

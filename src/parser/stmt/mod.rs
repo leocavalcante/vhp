@@ -295,7 +295,7 @@ impl<'a> StmtParser<'a> {
     }
 
     /// Parse class method (shared between class and trait)
-    pub fn parse_method(&mut self, visibility: Visibility, is_abstract_method: bool) -> Result<Method, String> {
+    pub fn parse_method(&mut self, visibility: Visibility, is_abstract_method: bool, is_final_method: bool) -> Result<Method, String> {
         self.advance(); // consume 'function'
 
         let name = if let TokenKind::Identifier(name) = &self.current().kind {
@@ -483,6 +483,7 @@ impl<'a> StmtParser<'a> {
             visibility,
             is_static: false, // Will be set by caller if needed
             is_abstract: is_abstract_method,
+            is_final: is_final_method,
             params,
             body,
             attributes: Vec::new(), // Will be set by caller
@@ -566,6 +567,18 @@ impl<'a> StmtParser<'a> {
             }
             TokenKind::Abstract => {
                 // abstract can be used before class keyword
+                let mut class = self.parse_class()?;
+                if let Stmt::Class {
+                    attributes: ref mut attrs,
+                    ..
+                } = class
+                {
+                    *attrs = attributes;
+                }
+                Ok(Some(class))
+            }
+            TokenKind::Final => {
+                // final can be used before class keyword
                 let mut class = self.parse_class()?;
                 if let Stmt::Class {
                     attributes: ref mut attrs,

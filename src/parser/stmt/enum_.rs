@@ -192,6 +192,7 @@ impl<'a> StmtParser<'a> {
                     visibility,
                     is_static: false,
                     is_abstract: false,
+                    is_final: false,
                     params,
                     body,
                     attributes: Vec::new(),

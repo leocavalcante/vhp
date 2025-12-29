@@ -1,0 +1,14 @@
+--TEST--
+Final class cannot be extended
+--FILE--
+<?php
+final class Immutable {
+    public function getValue() {
+        return 42;
+    }
+}
+
+$obj = new Immutable();
+echo $obj->getValue();
+--EXPECT--
+42

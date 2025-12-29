@@ -149,8 +149,8 @@ This phase focuses on implementing core PHP language features that are essential
 
 - [x] **abstract classes** - Classes that cannot be instantiated ✅
 - [x] **abstract methods** - Methods that must be implemented by subclasses ✅
-- [ ] **final classes** - Classes that cannot be extended
-- [ ] **final methods** - Methods that cannot be overridden
+- [x] **final classes** - Classes that cannot be extended ✅
+- [x] **final methods** - Methods that cannot be overridden ✅
 - [ ] **final constants** (PHP 8.1) - Constants that cannot be overridden
 
 #### Magic Methods

@@ -816,6 +816,107 @@ echo $user->getName();  // John
 - Abstract classes can contain both abstract and concrete methods
 - Abstract methods can only exist in abstract classes
 
+## Final Classes and Methods
+
+The `final` keyword prevents classes from being extended and methods from being overridden.
+
+### Final Classes
+
+A final class cannot be extended by any other class:
+
+```php
+<?php
+final class Singleton {
+    public function getValue() {
+        return 42;
+    }
+}
+
+$obj = new Singleton();
+echo $obj->getValue();  // 42
+
+// class Extended extends Singleton {} // Error!
+```
+
+### Cannot Extend Final Classes
+
+Attempting to extend a final class results in an error:
+
+```php
+<?php
+final class Base {}
+class Child extends Base {}  // Error: cannot extend final class Base
+```
+
+### Final Methods
+
+A final method cannot be overridden by child classes:
+
+```php
+<?php
+class Base {
+    final public function locked() {
+        return "locked";
+    }
+    
+    public function unlocked() {
+        return "base";
+    }
+}
+
+class Child extends Base {
+    // Cannot override locked()!
+    
+    public function unlocked() {
+        return "child";
+    }
+}
+
+$c = new Child();
+echo $c->locked();    // locked
+echo $c->unlocked();  // child
+```
+
+### Cannot Override Final Methods
+
+Attempting to override a final method results in an error:
+
+```php
+<?php
+class Base {
+    final public function noOverride() {
+        return "final";
+    }
+}
+
+class Child extends Base {
+    public function noOverride() {}  // Error: Cannot override final method
+}
+```
+
+### Final Static Methods
+
+Final can be combined with static:
+
+```php
+<?php
+class Util {
+    final public static function helper() {
+        return "helped";
+    }
+}
+
+echo Util::helper();  // helped
+```
+
+### Key Points
+
+- Final classes cannot be extended by any class
+- Final methods cannot be overridden by child classes
+- `final` and `abstract` cannot be used together
+- Private methods can technically be final but it's redundant
+- Constructors can be final (prevents child from changing construction)
+
 ## Readonly Properties (PHP 8.1)
 
 Readonly properties can only be assigned once and cannot be modified afterward. They're useful for immutable data structures.

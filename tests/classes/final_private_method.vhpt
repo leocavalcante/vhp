@@ -1,0 +1,18 @@
+--TEST--
+Final private method (allowed but redundant)
+--FILE--
+<?php
+class Base {
+    final private function internal() {
+        return "internal";
+    }
+    
+    public function callInternal() {
+        return $this->internal();
+    }
+}
+
+$b = new Base();
+echo $b->callInternal();
+--EXPECT--
+internal
