@@ -63,6 +63,20 @@ fn var_dump_value<W: Write>(output: &mut W, value: &Value, indent: usize) -> Res
             }
             writeln!(output, "{}}}", prefix).map_err(|e| e.to_string())?;
         }
+        Value::EnumCase {
+            enum_name,
+            case_name,
+            backing_value,
+        } => {
+            if let Some(val) = backing_value {
+                writeln!(output, "{}enum({}::{}): ", prefix, enum_name, case_name)
+                    .map_err(|e| e.to_string())?;
+                var_dump_value(output, val, indent)?;
+            } else {
+                writeln!(output, "{}enum({}::{})", prefix, enum_name, case_name)
+                    .map_err(|e| e.to_string())?;
+            }
+        }
     }
     Ok(())
 }

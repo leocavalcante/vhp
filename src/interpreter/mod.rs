@@ -76,6 +76,19 @@ pub struct TraitDefinition {
     pub attributes: Vec<crate::ast::Attribute>,
 }
 
+/// Enum definition stored in the interpreter
+#[derive(Debug, Clone)]
+pub struct EnumDefinition {
+    pub name: String,
+    pub backing_type: crate::ast::EnumBackingType,
+    pub cases: Vec<(String, Option<Value>)>, // (case_name, optional_value)
+    pub methods: HashMap<String, UserFunction>,
+    #[allow(dead_code)] // Will be used for visibility enforcement
+    pub method_visibility: HashMap<String, Visibility>,
+    #[allow(dead_code)] // Will be used for reflection
+    pub attributes: Vec<crate::ast::Attribute>,
+}
+
 pub struct Interpreter<W: Write> {
     output: W,
     variables: HashMap<String, Value>,
@@ -83,6 +96,7 @@ pub struct Interpreter<W: Write> {
     classes: HashMap<String, ClassDefinition>,
     interfaces: HashMap<String, InterfaceDefinition>,
     traits: HashMap<String, TraitDefinition>,
+    enums: HashMap<String, EnumDefinition>,
     current_object: Option<ObjectInstance>,
     current_class: Option<String>,
 }
@@ -96,6 +110,7 @@ impl<W: Write> Interpreter<W> {
             classes: HashMap::new(),
             interfaces: HashMap::new(),
             traits: HashMap::new(),
+            enums: HashMap::new(),
             current_object: None,
             current_class: None,
         }
@@ -184,6 +199,10 @@ impl<W: Write> Interpreter<W> {
                 arms,
                 default,
             } => self.eval_match(expr, arms, default),
+
+            Expr::EnumCase { enum_name, case_name } => {
+                self.eval_enum_case(enum_name, case_name)
+            }
         }
     }
 
@@ -1067,6 +1086,34 @@ impl<W: Write> Interpreter<W> {
     fn eval_property_access(&mut self, object: &Expr, property: &str) -> Result<Value, String> {
         let obj_value = self.eval_expr(object)?;
 
+        // Handle enum case properties
+        if let Value::EnumCase {
+            enum_name,
+            case_name,
+            backing_value,
+        } = obj_value
+        {
+            match property {
+                "name" => return Ok(Value::String(case_name)),
+                "value" => {
+                    if let Some(val) = backing_value {
+                        return Ok(*val);
+                    } else {
+                        return Err(format!(
+                            "Pure enum case {}::{} does not have a 'value' property",
+                            enum_name, case_name
+                        ));
+                    }
+                }
+                _ => {
+                    return Err(format!(
+                        "Enum case {}::{} does not have property '{}'",
+                        enum_name, case_name, property
+                    ));
+                }
+            }
+        }
+
         match obj_value {
             Value::Object(instance) => {
                 instance
@@ -1240,6 +1287,112 @@ impl<W: Write> Interpreter<W> {
         } else {
             class_name.to_string()
         };
+
+        // Check if this is an enum (handle built-in enum methods)
+        if let Some(enum_def) = self.enums.get(&target_class.to_lowercase()).cloned() {
+            let method_lower = method.to_lowercase();
+
+            return match method_lower.as_str() {
+                "cases" => {
+                    // Return array of all enum cases
+                    if !args.is_empty() {
+                        return Err("cases() takes no arguments".to_string());
+                    }
+
+                    let cases: Vec<(ArrayKey, Value)> = enum_def
+                        .cases
+                        .iter()
+                        .enumerate()
+                        .map(|(i, (name, value))| {
+                            (
+                                ArrayKey::Integer(i as i64),
+                                Value::EnumCase {
+                                    enum_name: enum_def.name.clone(),
+                                    case_name: name.clone(),
+                                    backing_value: value.as_ref().map(|v| Box::new(v.clone())),
+                                },
+                            )
+                        })
+                        .collect();
+
+                    Ok(Value::Array(cases))
+                }
+                "from" => {
+                    // Get case by backing value (throws on invalid)
+                    if args.len() != 1 {
+                        return Err("from() expects exactly 1 argument".to_string());
+                    }
+
+                    if enum_def.backing_type == crate::ast::EnumBackingType::None {
+                        return Err(format!(
+                            "Pure enum '{}' cannot use from() method",
+                            enum_def.name
+                        ));
+                    }
+
+                    let search_value = self.eval_expr(&args[0].value)?;
+
+                    for (name, value) in &enum_def.cases {
+                        if let Some(val) = value {
+                            if self.values_identical(val, &search_value) {
+                                return Ok(Value::EnumCase {
+                                    enum_name: enum_def.name.clone(),
+                                    case_name: name.clone(),
+                                    backing_value: Some(Box::new(val.clone())),
+                                });
+                            }
+                        }
+                    }
+
+                    Err(format!(
+                        "Value '{}' is not a valid backing value for enum '{}'",
+                        search_value.to_string_val(),
+                        enum_def.name
+                    ))
+                }
+                "tryfrom" => {
+                    // Get case by backing value (returns null on invalid)
+                    if args.len() != 1 {
+                        return Err("tryFrom() expects exactly 1 argument".to_string());
+                    }
+
+                    if enum_def.backing_type == crate::ast::EnumBackingType::None {
+                        return Err(format!(
+                            "Pure enum '{}' cannot use tryFrom() method",
+                            enum_def.name
+                        ));
+                    }
+
+                    let search_value = self.eval_expr(&args[0].value)?;
+
+                    for (name, value) in &enum_def.cases {
+                        if let Some(val) = value {
+                            if self.values_identical(val, &search_value) {
+                                return Ok(Value::EnumCase {
+                                    enum_name: enum_def.name.clone(),
+                                    case_name: name.clone(),
+                                    backing_value: Some(Box::new(val.clone())),
+                                });
+                            }
+                        }
+                    }
+
+                    Ok(Value::Null)
+                }
+                _ => {
+                    // Check for user-defined method
+                    if let Some(func) = enum_def.methods.get(&method_lower) {
+                        // Call enum method (enums don't have instance state)
+                        self.call_user_function_with_arguments(func, args)
+                    } else {
+                        Err(format!(
+                            "Call to undefined method {}::{}()",
+                            enum_def.name, method
+                        ))
+                    }
+                }
+            };
+        }
 
         // Look up method in hierarchy
         let (method_func, declaring_class) = self
@@ -2087,7 +2240,141 @@ impl<W: Write> Interpreter<W> {
                 self.traits.insert(name.to_lowercase(), trait_def);
                 Ok(ControlFlow::None)
             }
+            Stmt::Enum {
+                name,
+                backing_type,
+                cases,
+                methods,
+                attributes,
+            } => {
+                // Validate cases
+                let mut case_values: HashMap<String, Value> = HashMap::new();
+                let mut case_list: Vec<(String, Option<Value>)> = Vec::new();
+
+                for case in cases {
+                    // Check for duplicate case names
+                    if case_values.contains_key(&case.name) {
+                        return Err(io::Error::other(format!(
+                            "Duplicate case name '{}' in enum '{}'",
+                            case.name, name
+                        )));
+                    }
+
+                    // Evaluate case value for backed enums
+                    let value = if let Some(ref value_expr) = case.value {
+                        let val = self.eval_expr(value_expr).map_err(io::Error::other)?;
+
+                        // Validate backing type matches
+                        match backing_type {
+                            crate::ast::EnumBackingType::Int => {
+                                if !matches!(val, Value::Integer(_)) {
+                                    return Err(io::Error::other(format!(
+                                        "Enum case '{}::{}' must have int backing value",
+                                        name, case.name
+                                    )));
+                                }
+                            }
+                            crate::ast::EnumBackingType::String => {
+                                if !matches!(val, Value::String(_)) {
+                                    return Err(io::Error::other(format!(
+                                        "Enum case '{}::{}' must have string backing value",
+                                        name, case.name
+                                    )));
+                                }
+                            }
+                            crate::ast::EnumBackingType::None => {
+                                return Err(io::Error::other(
+                                    "Pure enum cannot have case values",
+                                ));
+                            }
+                        }
+
+                        // Check for duplicate values
+                        for (_, existing_val) in &case_list {
+                            if let Some(existing) = existing_val {
+                                if self.values_identical(existing, &val) {
+                                    return Err(io::Error::other(format!(
+                                        "Duplicate case value in backed enum '{}'",
+                                        name
+                                    )));
+                                }
+                            }
+                        }
+
+                        Some(val)
+                    } else {
+                        None
+                    };
+
+                    case_values.insert(case.name.clone(), value.clone().unwrap_or(Value::Null));
+                    case_list.push((case.name.clone(), value));
+                }
+
+                // Store methods
+                let mut method_map = HashMap::new();
+                let mut visibility_map = HashMap::new();
+
+                for method in methods {
+                    let method_name_lower = method.name.to_lowercase();
+                    method_map.insert(
+                        method_name_lower.clone(),
+                        UserFunction {
+                            params: method.params.clone(),
+                            body: method.body.clone(),
+                            attributes: method.attributes.clone(),
+                        },
+                    );
+                    visibility_map.insert(method_name_lower, method.visibility);
+                }
+
+                // Store enum definition
+                let enum_def = EnumDefinition {
+                    name: name.clone(),
+                    backing_type: *backing_type,
+                    cases: case_list,
+                    methods: method_map,
+                    method_visibility: visibility_map,
+                    attributes: attributes.clone(),
+                };
+
+                self.enums.insert(name.to_lowercase(), enum_def);
+                Ok(ControlFlow::None)
+            }
         }
+    }
+
+    /// Check if two values are identical (===)
+    fn values_identical(&self, a: &Value, b: &Value) -> bool {
+        match (a, b) {
+            (Value::Null, Value::Null) => true,
+            (Value::Bool(a), Value::Bool(b)) => a == b,
+            (Value::Integer(a), Value::Integer(b)) => a == b,
+            (Value::Float(a), Value::Float(b)) => a == b,
+            (Value::String(a), Value::String(b)) => a == b,
+            _ => false,
+        }
+    }
+
+    /// Evaluate enum case access (EnumName::CASE)
+    fn eval_enum_case(&self, enum_name: &str, case_name: &str) -> Result<Value, String> {
+        let enum_name_lower = enum_name.to_lowercase();
+
+        // Look up enum definition
+        let enum_def = self.enums.get(&enum_name_lower)
+            .ok_or_else(|| format!("Undefined enum '{}'", enum_name))?;
+
+        // Find the case
+        for (name, value) in &enum_def.cases {
+            if name == case_name {
+                return Ok(Value::EnumCase {
+                    enum_name: enum_def.name.clone(),
+                    case_name: name.clone(),
+                    backing_value: value.as_ref().map(|v| Box::new(v.clone())),
+                });
+            }
+        }
+
+        Err(format!("Undefined case '{}' for enum '{}'", case_name, enum_name))
     }
 }
 

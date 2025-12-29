@@ -65,6 +65,9 @@ impl ArrayKey {
             }
             Value::Array(_) => ArrayKey::String("Array".to_string()),
             Value::Object(obj) => ArrayKey::String(format!("Object({})", obj.class_name)),
+            Value::EnumCase { enum_name, case_name, .. } => {
+                ArrayKey::String(format!("{}::{}", enum_name, case_name))
+            }
         }
     }
 
@@ -87,6 +90,11 @@ pub enum Value {
     String(String),
     Array(Vec<(ArrayKey, Value)>),
     Object(ObjectInstance),
+    EnumCase {
+        enum_name: String,
+        case_name: String,
+        backing_value: Option<Box<Value>>, // Some(value) for backed enums, None for pure
+    },
 }
 
 /// Object instance representation
@@ -160,6 +168,7 @@ impl Value {
             Value::String(s) => s.clone(),
             Value::Array(_) => "Array".to_string(),
             Value::Object(obj) => format!("Object({})", obj.class_name),
+            Value::EnumCase { enum_name, case_name, .. } => format!("{}::{}", enum_name, case_name),
         }
     }
 
@@ -173,6 +182,7 @@ impl Value {
             Value::String(s) => !s.is_empty() && s != "0",
             Value::Array(arr) => !arr.is_empty(),
             Value::Object(_) => true, // Objects are always truthy
+            Value::EnumCase { .. } => true, // Enum cases are always truthy
         }
     }
 
@@ -198,6 +208,7 @@ impl Value {
                 }
             }
             Value::Object(_) => 1,
+            Value::EnumCase { .. } => 1, // Enum cases convert to 1
         }
     }
 
@@ -223,6 +234,7 @@ impl Value {
                 }
             }
             Value::Object(_) => 1.0,
+            Value::EnumCase { .. } => 1.0, // Enum cases convert to 1.0
         }
     }
 
@@ -248,6 +260,7 @@ impl Value {
             Value::String(s) => s.clone(),
             Value::Array(_) => "Array".to_string(),
             Value::Object(obj) => format!("Object({})", obj.class_name),
+            Value::EnumCase { enum_name, case_name, .. } => format!("{}::{}", enum_name, case_name),
         }
     }
 
@@ -291,6 +304,18 @@ impl Value {
                 // Objects are equal if they have the same class and same properties
                 a.class_name == b.class_name && a.properties == b.properties
             }
+            (
+                Value::EnumCase {
+                    enum_name: en1,
+                    case_name: cn1,
+                    ..
+                },
+                Value::EnumCase {
+                    enum_name: en2,
+                    case_name: cn2,
+                    ..
+                },
+            ) => en1 == en2 && cn1 == cn2, // Enum cases are identical by name
             _ => false,
         }
     }
@@ -340,6 +365,19 @@ impl Value {
             (Value::Object(a), Value::Object(b)) => {
                 a.class_name == b.class_name && a.properties == b.properties
             }
+            // Enum case comparisons
+            (
+                Value::EnumCase {
+                    enum_name: en1,
+                    case_name: cn1,
+                    ..
+                },
+                Value::EnumCase {
+                    enum_name: en2,
+                    case_name: cn2,
+                    ..
+                },
+            ) => en1 == en2 && cn1 == cn2,
             _ => self.to_bool() == other.to_bool(),
         }
     }
@@ -354,6 +392,7 @@ impl Value {
             Value::String(_) => "string",
             Value::Array(_) => "array",
             Value::Object(_) => "object",
+            Value::EnumCase { .. } => "object", // Enum cases are treated as objects for type purposes
         }
     }
 }
