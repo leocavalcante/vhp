@@ -1,0 +1,11 @@
+--TEST--
+Named arguments error - unknown parameter
+--FILE--
+<?php
+function greet($name, $greeting = "Hello") {
+    return "$greeting, $name";
+}
+
+echo greet(name: "Leo", message: "Hi");
+--EXPECT_ERROR--
+Unknown named parameter

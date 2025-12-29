@@ -9,7 +9,7 @@ mod value;
 pub use value::{ArrayKey, ObjectInstance, Value};
 
 use crate::ast::{
-    AssignOp, BinaryOp, Expr, FunctionParam, MatchArm, Program, Property, Stmt, SwitchCase,
+    Argument, AssignOp, BinaryOp, Expr, FunctionParam, MatchArm, Program, Property, Stmt, SwitchCase,
     UnaryOp, Visibility,
 };
 use std::collections::HashMap;
@@ -378,11 +378,11 @@ impl<W: Write> Interpreter<W> {
         }
     }
 
-    fn call_function(&mut self, name: &str, args: &[Expr]) -> Result<Value, String> {
+    fn call_function(&mut self, name: &str, args: &[Argument]) -> Result<Value, String> {
         // Evaluate arguments
         let mut arg_values = Vec::new();
         for arg in args {
-            arg_values.push(self.eval_expr(arg)?);
+            arg_values.push(self.eval_expr(&arg.value)?);
         }
 
         // Check for built-in functions first (case-insensitive)
@@ -471,7 +471,7 @@ impl<W: Write> Interpreter<W> {
                     .map(|(_, v)| v.clone());
 
                 if let Some(func) = func {
-                    self.call_user_function(&func, &arg_values)
+                    self.call_user_function_with_arguments(&func, args)
                 } else {
                     Err(format!("Call to undefined function {}()", name))
                 }
@@ -479,6 +479,7 @@ impl<W: Write> Interpreter<W> {
         }
     }
 
+    #[allow(dead_code)]
     fn call_user_function(
         &mut self,
         func: &UserFunction,
@@ -503,6 +504,113 @@ impl<W: Write> Interpreter<W> {
                 ));
             };
             self.variables.insert(param.name.clone(), value);
+        }
+
+        // Execute function body
+        let mut return_value = Value::Null;
+        for stmt in &func.body.clone() {
+            let cf = self
+                .execute_stmt(stmt)
+                .map_err(|e| e.to_string())?;
+            if let ControlFlow::Return(val) = cf {
+                return_value = val;
+                break;
+            }
+        }
+
+        // Restore variables and class context
+        self.variables = saved_variables;
+        self.current_class = saved_current_class;
+
+        Ok(return_value)
+    }
+
+    /// Call user-defined function with support for named arguments (PHP 8.0)
+    fn call_user_function_with_arguments(
+        &mut self,
+        func: &UserFunction,
+        args: &[Argument],
+    ) -> Result<Value, String> {
+        // Save current variables (for scoping)
+        let saved_variables = self.variables.clone();
+        // Clear current class context for global functions
+        let saved_current_class = self.current_class.take();
+
+        // First, evaluate all argument values
+        let mut arg_values = Vec::new();
+        for arg in args {
+            arg_values.push(self.eval_expr(&arg.value)?);
+        }
+
+        // Build a map of named arguments for quick lookup
+        let mut named_args: HashMap<String, Value> = HashMap::new();
+        let mut positional_idx = 0;
+
+        for (i, arg) in args.iter().enumerate() {
+            if let Some(ref name) = arg.name {
+                // Named argument: validate that we haven't used positional args after named
+                if positional_idx < i {
+                    // We have positional args before named args - this is allowed
+                }
+                named_args.insert(name.clone(), arg_values[i].clone());
+            } else {
+                // Positional argument
+                positional_idx = i + 1;
+            }
+        }
+
+        // Bind parameters
+        let mut positional_arg_idx = 0;
+        for param in &func.params {
+            let value = if let Some(named_value) = named_args.get(&param.name) {
+                // Named argument matched
+                named_value.clone()
+            } else if positional_arg_idx < positional_idx {
+                // Use positional argument
+                arg_values[positional_arg_idx].clone()
+            } else if let Some(default) = &param.default {
+                self.eval_expr(default)?
+            } else {
+                return Err(format!(
+                    "Missing required argument for parameter ${}",
+                    param.name
+                ));
+            };
+
+            if positional_arg_idx < positional_idx {
+                positional_arg_idx += 1;
+            }
+
+            self.variables.insert(param.name.clone(), value);
+        }
+
+        // Check for unknown named arguments
+        for arg in args {
+            if let Some(ref name) = arg.name {
+                if !func.params.iter().any(|p| p.name == *name) {
+                    return Err(format!(
+                        "Unknown named parameter ${}",
+                        name
+                    ));
+                }
+            }
+        }
+
+        // Check for duplicate arguments (both positional and named for same param)
+        for arg in args {
+            if let Some(ref name) = arg.name {
+                // Check if this parameter was already provided positionally
+                if positional_arg_idx > 0 {
+                    if let Some(param) = func.params.get(positional_arg_idx - 1) {
+                        if param.name == *name {
+                            return Err(format!(
+                                "Cannot use positional argument after named argument for parameter ${}",
+                                name
+                            ));
+                        }
+                    }
+                }
+            }
         }
 
         // Execute function body
@@ -813,7 +921,7 @@ impl<W: Write> Interpreter<W> {
     }
 
     /// Evaluate object instantiation (new ClassName(...))
-    fn eval_new(&mut self, class_name: &str, args: &[Expr]) -> Result<Value, String> {
+    fn eval_new(&mut self, class_name: &str, args: &[Argument]) -> Result<Value, String> {
         let class_name_lower = class_name.to_lowercase();
 
         // Check if class exists
@@ -839,14 +947,8 @@ impl<W: Write> Interpreter<W> {
 
         // Check for constructor (__construct)
         if let Some((constructor, declaring_class)) = self.find_method(class_name, "__construct") {
-            // Evaluate constructor arguments
-            let mut arg_values = Vec::new();
-            for arg in args {
-                arg_values.push(self.eval_expr(arg)?);
-            }
-
-            // Call constructor with $this bound
-            self.call_method_on_object(&mut instance, &constructor, &arg_values, declaring_class)?;
+            // Call constructor with $this bound and named argument support
+            self.call_method_on_object_with_arguments(&mut instance, &constructor, args, declaring_class)?;
         }
 
         Ok(Value::Object(instance))
@@ -876,7 +978,7 @@ impl<W: Write> Interpreter<W> {
         &mut self,
         object: &Expr,
         method: &str,
-        args: &[Expr],
+        args: &[Argument],
     ) -> Result<Value, String> {
         // Get the variable name if object is a variable, so we can update it after the method call
         let var_name = match object {
@@ -900,14 +1002,8 @@ impl<W: Write> Interpreter<W> {
                         )
                     })?;
 
-                // Evaluate arguments
-                let mut arg_values = Vec::new();
-                for arg in args {
-                    arg_values.push(self.eval_expr(arg)?);
-                }
-
-                // Call method with $this bound
-                let result = self.call_method_on_object(&mut instance, &method_func, &arg_values, declaring_class)?;
+                // Call method with $this bound and named argument support
+                let result = self.call_method_on_object_with_arguments(&mut instance, &method_func, args, declaring_class)?;
 
                 // Write back the modified instance to the variable if applicable
                 if let Some(name) = var_name {
@@ -979,7 +1075,7 @@ impl<W: Write> Interpreter<W> {
         &mut self,
         class_name: &str,
         method: &str,
-        args: &[Expr],
+        args: &[Argument],
     ) -> Result<Value, String> {
         let class_name_lower = class_name.to_lowercase();
 
@@ -1014,10 +1110,22 @@ impl<W: Write> Interpreter<W> {
                 )
             })?;
 
-        // Evaluate arguments
+        // Evaluate all arguments
         let mut arg_values = Vec::new();
         for arg in args {
-            arg_values.push(self.eval_expr(arg)?);
+            arg_values.push(self.eval_expr(&arg.value)?);
+        }
+
+        // Build a map of named arguments for quick lookup
+        let mut named_args: HashMap<String, Value> = HashMap::new();
+        let mut positional_idx = 0;
+
+        for (i, arg) in args.iter().enumerate() {
+            if let Some(ref name) = arg.name {
+                named_args.insert(name.clone(), arg_values[i].clone());
+            } else {
+                positional_idx = i + 1;
+            }
         }
 
         // Call method without $this (static call), but set current_class
@@ -1028,23 +1136,39 @@ impl<W: Write> Interpreter<W> {
         // Set current class to where the method is defined
         self.current_class = Some(declaring_class);
 
-        // Clear variables and set parameters
+        // Clear variables
         self.variables.clear();
 
         // Bind arguments to parameters
-        for (i, param) in method_func.params.iter().enumerate() {
-            let value = if i < args.len() {
-                arg_values[i].clone()
+        let mut positional_arg_idx = 0;
+        for param in &method_func.params {
+            let value = if let Some(named_value) = named_args.get(&param.name) {
+                named_value.clone()
+            } else if positional_arg_idx < positional_idx {
+                arg_values[positional_arg_idx].clone()
             } else if let Some(ref default_expr) = param.default {
                 self.eval_expr(default_expr)?
             } else {
                 return Err(format!(
-                    "Missing argument {} for parameter ${}",
-                    i + 1,
+                    "Missing argument for parameter ${}",
                     param.name
                 ));
             };
+
+            if positional_arg_idx < positional_idx {
+                positional_arg_idx += 1;
+            }
+
             self.variables.insert(param.name.clone(), value);
+        }
+
+        // Check for unknown named arguments
+        for arg in args {
+            if let Some(ref name) = arg.name {
+                if !method_func.params.iter().any(|p| p.name == *name) {
+                    return Err(format!("Unknown named parameter ${}", name));
+                }
+            }
         }
 
         // Execute method body
@@ -1101,6 +1225,7 @@ impl<W: Write> Interpreter<W> {
     }
 
     /// Call a method on an object instance
+    #[allow(dead_code)]
     fn call_method_on_object(
         &mut self,
         instance: &mut ObjectInstance,
@@ -1130,6 +1255,100 @@ impl<W: Write> Interpreter<W> {
                 Value::Null
             };
             self.variables.insert(param.name.clone(), value);
+        }
+
+        // Execute method body
+        let mut return_value = Value::Null;
+        for stmt in &method.body {
+            let cf = self.execute_stmt(stmt).map_err(|e| e.to_string())?;
+            match cf {
+                ControlFlow::Return(v) => {
+                    return_value = v;
+                    break;
+                }
+                ControlFlow::Break | ControlFlow::Continue => break,
+                ControlFlow::None => {}
+            }
+        }
+
+        // Copy back any property changes from $this
+        if let Some(ref obj) = self.current_object {
+            *instance = obj.clone();
+        }
+
+        // Restore previous state
+        self.variables = saved_variables;
+        self.current_object = saved_current_object;
+        self.current_class = saved_current_class;
+
+        Ok(return_value)
+    }
+
+    /// Call method on object with support for named arguments (PHP 8.0)
+    fn call_method_on_object_with_arguments(
+        &mut self,
+        instance: &mut ObjectInstance,
+        method: &UserFunction,
+        args: &[Argument],
+        declaring_class: String,
+    ) -> Result<Value, String> {
+        // Save current state
+        let saved_variables = self.variables.clone();
+        let saved_current_object = self.current_object.take();
+        let saved_current_class = self.current_class.take();
+
+        // Set current object to this instance
+        self.current_object = Some(instance.clone());
+        self.current_class = Some(declaring_class);
+
+        // Clear variables
+        self.variables.clear();
+
+        // Evaluate all arguments
+        let mut arg_values = Vec::new();
+        for arg in args {
+            arg_values.push(self.eval_expr(&arg.value)?);
+        }
+
+        // Build a map of named arguments for quick lookup
+        let mut named_args: HashMap<String, Value> = HashMap::new();
+        let mut positional_idx = 0;
+
+        for (i, arg) in args.iter().enumerate() {
+            if let Some(ref name) = arg.name {
+                named_args.insert(name.clone(), arg_values[i].clone());
+            } else {
+                positional_idx = i + 1;
+            }
+        }
+
+        // Bind arguments to parameters
+        let mut positional_arg_idx = 0;
+        for param in &method.params {
+            let value = if let Some(named_value) = named_args.get(&param.name) {
+                named_value.clone()
+            } else if positional_arg_idx < positional_idx {
+                arg_values[positional_arg_idx].clone()
+            } else if let Some(ref default_expr) = param.default {
+                self.eval_expr(default_expr)?
+            } else {
+                Value::Null
+            };
+
+            if positional_arg_idx < positional_idx {
+                positional_arg_idx += 1;
+            }
+
+            self.variables.insert(param.name.clone(), value);
+        }
+
+        // Check for unknown named arguments
+        for arg in args {
+            if let Some(ref name) = arg.name {
+                if !method.params.iter().any(|p| p.name == *name) {
+                    return Err(format!("Unknown named parameter ${}", name));
+                }
+            }
         }
 
         // Execute method body
@@ -1490,8 +1709,7 @@ impl<W: Write> Interpreter<W> {
                             visibility_map.insert(method_name.clone(), *visibility);
                         }
                     } else {
-                        return Err(io::Error::new(
-                            io::ErrorKind::Other,
+                        return Err(io::Error::other(
                             format!("Parent class '{}' not found", parent_name),
                         ));
                     }

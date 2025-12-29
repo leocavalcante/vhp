@@ -1,0 +1,31 @@
+--TEST--
+Named arguments with static methods
+--FILE--
+<?php
+class StaticMath {
+    function power($base, $exp) {
+        $result = 1;
+        for ($i = 0; $i < $exp; $i++) {
+            $result = $result * $base;
+        }
+        return $result;
+    }
+    
+    function sum_range($start, $end) {
+        $sum = 0;
+        for ($i = $start; $i <= $end; $i++) {
+            $sum += $i;
+        }
+        return $sum;
+    }
+}
+
+echo StaticMath::power(base: 2, exp: 3);
+echo "\n";
+echo StaticMath::power(exp: 4, base: 3);
+echo "\n";
+echo StaticMath::sum_range(start: 1, end: 5);
+--EXPECT--
+8
+81
+15

@@ -7,6 +7,13 @@ pub struct ArrayElement {
     pub value: Box<Expr>,
 }
 
+/// Function/method call argument with optional name (PHP 8.0 named arguments)
+#[derive(Debug, Clone)]
+pub struct Argument {
+    pub name: Option<String>, // None for positional, Some("name") for named
+    pub value: Box<Expr>,
+}
+
 /// Match arm for match expressions (PHP 8.0)
 #[derive(Debug, Clone)]
 pub struct MatchArm {
@@ -72,13 +79,13 @@ pub enum Expr {
     // Function call
     FunctionCall {
         name: String,
-        args: Vec<Expr>,
+        args: Vec<Argument>,
     },
 
     // Object instantiation: new ClassName(args)
     New {
         class_name: String,
-        args: Vec<Expr>,
+        args: Vec<Argument>,
     },
 
     // Property access: $obj->property
@@ -91,7 +98,7 @@ pub enum Expr {
     MethodCall {
         object: Box<Expr>,
         method: String,
-        args: Vec<Expr>,
+        args: Vec<Argument>,
     },
 
     // Property assignment: $obj->property = value
@@ -108,7 +115,7 @@ pub enum Expr {
     StaticMethodCall {
         class_name: String,
         method: String,
-        args: Vec<Expr>,
+        args: Vec<Argument>,
     },
 
     // Match expression (PHP 8.0)

@@ -1,0 +1,27 @@
+--TEST--
+Named arguments with methods
+--FILE--
+<?php
+class Calc {
+    public function add($a, $b) {
+        return $a + $b;
+    }
+    
+    public function mul($x, $y, $offset = 0) {
+        return ($x * $y) + $offset;
+    }
+}
+
+$c = new Calc();
+echo $c->add(a: 5, b: 3);
+echo "\n";
+echo $c->add(b: 10, a: 20);
+echo "\n";
+echo $c->mul(x: 2, y: 3);
+echo "\n";
+echo $c->mul(y: 4, x: 5, offset: 10);
+--EXPECT--
+8
+30
+6
+30

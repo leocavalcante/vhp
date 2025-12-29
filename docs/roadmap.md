@@ -86,7 +86,7 @@ VHP is being developed incrementally, with each phase adding new capabilities wh
 This phase focuses on catching up with major features introduced in PHP 8.0 and beyond.
 
 - ✅ **Match Expressions** (PHP 8.0) - A more powerful and safer alternative to `switch`.
-- **Named Arguments** (PHP 8.0) - Pass arguments to functions based on parameter names.
+- ✅ **Named Arguments** (PHP 8.0) - Pass arguments to functions based on parameter names.
 - **Attributes** (PHP 8.0) - Structured metadata for classes, methods, and functions.
 - **Enums** (PHP 8.1) - Support for strongly-typed enumerations.
 - **Fibers** (PHP 8.1) - The foundation for lightweight, cooperative concurrency (async/await).

@@ -1,0 +1,22 @@
+--TEST--
+Named arguments skipping optional parameters
+--FILE--
+<?php
+function compute($x, $y, $op = "add") {
+    if ($op == "add") {
+        return $x + $y;
+    } elseif ($op == "mul") {
+        return $x * $y;
+    }
+    return 0;
+}
+
+echo compute(x: 5, y: 3);
+echo "\n";
+echo compute(x: 5, y: 3, op: "mul");
+echo "\n";
+echo compute(y: 2, x: 10);
+--EXPECT--
+8
+15
+12

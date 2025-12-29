@@ -459,3 +459,87 @@ echo match(true) {
     default => "F",
 };  // B
 ```
+
+## Named Arguments (PHP 8.0)
+
+Named arguments allow you to pass arguments to functions based on parameter names, making code more readable and allowing you to skip optional parameters.
+
+### Basic Named Arguments
+
+```php
+<?php
+function greet($name, $greeting = "Hello") {
+    return "$greeting, $name!";
+}
+
+echo greet(name: "Leo");  // Hello, Leo!
+echo greet(greeting: "Hi", name: "World");  // Hi, World!
+```
+
+### Skipping Optional Parameters
+
+```php
+<?php
+function configure($host, $port, $debug = false, $verbose = false) {
+    echo "Host: $host, Port: $port";
+    if ($debug) echo ", Debug: on";
+    if ($verbose) echo ", Verbose: on";
+}
+
+// Can skip parameters in the middle
+configure(host: "localhost", port: 8080, verbose: true);
+// Output: Host: localhost, Port: 8080, Verbose: on
+```
+
+### Any Argument Order
+
+```php
+<?php
+function format($color, $size, $bold = false) {
+    return "Color: $color, Size: $size";
+}
+
+// Arguments can be in any order when named
+echo format(size: 14, bold: true, color: "red");
+```
+
+### With Methods and Constructors
+
+```php
+<?php
+class Point {
+    public $x;
+    public $y;
+    
+    public function __construct($x = 0, $y = 0) {
+        $this->x = $x;
+        $this->y = $y;
+    }
+}
+
+// Works with constructors
+$p = new Point(y: 5, x: 3);
+
+// Works with method calls
+class Calculator {
+    public function add($a, $b) {
+        return $a + $b;
+    }
+}
+
+$calc = new Calculator();
+echo $calc->add(b: 10, a: 5);  // 15
+```
+
+### Mixing Positional and Named Arguments
+
+```php
+<?php
+function build($type, $size, $color = "white") {
+    return "$type, $size, $color";
+}
+
+// Positional arguments come first, then named
+echo build("box", 10, color: "blue");
+```
+

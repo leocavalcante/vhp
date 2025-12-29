@@ -1,0 +1,22 @@
+--TEST--
+Mixed positional and named arguments
+--FILE--
+<?php
+function make($type, $size, $bold = false) {
+    echo "Type=";
+    echo $type;
+    echo " Size=";
+    echo $size;
+    if ($bold) {
+        echo " Bold";
+    }
+    echo "\n";
+}
+
+make("text", 12);
+make("button", 14, bold: true);
+make("box", 20, true);
+--EXPECT--
+Type=text Size=12
+Type=button Size=14 Bold
+Type=box Size=20 Bold
