@@ -10,7 +10,7 @@ pub use value::{ArrayKey, ObjectInstance, Value};
 
 use crate::ast::{
     Argument, AssignOp, BinaryOp, Expr, FunctionParam, MatchArm, Program, Property, Stmt, SwitchCase,
-    UnaryOp, Visibility,
+    UnaryOp, Visibility, InterfaceConstant, TraitUse, TraitResolution,
 };
 use std::collections::HashMap;
 use std::io::{self, Write};
@@ -43,11 +43,32 @@ pub struct ClassDefinition {
     pub method_visibility: HashMap<String, Visibility>,
 }
 
+/// Interface definition stored in the interpreter
+#[derive(Debug, Clone)]
+pub struct InterfaceDefinition {
+    pub name: String,
+    pub parents: Vec<String>,
+    pub methods: Vec<(String, Vec<FunctionParam>)>, // (name, params)
+    pub constants: HashMap<String, Value>,
+}
+
+/// Trait definition stored in the interpreter
+#[derive(Debug, Clone)]
+pub struct TraitDefinition {
+    pub name: String,
+    pub uses: Vec<String>,
+    pub properties: Vec<Property>,
+    pub methods: HashMap<String, UserFunction>,
+    pub method_visibility: HashMap<String, Visibility>,
+}
+
 pub struct Interpreter<W: Write> {
     output: W,
     variables: HashMap<String, Value>,
     functions: HashMap<String, UserFunction>,
     classes: HashMap<String, ClassDefinition>,
+    interfaces: HashMap<String, InterfaceDefinition>,
+    traits: HashMap<String, TraitDefinition>,
     current_object: Option<ObjectInstance>,
     current_class: Option<String>,
 }
@@ -59,6 +80,8 @@ impl<W: Write> Interpreter<W> {
             variables: HashMap::new(),
             functions: HashMap::new(),
             classes: HashMap::new(),
+            interfaces: HashMap::new(),
+            traits: HashMap::new(),
             current_object: None,
             current_class: None,
         }
@@ -1686,9 +1709,20 @@ impl<W: Write> Interpreter<W> {
             Stmt::Class {
                 name,
                 parent,
+                interfaces,
+                trait_uses,
                 properties,
                 methods,
             } => {
+                // Validate all implemented interfaces exist
+                for iface_name in interfaces {
+                    if !self.interfaces.contains_key(&iface_name.to_lowercase()) {
+                        return Err(io::Error::other(
+                            format!("Interface '{}' not found", iface_name),
+                        ));
+                    }
+                }
+
                 // Build methods map
                 let mut methods_map = HashMap::new();
                 let mut visibility_map = HashMap::new();
@@ -1715,10 +1749,37 @@ impl<W: Write> Interpreter<W> {
                     }
                 }
 
-                // Add current class properties (can override parent properties)
+                // Add properties from traits
+                for trait_use in trait_uses {
+                    for trait_name in &trait_use.traits {
+                        if let Some(trait_def) = self.traits.get(&trait_name.to_lowercase()).cloned() {
+                            // Add trait properties
+                            all_properties.extend(trait_def.properties.clone());
+
+                            // Add trait methods (checking for conflicts)
+                            for (method_name, method_func) in trait_def.methods.iter() {
+                                if methods_map.contains_key(method_name) {
+                                    // Conflict: method already exists from another trait or class
+                                    return Err(io::Error::other(
+                                        format!("Trait method '{}' conflicts with other trait or class method in '{}'",
+                                            method_name, name),
+                                    ));
+                                }
+                                methods_map.insert(method_name.clone(), method_func.clone());
+                            }
+                            for (method_name, visibility) in trait_def.method_visibility.iter() {
+                                if !visibility_map.contains_key(method_name) {
+                                    visibility_map.insert(method_name.clone(), *visibility);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Add current class properties (can override parent/trait properties)
                 all_properties.extend(properties.clone());
 
-                // Add current class methods (can override parent methods)
+                // Add current class methods (can override parent/trait methods)
                 for method in methods {
                     let func = UserFunction {
                         params: method.params.clone(),
@@ -1727,6 +1788,29 @@ impl<W: Write> Interpreter<W> {
                     let method_name_lower = method.name.to_lowercase();
                     methods_map.insert(method_name_lower.clone(), func);
                     visibility_map.insert(method_name_lower, method.visibility);
+                }
+
+                // Verify all interface methods are implemented
+                for iface_name in interfaces {
+                    if let Some(iface_def) = self.interfaces.get(&iface_name.to_lowercase()) {
+                        for (method_name, method_params) in &iface_def.methods {
+                            let method_name_lower = method_name.to_lowercase();
+                            if let Some(UserFunction { params, .. }) = methods_map.get(&method_name_lower) {
+                                // Verify parameter count matches
+                                if params.len() != method_params.len() {
+                                    return Err(io::Error::other(
+                                        format!("Method '{}' in class '{}' has {} parameters but interface '{}' expects {}",
+                                            method_name, name, params.len(), iface_name, method_params.len()),
+                                    ));
+                                }
+                            } else {
+                                return Err(io::Error::other(
+                                    format!("Class '{}' does not implement method '{}' from interface '{}'",
+                                        name, method_name, iface_name),
+                                ));
+                            }
+                        }
+                    }
                 }
 
                 let class_def = ClassDefinition {
@@ -1739,6 +1823,107 @@ impl<W: Write> Interpreter<W> {
 
                 // Store class definition (case-insensitive)
                 self.classes.insert(name.to_lowercase(), class_def);
+                Ok(ControlFlow::None)
+            }
+            Stmt::Interface {
+                name,
+                parents,
+                methods,
+                constants,
+            } => {
+                // Validate parent interfaces exist
+                for parent_name in parents {
+                    if !self.interfaces.contains_key(&parent_name.to_lowercase()) {
+                        return Err(io::Error::other(
+                            format!("Parent interface '{}' not found", parent_name),
+                        ));
+                    }
+                }
+
+                // Collect all methods from parent interfaces
+                let mut all_methods = Vec::new();
+                for parent_name in parents {
+                    if let Some(parent_iface) = self.interfaces.get(&parent_name.to_lowercase()).cloned() {
+                        all_methods.extend(parent_iface.methods.clone());
+                    }
+                }
+
+                // Add current interface methods
+                for method in methods {
+                    all_methods.push((method.name.clone(), method.params.clone()));
+                }
+
+                // Evaluate constants
+                let mut const_map = HashMap::new();
+                for constant in constants {
+                    let value = self.eval_expr(&constant.value).map_err(|e| {
+                        io::Error::other(e)
+                    })?;
+                    const_map.insert(constant.name.clone(), value);
+                }
+
+                let iface_def = InterfaceDefinition {
+                    name: name.clone(),
+                    parents: parents.clone(),
+                    methods: all_methods,
+                    constants: const_map,
+                };
+
+                // Store interface definition (case-insensitive)
+                self.interfaces.insert(name.to_lowercase(), iface_def);
+                Ok(ControlFlow::None)
+            }
+            Stmt::Trait {
+                name,
+                uses,
+                properties,
+                methods,
+            } => {
+                // Build methods map
+                let mut methods_map = HashMap::new();
+                let mut visibility_map = HashMap::new();
+                let mut all_properties = Vec::new();
+
+                // Add properties from used traits
+                for trait_name in uses {
+                    if let Some(trait_def) = self.traits.get(&trait_name.to_lowercase()).cloned() {
+                        // Add trait properties
+                        all_properties.extend(trait_def.properties.clone());
+
+                        // Add trait methods
+                        for (method_name, method_func) in trait_def.methods.iter() {
+                            methods_map.insert(method_name.clone(), method_func.clone());
+                        }
+                        for (method_name, visibility) in trait_def.method_visibility.iter() {
+                            visibility_map.insert(method_name.clone(), *visibility);
+                        }
+                    }
+                }
+
+                // Add current trait properties
+                all_properties.extend(properties.clone());
+
+                // Add current trait methods (override used trait methods)
+                for method in methods {
+                    let func = UserFunction {
+                        params: method.params.clone(),
+                        body: method.body.clone(),
+                    };
+                    let method_name_lower = method.name.to_lowercase();
+                    methods_map.insert(method_name_lower.clone(), func);
+                    visibility_map.insert(method_name_lower, method.visibility);
+                }
+
+                let trait_def = TraitDefinition {
+                    name: name.clone(),
+                    uses: uses.clone(),
+                    properties: all_properties,
+                    methods: methods_map,
+                    method_visibility: visibility_map,
+                };
+
+                // Store trait definition (case-insensitive)
+                self.traits.insert(name.to_lowercase(), trait_def);
                 Ok(ControlFlow::None)
             }
         }
