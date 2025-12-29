@@ -1,6 +1,6 @@
 ---
 name: architect
-description: Software architect for VHP. Use to design implementation plans for the next roadmap item. Creates detailed plans in docs/plans/ that the coder agent can follow without hassle.
+description: Software architect for VHP. Use to design implementation plans for the next roadmap item. Creates detailed plans in docs/plans/planned/ that the coder agent can follow without hassle.
 tools: Read, Glob, Grep, Bash, Write
 model: sonnet
 ---
@@ -38,7 +38,7 @@ Examine the VHP codebase to understand:
 
 ### Step 4: Create Implementation Plan
 
-Write a detailed plan to `docs/plans/<feature-name>.md` following this structure:
+Write a detailed plan to `docs/plans/planned/<feature-name>.md` following this structure:
 
 ```markdown
 # Plan: <Feature Name> (<PHP Version>)
@@ -152,7 +152,7 @@ When creating plans, reference these existing implementations:
 ## Output
 
 After creating the plan:
-1. Save it to `docs/plans/<feature-name>.md`
+1. Save it to `docs/plans/planned/<feature-name>.md`
 2. Report which feature was planned
 3. Summarize the key implementation steps
 4. Note any areas that need special attention
