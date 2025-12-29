@@ -190,6 +190,8 @@ Source Code → Lexer → Tokens → Parser → AST → Interpreter → Output
 - [x] Trait composition in classes (`use Trait1, Trait2`)
 - [x] Trait conflict resolution (`insteadof`, `as`)
 - [x] Traits using other traits
+- [x] Constructor Property Promotion (PHP 8.0)
+- [x] Readonly Properties (PHP 8.1)
 
 ### Match Expressions (PHP 8.0)
 - [x] Basic match syntax: `match($expr) { value => result }`
@@ -391,8 +393,7 @@ partial error message to match
 - [x] Traits using other traits
 
 **Remaining for Phase 5 (future):**
-- [x] Constructor Property Promotion (PHP 8.0)
-- [ ] Readonly Properties (PHP 8.1) & Classes (PHP 8.2)
+- [ ] Readonly Classes (PHP 8.2)
 - [ ] "Clone with" functionality (PHP 8.5)
 
 ### Phase 6: Modern PHP 8.x Features (In Progress)
