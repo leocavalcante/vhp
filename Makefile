@@ -26,11 +26,3 @@ test-verbose: release
 # Clean build artifacts
 clean:
 	cargo clean
-
-# Install documentation dependencies
-docs-install:
-	cd docs && arch -x86_64 bundle install --path vendor/bundle
-
-# Serve documentation locally
-docs-serve:
-	cd docs && arch -x86_64 bundle exec jekyll serve --livereload
