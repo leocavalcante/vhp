@@ -54,7 +54,7 @@
 
   <footer>
     <p>
-      &copy; {% now "%Y" %} {{ site.title | default: "VHP" }}.
+      &copy; {{ site.time | date: "%Y" }} {{ site.title | default: "VHP" }}.
       <a href="https://github.com/leocavalcante/vhp" target="_blank">View on GitHub</a>
     </p>
   </footer>
