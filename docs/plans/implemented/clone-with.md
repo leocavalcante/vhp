@@ -139,6 +139,7 @@ Find the `parse_primary` method (around line 20-30) and add a case for `TokenKin
 Add this new method to the `Parser` impl block (around line 600, near other parsing methods):
 
 ```rust
+{% raw %}
     /// Parse clone or clone with expression
     /// clone $obj
     /// clone $obj with { prop: value, ... }
@@ -230,6 +231,7 @@ Add this new method to the `Parser` impl block (around line 600, near other pars
             Ok(Expr::Clone { object })
         }
     }
+{% endraw %}
 ```
 
 ### Step 5: Update Interpreter (`src/interpreter/mod.rs`)
