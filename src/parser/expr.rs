@@ -417,30 +417,40 @@ impl<'a> ExprParser<'a> {
                 let name = name.clone();
                 self.advance();
 
-                // Check for static method call (ClassName::method())
+                // Check for static method call (ClassName::method()) or enum case access (EnumName::CASE)
                 if self.check(&TokenKind::DoubleColon) {
                     self.advance(); // consume '::'
-                    let method = if let TokenKind::Identifier(method_name) = &self.current().kind {
-                        let method_name = method_name.clone();
+                    let method_or_case = if let TokenKind::Identifier(id) = &self.current().kind {
+                        let id = id.clone();
                         self.advance();
-                        method_name
+                        id
                     } else {
                         return Err(format!(
-                            "Expected method name after '::' at line {}, column {}",
+                            "Expected method or case name after '::' at line {}, column {}",
                             self.current().line,
                             self.current().column
                         ));
                     };
 
-                    self.consume(TokenKind::LeftParen, "Expected '(' after static method name")?;
-                    let args = self.parse_arguments()?;
-                    self.consume(TokenKind::RightParen, "Expected ')' after static method arguments")?;
-                    let call = Expr::StaticMethodCall {
-                        class_name: name,
-                        method,
-                        args,
-                    };
-                    self.parse_postfix(call)
+                    // Check if this is a method call (with parentheses) or enum case access
+                    if self.check(&TokenKind::LeftParen) {
+                        self.advance(); // consume '('
+                        let args = self.parse_arguments()?;
+                        self.consume(TokenKind::RightParen, "Expected ')' after static method arguments")?;
+                        let call = Expr::StaticMethodCall {
+                            class_name: name,
+                            method: method_or_case,
+                            args,
+                        };
+                        self.parse_postfix(call)
+                    } else {
+                        // This is an enum case access (no parentheses)
+                        let expr = Expr::EnumCase {
+                            enum_name: name,
+                            case_name: method_or_case,
+                        };
+                        self.parse_postfix(expr)
+                    }
                 } else if self.check(&TokenKind::LeftParen) {
                     // Regular function call
                     self.advance(); // consume '('

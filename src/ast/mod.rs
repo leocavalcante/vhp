@@ -9,4 +9,4 @@ mod stmt;
 
 pub use expr::{Argument, ArrayElement, Expr, MatchArm};
 pub use ops::{AssignOp, BinaryOp, UnaryOp};
-pub use stmt::{FunctionParam, Method, Program, Property, Stmt, SwitchCase, Visibility, InterfaceMethodSignature, InterfaceConstant, TraitUse, TraitResolution, Attribute, AttributeArgument};
+pub use stmt::{FunctionParam, Method, Program, Property, Stmt, SwitchCase, Visibility, InterfaceMethodSignature, InterfaceConstant, TraitUse, TraitResolution, Attribute, AttributeArgument, EnumCase, EnumBackingType};

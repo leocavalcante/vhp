@@ -124,4 +124,10 @@ pub enum Expr {
         arms: Vec<MatchArm>,
         default: Option<Box<Expr>>,
     },
+
+    // Enum case access: EnumName::CASE
+    EnumCase {
+        enum_name: String,
+        case_name: String,
+    },
 }

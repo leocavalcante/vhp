@@ -65,6 +65,21 @@ pub struct InterfaceConstant {
     pub attributes: Vec<Attribute>, // PHP 8.0+
 }
 
+/// Enum case definition
+#[derive(Debug, Clone)]
+pub struct EnumCase {
+    pub name: String,
+    pub value: Option<Expr>, // Some(expr) for backed enums, None for pure enums
+}
+
+/// Enum backing type
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum EnumBackingType {
+    None,   // Pure enum
+    Int,    // Backed by integers
+    String, // Backed by strings
+}
+
 /// Trait usage in class
 #[derive(Debug, Clone)]
 pub struct TraitUse {
@@ -160,6 +175,13 @@ pub enum Stmt {
         trait_uses: Vec<TraitUse>,
         properties: Vec<Property>,
         methods: Vec<Method>,
+        attributes: Vec<Attribute>, // PHP 8.0+
+    },
+    Enum {
+        name: String,
+        backing_type: EnumBackingType,
+        cases: Vec<EnumCase>,
+        methods: Vec<Method>, // Enums can have methods
         attributes: Vec<Attribute>, // PHP 8.0+
     },
 }
