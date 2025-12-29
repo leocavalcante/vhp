@@ -18,14 +18,15 @@ pub fn parse_postfix(parser: &mut ExprParser, mut expr: Expr) -> Result<Expr, St
                 // Check for empty brackets (append syntax: $arr[] = ...)
                 if parser.check(&TokenKind::RightBracket) {
                     parser.advance(); // consume ']'
-                    // This creates an ArrayAccess with a special marker
-                    // The assignment handling will recognize this
+                                      // This creates an ArrayAccess with a special marker
+                                      // The assignment handling will recognize this
                     expr = Expr::ArrayAccess {
                         array: Box::new(expr),
                         index: Box::new(Expr::Null), // Placeholder for append
                     };
                 } else {
-                    let index = parser.parse_expression(super::super::precedence::Precedence::None)?;
+                    let index =
+                        parser.parse_expression(super::super::precedence::Precedence::None)?;
                     parser.consume(TokenKind::RightBracket, "Expected ']' after array index")?;
                     expr = Expr::ArrayAccess {
                         array: Box::new(expr),
@@ -91,4 +92,3 @@ pub fn parse_postfix(parser: &mut ExprParser, mut expr: Expr) -> Result<Expr, St
     }
     Ok(expr)
 }
-

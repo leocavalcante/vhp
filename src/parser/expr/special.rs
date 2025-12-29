@@ -137,7 +137,8 @@ pub fn parse_clone(parser: &mut ExprParser) -> Result<Expr, String> {
             parser.advance(); // consume ':'
 
             // Parse value expression
-            let value = Box::new(parser.parse_expression(super::super::precedence::Precedence::None)?);
+            let value =
+                Box::new(parser.parse_expression(super::super::precedence::Precedence::None)?);
 
             modifications.push(PropertyModification { property, value });
 
@@ -176,4 +177,3 @@ pub fn parse_clone(parser: &mut ExprParser) -> Result<Expr, String> {
         Ok(Expr::Clone { object })
     }
 }
-

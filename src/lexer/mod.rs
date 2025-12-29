@@ -317,7 +317,12 @@ impl Lexer {
     }
 
     /// Tokenizes a single PHP element (variable, operator, string, etc.)
-    fn tokenize_php_element(&mut self, ch: char, line: usize, column: usize) -> Result<TokenKind, String> {
+    fn tokenize_php_element(
+        &mut self,
+        ch: char,
+        line: usize,
+        column: usize,
+    ) -> Result<TokenKind, String> {
         match ch {
             // Variables
             '$' => {
@@ -385,12 +390,10 @@ impl Lexer {
                 Ok(self.keyword_or_identifier(&ident))
             }
 
-            _ => {
-                Err(format!(
-                    "Unexpected character '{}' at line {}, column {}",
-                    ch, line, column
-                ))
-            }
+            _ => Err(format!(
+                "Unexpected character '{}' at line {}, column {}",
+                ch, line, column
+            )),
         }
     }
 }

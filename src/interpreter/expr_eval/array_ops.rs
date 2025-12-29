@@ -153,7 +153,8 @@ pub(crate) fn eval_array_assign<W: Write>(
             ArrayKey::Integer(max_key + 1)
         };
 
-        let final_value = apply_array_assign_op(interpreter, op, &new_inner, &key, new_value.clone())?;
+        let final_value =
+            apply_array_assign_op(interpreter, op, &new_inner, &key, new_value.clone())?;
 
         // Update or add the element
         let pos = new_inner.iter().position(|(k, _)| k == &key);

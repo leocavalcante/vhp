@@ -2,7 +2,6 @@
 ///
 /// Handles parsing of string literals with proper escape sequence support
 /// for both single-quoted and double-quoted strings.
-
 use crate::lexer::Lexer;
 
 impl Lexer {

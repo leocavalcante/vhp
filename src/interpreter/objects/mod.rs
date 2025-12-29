@@ -19,7 +19,10 @@ impl<W: Write> Interpreter<W> {
     ///
     /// Traverses the inheritance chain and merges properties from all classes.
     /// Properties from derived classes override parent properties.
-    pub(crate) fn collect_properties(&mut self, class_name: &str) -> Result<Vec<crate::ast::Property>, String> {
+    pub(crate) fn collect_properties(
+        &mut self,
+        class_name: &str,
+    ) -> Result<Vec<crate::ast::Property>, String> {
         let class_def = self
             .classes
             .get(&class_name.to_lowercase())

@@ -84,9 +84,7 @@ impl<W: Write> Interpreter<W> {
         // Add properties from traits
         for trait_use in trait_uses {
             for trait_name in &trait_use.traits {
-                if let Some(trait_def) =
-                    self.traits.get(&trait_name.to_lowercase()).cloned()
-                {
+                if let Some(trait_def) = self.traits.get(&trait_name.to_lowercase()).cloned() {
                     // Add trait properties
                     all_properties.extend(trait_def.properties.clone());
 
@@ -138,9 +136,7 @@ impl<W: Write> Interpreter<W> {
                             crate::ast::Expr::PropertyAssign {
                                 object: Box::new(crate::ast::Expr::This),
                                 property: param.name.clone(),
-                                value: Box::new(crate::ast::Expr::Variable(
-                                    param.name.clone(),
-                                )),
+                                value: Box::new(crate::ast::Expr::Variable(param.name.clone())),
                             },
                         ));
                     }
@@ -166,9 +162,7 @@ impl<W: Write> Interpreter<W> {
             if let Some(iface_def) = self.interfaces.get(&iface_name.to_lowercase()) {
                 for (method_name, method_params) in &iface_def.methods {
                     let method_name_lower = method_name.to_lowercase();
-                    if let Some(UserFunction { params, .. }) =
-                        methods_map.get(&method_name_lower)
-                    {
+                    if let Some(UserFunction { params, .. }) = methods_map.get(&method_name_lower) {
                         // Verify parameter count matches
                         if params.len() != method_params.len() {
                             return Err(std::io::Error::other(
@@ -223,9 +217,7 @@ impl<W: Write> Interpreter<W> {
         // Collect all methods from parent interfaces
         let mut all_methods = Vec::new();
         for parent_name in parents {
-            if let Some(parent_iface) =
-                self.interfaces.get(&parent_name.to_lowercase()).cloned()
-            {
+            if let Some(parent_iface) = self.interfaces.get(&parent_name.to_lowercase()).cloned() {
                 all_methods.extend(parent_iface.methods.clone());
             }
         }
@@ -238,7 +230,9 @@ impl<W: Write> Interpreter<W> {
         // Evaluate constants
         let mut const_map = HashMap::new();
         for constant in constants {
-            let value = self.eval_expr(&constant.value).map_err(std::io::Error::other)?;
+            let value = self
+                .eval_expr(&constant.value)
+                .map_err(std::io::Error::other)?;
             const_map.insert(constant.name.clone(), value);
         }
 

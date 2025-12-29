@@ -6,7 +6,6 @@
 /// - Assignment operators (=, +=, -=, *=, /=, %=, .=)
 /// - Logical operators (&&, ||, and, or, xor)
 /// - Special operators (=>, ::, ->, ??, |>)
-
 use crate::lexer::Lexer;
 use crate::token::TokenKind;
 
@@ -210,7 +209,12 @@ impl Lexer {
             }
 
             // Single-character punctuation (handled elsewhere in main lexer)
-            _ => return Err(format!("Unexpected operator character '{}' at line {}, column {}", ch, line, column)),
+            _ => {
+                return Err(format!(
+                    "Unexpected operator character '{}' at line {}, column {}",
+                    ch, line, column
+                ))
+            }
         };
 
         Ok(token_kind)

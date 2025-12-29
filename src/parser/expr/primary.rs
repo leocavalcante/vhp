@@ -3,7 +3,7 @@
 //! Handles literals, variables, arrays, function calls, and basic expressions.
 //! Primary expressions are the foundation for all higher-level expressions.
 
-use super::{parse_postfix, parse_match, parse_clone, ExprParser};
+use super::{parse_clone, parse_match, parse_postfix, ExprParser};
 use crate::ast::{Argument, ArrayElement, Expr};
 use crate::token::TokenKind;
 
@@ -35,7 +35,8 @@ impl<'a> ExprParser<'a> {
                     };
                     self.advance(); // consume identifier
                     self.advance(); // consume ':'
-                    let value = self.parse_expression(super::super::precedence::Precedence::None)?;
+                    let value =
+                        self.parse_expression(super::super::precedence::Precedence::None)?;
                     args.push(Argument {
                         name: Some(name),
                         value: Box::new(value),
@@ -68,7 +69,8 @@ impl<'a> ExprParser<'a> {
                             value: Box::new(Expr::Placeholder),
                         });
                     } else {
-                        let value = self.parse_expression(super::super::precedence::Precedence::None)?;
+                        let value =
+                            self.parse_expression(super::super::precedence::Precedence::None)?;
                         args.push(Argument {
                             name: None,
                             value: Box::new(value),
@@ -99,7 +101,8 @@ impl<'a> ExprParser<'a> {
                 // Check for => (key => value syntax)
                 if self.check(&TokenKind::DoubleArrow) {
                     self.advance(); // consume '=>'
-                    let value = self.parse_expression(super::super::precedence::Precedence::None)?;
+                    let value =
+                        self.parse_expression(super::super::precedence::Precedence::None)?;
                     elements.push(ArrayElement {
                         key: Some(Box::new(first)),
                         value: Box::new(value),
