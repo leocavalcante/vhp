@@ -35,6 +35,11 @@ pub enum TokenKind {
     Protected,    // protected
     Extends,      // extends
     Parent,       // parent
+    Interface,    // interface
+    Implements,   // implements
+    Trait,        // trait
+    Use,          // use (for traits in class)
+    Insteadof,    // insteadof
 
     // Identifiers and Variables
     Variable(String),  // $name
