@@ -210,6 +210,12 @@ impl<W: Write> Interpreter<W> {
                 object,
                 modifications,
             } => self.eval_clone_with(object, modifications),
+
+            Expr::Placeholder => {
+                // Placeholder is only valid inside pipe operator argument lists
+                // If we reach here, it's an error
+                Err("Placeholder (...) can only be used in pipe operator function calls".to_string())
+            }
         }
     }
 
@@ -795,7 +801,7 @@ impl<W: Write> Interpreter<W> {
     }
 
     fn eval_binary(&mut self, left: &Expr, op: &BinaryOp, right: &Expr) -> Result<Value, String> {
-        // Short-circuit evaluation for logical operators
+        // Special handling for operators that need unevaluated right side
         match op {
             BinaryOp::And => {
                 let left_val = self.eval_expr(left)?;
@@ -819,6 +825,10 @@ impl<W: Write> Interpreter<W> {
                     return Ok(left_val);
                 }
                 return self.eval_expr(right);
+            }
+            BinaryOp::Pipe => {
+                // Pipe operator needs special handling: right side should not be evaluated as normal expression
+                return self.eval_pipe(left, right);
             }
             _ => {}
         }
@@ -894,7 +904,7 @@ impl<W: Write> Interpreter<W> {
             BinaryOp::Xor => Ok(Value::Bool(left_val.to_bool() ^ right_val.to_bool())),
 
             // Already handled above
-            BinaryOp::And | BinaryOp::Or | BinaryOp::NullCoalesce => unreachable!(),
+            BinaryOp::And | BinaryOp::Or | BinaryOp::NullCoalesce | BinaryOp::Pipe => unreachable!(),
         }
     }
 
@@ -2461,6 +2471,201 @@ impl<W: Write> Interpreter<W> {
                 "Clone with called on non-object ({})",
                 object_value.get_type()
             )),
+        }
+    }
+
+    /// Evaluate pipe operator: $value |> function(...)
+    /// The left side is evaluated and passed where the placeholder appears.
+    /// If no placeholder is specified, it's inserted as the first argument.
+    ///
+    /// Examples:
+    /// - $x |> strtoupper(...)  => strtoupper($x)
+    /// - $x |> substr(..., 0, 5) => substr($x, 0, 5)
+    /// - $x |> max(..., 10)     => max($x, 10)
+    fn eval_pipe(&mut self, left: &Expr, right: &Expr) -> Result<Value, String> {
+        // Evaluate the left side to get the value to pipe
+        let piped_value = self.eval_expr(left)?;
+
+        // The right side must be a function call
+        match right {
+            Expr::FunctionCall { name, args } => {
+                // Find placeholder position
+                let placeholder_pos = args.iter().position(|arg| matches!(&*arg.value, Expr::Placeholder));
+
+                let mut arg_values = Vec::new();
+
+                if let Some(pos) = placeholder_pos {
+                    // Placeholder found: insert piped value at that position
+                    for (i, arg) in args.iter().enumerate() {
+                        if i == pos {
+                            arg_values.push(piped_value.clone());
+                        } else {
+                            arg_values.push(self.eval_expr(&arg.value)?);
+                        }
+                    }
+                } else {
+                    // No placeholder: insert piped value as first argument
+                    arg_values.push(piped_value);
+                    for arg in args {
+                        arg_values.push(self.eval_expr(&arg.value)?);
+                    }
+                }
+
+                // Call the function with the modified argument list
+                self.call_function_with_values(name, &arg_values)
+            }
+
+            Expr::MethodCall { object, method, args } => {
+                let object_value = self.eval_expr(object)?;
+
+                // Evaluate arguments with piped value as first
+                let mut arg_values = vec![piped_value];
+                for arg in args {
+                    arg_values.push(self.eval_expr(&arg.value)?);
+                }
+
+                match object_value {
+                    Value::Object(mut instance) => {
+                        let method_lower = method.to_lowercase();
+
+                        // Look up the method in the class definition
+                        if let Some(class_def) = self.classes.get(&instance.class_name.to_lowercase()).cloned() {
+                            if let Some(method_func) = class_def.methods.get(&method_lower) {
+                                // Set current object context
+                                let saved_object = self.current_object.clone();
+                                let saved_class = self.current_class.clone();
+                                self.current_object = Some(instance.clone());
+                                self.current_class = Some(class_def.name.clone());
+
+                                // Call the method
+                                let result = self.call_user_function(method_func, &arg_values);
+
+                                // Update instance if properties were modified
+                                if let Some(updated) = self.current_object.take() {
+                                    instance = updated;
+                                }
+
+                                // Restore context
+                                self.current_object = saved_object;
+                                self.current_class = saved_class;
+
+                                return result;
+                            }
+
+                            return Err(format!(
+                                "Method '{}' not found on class '{}'",
+                                method, class_def.name
+                            ));
+                        }
+
+                        Err(format!("Class '{}' not found", instance.class_name))
+                    }
+                    _ => Err(format!(
+                        "Attempting to call method on non-object ({})",
+                        object_value.get_type()
+                    )),
+                }
+            }
+
+            _ => Err(format!(
+                "Pipe operator right-hand side must be a function call or method call, got {:?}",
+                right
+            )),
+        }
+    }
+
+    /// Helper to call a function with pre-evaluated argument values
+    fn call_function_with_values(&mut self, name: &str, arg_values: &[Value]) -> Result<Value, String> {
+        // Check for built-in functions first (case-insensitive)
+        let lower_name = name.to_lowercase();
+        match lower_name.as_str() {
+            // String functions
+            "strlen" => builtins::string::strlen(arg_values),
+            "substr" => builtins::string::substr(arg_values),
+            "strtoupper" => builtins::string::strtoupper(arg_values),
+            "strtolower" => builtins::string::strtolower(arg_values),
+            "trim" => builtins::string::trim(arg_values),
+            "ltrim" => builtins::string::ltrim(arg_values),
+            "rtrim" => builtins::string::rtrim(arg_values),
+            "str_repeat" => builtins::string::str_repeat(arg_values),
+            "str_replace" => builtins::string::str_replace(arg_values),
+            "strpos" => builtins::string::strpos(arg_values),
+            "str_contains" => builtins::string::str_contains(arg_values),
+            "str_starts_with" => builtins::string::str_starts_with(arg_values),
+            "str_ends_with" => builtins::string::str_ends_with(arg_values),
+            "ucfirst" => builtins::string::ucfirst(arg_values),
+            "lcfirst" => builtins::string::lcfirst(arg_values),
+            "ucwords" => builtins::string::ucwords(arg_values),
+            "strrev" => builtins::string::strrev(arg_values),
+            "str_pad" => builtins::string::str_pad(arg_values),
+            "explode" => builtins::string::explode(arg_values),
+            "implode" | "join" => builtins::string::implode(arg_values),
+            "sprintf" => builtins::string::sprintf(arg_values),
+            "printf" => builtins::output::printf(&mut self.output, arg_values),
+            "chr" => builtins::string::chr(arg_values),
+            "ord" => builtins::string::ord(arg_values),
+
+            // Math functions
+            "abs" => builtins::math::abs(arg_values),
+            "ceil" => builtins::math::ceil(arg_values),
+            "floor" => builtins::math::floor(arg_values),
+            "round" => builtins::math::round(arg_values),
+            "max" => builtins::math::max(arg_values),
+            "min" => builtins::math::min(arg_values),
+            "pow" => builtins::math::pow(arg_values),
+            "sqrt" => builtins::math::sqrt(arg_values),
+            "rand" | "mt_rand" => builtins::math::rand(arg_values),
+
+            // Type functions
+            "intval" => builtins::types::intval(arg_values),
+            "floatval" | "doubleval" => builtins::types::floatval(arg_values),
+            "strval" => builtins::types::strval(arg_values),
+            "boolval" => builtins::types::boolval(arg_values),
+            "gettype" => builtins::types::gettype(arg_values),
+            "is_null" => builtins::types::is_null(arg_values),
+            "is_bool" => builtins::types::is_bool(arg_values),
+            "is_int" | "is_integer" | "is_long" => builtins::types::is_int(arg_values),
+            "is_float" | "is_double" | "is_real" => builtins::types::is_float(arg_values),
+            "is_string" => builtins::types::is_string(arg_values),
+            "is_array" => builtins::types::is_array(arg_values),
+            "is_numeric" => builtins::types::is_numeric(arg_values),
+            "isset" => builtins::types::isset(arg_values),
+            "empty" => builtins::types::empty(arg_values),
+
+            // Output functions
+            "print" => builtins::output::print(&mut self.output, arg_values),
+            "var_dump" => builtins::output::var_dump(&mut self.output, arg_values),
+            "print_r" => builtins::output::print_r(&mut self.output, arg_values),
+
+            // Array functions
+            "count" | "sizeof" => builtins::array::count(arg_values),
+            "array_push" => builtins::array::array_push(arg_values),
+            "array_pop" => builtins::array::array_pop(arg_values),
+            "array_shift" => builtins::array::array_shift(arg_values),
+            "array_unshift" => builtins::array::array_unshift(arg_values),
+            "array_keys" => builtins::array::array_keys(arg_values),
+            "array_values" => builtins::array::array_values(arg_values),
+            "in_array" => builtins::array::in_array(arg_values),
+            "array_search" => builtins::array::array_search(arg_values),
+            "array_reverse" => builtins::array::array_reverse(arg_values),
+            "array_merge" => builtins::array::array_merge(arg_values),
+            "array_key_exists" => builtins::array::array_key_exists(arg_values),
+            "range" => builtins::array::range(arg_values),
+
+            _ => {
+                // Check for user-defined functions (case-insensitive)
+                let func = self
+                    .functions
+                    .iter()
+                    .find(|(k, _)| k.to_lowercase() == lower_name)
+                    .map(|(_, v)| v.clone());
+
+                if let Some(func) = func {
+                    self.call_user_function(&func, arg_values)
+                } else {
+                    Err(format!("Undefined function: {}", name))
+                }
+            }
         }
     }
 }
