@@ -17,7 +17,7 @@ VHP is being developed incrementally, with each phase adding new capabilities wh
 | **3. Functions** | ✅ Complete | Declarations, calls, returns, parameters, 50+ built-ins |
 | **4. Arrays** | ✅ Complete | Literals, access, modification, `foreach`, 13 array functions |
 | **5. Classes & Objects** | ✅ Complete | Classes, properties, methods, constructors, `$this`, static calls |
-| **6. Modern PHP 8.x Features** | 🚧 In Progress | Match Expressions ✅, Named Arguments, Enums, Fibers, Pipe Operator |
+| **6. Modern PHP 8.x Features** | 🚧 In Progress | Match Expressions ✅, Named Arguments ✅, Attributes ✅, Enums, Fibers, Pipe Operator |
 
 ## Phase Details
 
@@ -94,10 +94,10 @@ This phase focuses on catching up with major features introduced in PHP 8.0 and 
 
 - ✅ **Match Expressions** (PHP 8.0) - A more powerful and safer alternative to `switch`.
 - ✅ **Named Arguments** (PHP 8.0) - Pass arguments to functions based on parameter names.
-- **Attributes** (PHP 8.0) - Structured metadata for classes, methods, and functions.
-- **Enums** (PHP 8.1) - Support for strongly-typed enumerations.
-- **Fibers** (PHP 8.1) - The foundation for lightweight, cooperative concurrency (async/await).
-- **Pipe Operator** (PHP 8.5) - A functional-style operator for chaining method calls.
+- ✅ **Attributes** (PHP 8.0) - Structured metadata syntax parsing and AST storage. Reflection API planned.
+- [ ] **Enums** (PHP 8.1) - Support for strongly-typed enumerations.
+- [ ] **Fibers** (PHP 8.1) - The foundation for lightweight, cooperative concurrency (async/await).
+- [ ] **Pipe Operator** (PHP 8.5) - A functional-style operator for chaining method calls.
 
 ## Contributing to the Roadmap
 

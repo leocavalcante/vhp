@@ -261,7 +261,7 @@ function factorial($n) {
 echo factorial(5); // 120
 ```
 
-### Built-in Functions (65+)
+### Built-in Functions (63)
 
 ```php
 <?php
@@ -276,7 +276,7 @@ echo count([1, 2, 3]);             // 3
 echo sprintf("Name: %s, Age: %d", "John", 25);
 ```
 
-#### String Functions (24)
+#### String Functions (23)
 
 `strlen`, `substr`, `strtoupper`, `strtolower`, `trim`, `ltrim`, `rtrim`, `str_repeat`, `str_replace`, `strpos`, `strrev`, `ucfirst`, `lcfirst`, `ucwords`, `str_starts_with`, `str_ends_with`, `str_contains`, `str_pad`, `explode`, `implode`/`join`, `sprintf`, `chr`, `ord`
 
@@ -956,4 +956,135 @@ $w = new Welcome();
 $w->greet();      // Hello
 $w->sayHello();   // Hello
 ```
+
+## Attributes (PHP 8.0)
+
+Attributes provide a way to add structured metadata to declarations. VHP currently supports parsing attribute syntax and storing them in the AST.
+
+### Basic Attribute Syntax
+
+```php
+<?php
+#[Route("/api/users")]
+class UserController {
+    public function index() {
+        echo "Users list";
+    }
+}
+
+$controller = new UserController();
+$controller->index();  // Users list
+```
+
+### Attributes with Arguments
+
+Attributes can accept both positional and named arguments:
+
+```php
+<?php
+// Positional arguments
+#[Route("/posts", "GET")]
+class PostController {
+    public function list() {
+        echo "Posts";
+    }
+}
+
+// Named arguments
+#[Route(path: "/users", method: "POST")]
+class UserController {
+    public function create() {
+        echo "Create user";
+    }
+}
+
+// Mixed arguments
+#[Cache(3600, driver: "redis")]
+class DataService {
+    public function fetch() {
+        echo "Fetching data";
+    }
+}
+```
+
+### Multiple Attributes
+
+Classes, methods, properties, and functions can have multiple attributes:
+
+```php
+<?php
+// Multiple attributes on separate lines
+#[Deprecated]
+#[Replaced(by: "UserServiceV2")]
+interface UserService {
+    function getUsers();
+}
+
+// Multiple attributes in single brackets
+#[Route("/admin"), Authenticated, RateLimit(100)]
+class AdminController {
+    public function dashboard() {
+        echo "Admin dashboard";
+    }
+}
+```
+
+### Attributes on Different Declarations
+
+Attributes can be applied to various language constructs:
+
+```php
+<?php
+// On classes
+#[Entity(table: "users")]
+class User {}
+
+// On interfaces
+#[Deprecated]
+interface OldInterface {}
+
+// On traits
+#[Internal]
+trait HelperMethods {}
+
+// On methods
+class Controller {
+    #[Route("/profile")]
+    public function profile() {
+        echo "Profile";
+    }
+}
+
+// On properties
+class Model {
+    #[Column(type: "string", length: 255)]
+    public $name;
+}
+
+// On functions
+#[Pure]
+function calculate($x) {
+    return $x * 2;
+}
+
+// On parameters (including constructor promotion)
+class Point {
+    public function __construct(
+        #[Positive] public $x,
+        #[Positive] public $y
+    ) {}
+}
+```
+
+### Current Implementation Status
+
+VHP currently supports:
+- ✅ Parsing attribute syntax
+- ✅ Storing attributes in the AST
+- ✅ All attribute argument forms (positional, named, mixed)
+- ✅ Attributes on all declarations (classes, methods, properties, functions, parameters, etc.)
+- ⏳ Attribute reflection API (planned)
+
+The attribute reflection API (for retrieving attributes at runtime) is planned for future implementation.
+
 

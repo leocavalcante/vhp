@@ -45,26 +45,30 @@ src/
     ├── value.rs         # Value type and coercion
     └── builtins/        # Built-in function modules
         ├── mod.rs       # Module exports
-        ├── string.rs    # String functions (24)
+        ├── string.rs    # String functions (23)
         ├── math.rs      # Math functions (9)
-        ├── types.rs     # Type functions (13)
+        ├── array.rs     # Array functions (13)
+        ├── types.rs     # Type functions (14)
         └── output.rs    # Output functions (4)
 
-tests/                   # 178 tests organized by feature
+tests/                   # 254 tests organized by feature
 ├── arrays/              # Array tests (18)
+├── attributes/          # Attribute syntax tests (15)
 ├── builtins/            # Built-in function tests (21)
 ├── classes/             # Class and object tests (12)
 ├── comments/            # Comment syntax tests (4)
 ├── control_flow/        # Control flow tests (25)
 ├── echo/                # Echo statement tests (6)
 ├── errors/              # Error handling tests (3)
-├── expressions/         # Expression evaluation tests (6)
-├── functions/           # User-defined function tests (10)
+├── expressions/         # Expression evaluation tests (17)
+├── functions/           # User-defined function tests (18)
 ├── html/                # HTML passthrough tests (3)
+├── interfaces/          # Interface tests (7)
 ├── numbers/             # Numeric literal tests (5)
 ├── operators/           # Operator tests (23)
 ├── strings/             # String literal tests (6)
 ├── tags/                # PHP tag tests (3)
+├── traits/              # Trait tests (9)
 └── variables/           # Variable tests (5)
 ```
 

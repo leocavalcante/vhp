@@ -69,7 +69,8 @@ cargo build --release
 - ✅ Readonly classes (PHP 8.2)
 - ✅ Match expressions (PHP 8.0)
 - ✅ Named arguments (PHP 8.0)
-- ✅ 65+ built-in functions (string, math, array, type, output)
+- ✅ Attributes syntax (PHP 8.0)
+- ✅ 63 built-in functions (string, math, array, type, output)
 - ✅ PHP-compatible type coercion
 - ✅ Mixed HTML/PHP support
 
