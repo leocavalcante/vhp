@@ -57,7 +57,7 @@ src/
         ├── mod.rs       # Module exports
         ├── string.rs    # String functions (23)
         ├── math.rs      # Math functions (9)
-        ├── array.rs     # Array functions (13)
+        ├── array.rs     # Array functions (15)
         ├── types.rs     # Type checking/conversion functions (14)
         ├── output.rs    # Output functions (4)
         └── reflection.rs # Reflection functions (8)
@@ -160,10 +160,10 @@ Source Code → Lexer → Tokens → Parser → AST → Interpreter → Output
 - [x] Case-insensitive function names (PHP-compatible)
 - [x] Local scope (function variables don't leak to global)
 
-### Built-in Functions (71)
+### Built-in Functions (73)
 - [x] **String** (23): `strlen`, `substr`, `strtoupper`, `strtolower`, `trim`, `ltrim`, `rtrim`, `str_repeat`, `str_replace`, `strpos`, `strrev`, `ucfirst`, `lcfirst`, `ucwords`, `str_starts_with`, `str_ends_with`, `str_contains`, `str_pad`, `explode`, `implode`/`join`, `sprintf`, `chr`, `ord`
 - [x] **Math** (9): `abs`, `ceil`, `floor`, `round`, `max`, `min`, `pow`, `sqrt`, `rand`/`mt_rand`
-- [x] **Array** (13): `count`/`sizeof`, `array_push`, `array_pop`, `array_shift`, `array_unshift`, `array_keys`, `array_values`, `in_array`, `array_search`, `array_reverse`, `array_merge`, `array_key_exists`, `range`
+- [x] **Array** (15): `count`/`sizeof`, `array_push`, `array_pop`, `array_shift`, `array_unshift`, `array_keys`, `array_values`, `in_array`, `array_search`, `array_reverse`, `array_merge`, `array_key_exists`, `range`, `array_first`, `array_last`
 - [x] **Type** (14): `intval`, `floatval`/`doubleval`, `strval`, `boolval`, `gettype`, `is_null`, `is_bool`, `is_int`/`is_integer`/`is_long`, `is_float`/`is_double`/`is_real`, `is_string`, `is_array`, `is_numeric`, `isset`, `empty`
 - [x] **Output** (4): `print`, `var_dump`, `print_r`, `printf`
 - [x] **Reflection** (8): `get_class_attributes`, `get_method_attributes`, `get_property_attributes`, `get_function_attributes`, `get_parameter_attributes`, `get_method_parameter_attributes`, `get_interface_attributes`, `get_trait_attributes`
@@ -516,7 +516,7 @@ Essential PHP features for compatibility with standard PHP code.
 - [ ] #[\NoDiscard] attribute
 - [ ] Closures in constant expressions
 - [ ] First-class callables in constants
-- [ ] array_first() / array_last()
+- [x] array_first() / array_last()
 - [ ] #[\DelayedTargetValidation]
 - [ ] Final property promotion
 - [ ] Attributes on constants

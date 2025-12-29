@@ -74,7 +74,7 @@ cargo build --release
 - ✅ Enums - pure and backed (PHP 8.1)
 - ✅ Pipe operator for functional-style chaining (PHP 8.5)
 - ✅ Fibers for lightweight cooperative concurrency (PHP 8.1)
-- ✅ 71 built-in functions (string, math, array, type, output, reflection)
+- ✅ 73 built-in functions (string, math, array, type, output, reflection)
 - ✅ PHP-compatible type coercion
 - ✅ Mixed HTML/PHP support
 

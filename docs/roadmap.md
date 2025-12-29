@@ -15,11 +15,11 @@ VHP is being developed incrementally, with each phase adding new capabilities wh
 | **1. Variables & Operators** | ✅ Complete | Variables, assignment, arithmetic, comparison, logical, ternary, null coalescing |
 | **2. Control Flow** | ✅ Complete | `if`/`else`, `while`, `for`, `do-while`, `switch`, `break`/`continue` |
 | **3. Functions** | ✅ Complete | Declarations, calls, returns, parameters, 50+ built-ins |
-| **4. Arrays** | ✅ Complete | Literals, access, modification, `foreach`, 13 array functions |
+| **4. Arrays** | ✅ Complete | Literals, access, modification, `foreach`, 15 array functions |
 | **5. Classes & Objects** | ✅ Complete | Classes, properties, methods, constructors, inheritance, interfaces, traits, readonly, cloning |
 | **6. Modern PHP 8.x Features** | ✅ Complete | Match Expressions ✅, Named Arguments ✅, Attributes ✅, Enums ✅, Pipe Operator ✅, Fibers ✅ |
 | **7. PHP Core Language** | 📋 Planned | Exceptions, Type System, Namespaces, Generators, Abstract/Final, Magic Methods |
-| **8. PHP 8.5 Features** | 📋 Planned | URI Extension, Clone with syntax, #[\NoDiscard], array_first/last, Closures in constants |
+| **8. PHP 8.5 Features** | 🔄 In Progress | URI Extension, Clone with syntax, #[\NoDiscard], array_first/last ✅, Closures in constants |
 | **9. Standard Library** | 📋 Planned | PCRE regex, sorting, array_map/filter/reduce, JSON, DateTime, file system functions |
 
 ## Phase Details
@@ -201,7 +201,7 @@ Features from the latest PHP release that VHP should support to be a true PHP 8.
 - [ ] **#[\NoDiscard] attribute** (PHP 8.5) - Warn when return values are ignored
 - [ ] **Closures in constant expressions** (PHP 8.5) - Static closures in attributes and defaults
 - [ ] **First-class callables in constants** (PHP 8.5) - `strlen(...)` in constant expressions
-- [ ] **array_first() / array_last()** (PHP 8.5) - Get first/last element of array
+- [x] **array_first() / array_last()** (PHP 8.5) - Get first/last element of array
 - [ ] **#[\DelayedTargetValidation]** (PHP 8.5) - Delay attribute target validation
 - [ ] **Final property promotion** (PHP 8.5) - `final` in constructor property promotion
 - [ ] **Attributes on constants** (PHP 8.5) - Apply attributes to constants

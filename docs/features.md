@@ -213,6 +213,24 @@ foreach ($prices as $fruit => $price) {
 }
 ```
 
+### Array First/Last (PHP 8.5)
+
+```php
+<?php
+$arr = [10, 20, 30, 40];
+
+echo array_first($arr);  // 10
+echo array_last($arr);   // 40
+
+// Works with associative arrays
+$assoc = ['a' => 1, 'b' => 2, 'c' => 3];
+echo array_first($assoc);  // 1
+echo array_last($assoc);   // 3
+
+// Empty array returns null
+var_dump(array_first([]));  // NULL
+```
+
 ## PHP-Compatible Type Coercion
 
 ```php
@@ -284,9 +302,9 @@ echo sprintf("Name: %s, Age: %d", "John", 25);
 
 `abs`, `ceil`, `floor`, `round`, `max`, `min`, `pow`, `sqrt`, `rand`/`mt_rand`
 
-#### Array Functions (13)
+#### Array Functions (15)
 
-`count`/`sizeof`, `array_push`, `array_pop`, `array_shift`, `array_unshift`, `array_keys`, `array_values`, `in_array`, `array_search`, `array_reverse`, `array_merge`, `array_key_exists`, `range`
+`count`/`sizeof`, `array_push`, `array_pop`, `array_shift`, `array_unshift`, `array_keys`, `array_values`, `in_array`, `array_search`, `array_reverse`, `array_merge`, `array_key_exists`, `range`, `array_first`, `array_last`
 
 #### Type Functions (14)
 
