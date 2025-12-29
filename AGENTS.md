@@ -59,11 +59,12 @@ src/
         ├── math.rs      # Math functions (9)
         ├── array.rs     # Array functions (13)
         ├── types.rs     # Type checking/conversion functions (14)
-        └── output.rs    # Output functions (4)
+        ├── output.rs    # Output functions (4)
+        └── reflection.rs # Reflection functions (8)
 
-tests/                   # Test suite organized by feature (254 tests)
+tests/                   # Test suite organized by feature (268 tests)
 ├── arrays/              # Array tests (18)
-├── attributes/          # Attribute syntax tests (15)
+├── attributes/          # Attribute syntax and reflection tests (29)
 ├── builtins/            # Built-in function tests (21)
 ├── classes/             # Class and object tests (12)
 ├── comments/            # Comment syntax tests (4)
@@ -157,12 +158,13 @@ Source Code → Lexer → Tokens → Parser → AST → Interpreter → Output
 - [x] Case-insensitive function names (PHP-compatible)
 - [x] Local scope (function variables don't leak to global)
 
-### Built-in Functions (63)
+### Built-in Functions (71)
 - [x] **String** (23): `strlen`, `substr`, `strtoupper`, `strtolower`, `trim`, `ltrim`, `rtrim`, `str_repeat`, `str_replace`, `strpos`, `strrev`, `ucfirst`, `lcfirst`, `ucwords`, `str_starts_with`, `str_ends_with`, `str_contains`, `str_pad`, `explode`, `implode`/`join`, `sprintf`, `chr`, `ord`
 - [x] **Math** (9): `abs`, `ceil`, `floor`, `round`, `max`, `min`, `pow`, `sqrt`, `rand`/`mt_rand`
 - [x] **Array** (13): `count`/`sizeof`, `array_push`, `array_pop`, `array_shift`, `array_unshift`, `array_keys`, `array_values`, `in_array`, `array_search`, `array_reverse`, `array_merge`, `array_key_exists`, `range`
 - [x] **Type** (14): `intval`, `floatval`/`doubleval`, `strval`, `boolval`, `gettype`, `is_null`, `is_bool`, `is_int`/`is_integer`/`is_long`, `is_float`/`is_double`/`is_real`, `is_string`, `is_array`, `is_numeric`, `isset`, `empty`
 - [x] **Output** (4): `print`, `var_dump`, `print_r`, `printf`
+- [x] **Reflection** (8): `get_class_attributes`, `get_method_attributes`, `get_property_attributes`, `get_function_attributes`, `get_parameter_attributes`, `get_method_parameter_attributes`, `get_interface_attributes`, `get_trait_attributes`
 
 ### Type Coercion (PHP-compatible)
 - [x] Loose equality (`==`) with type coercion
@@ -213,7 +215,7 @@ Source Code → Lexer → Tokens → Parser → AST → Interpreter → Output
 - [x] Attributes on parameters (including constructor promotion)
 - [x] Attributes on interface methods and constants
 - [x] Attributes parsing and storage in AST
-- [ ] Attribute reflection API (retrieving attributes at runtime)
+- [x] Attribute reflection API (retrieving attributes at runtime)
 
 ## Adding New Features
 
@@ -413,8 +415,7 @@ partial error message to match
 ### Phase 6: Modern PHP 8.x Features (In Progress)
 - [x] Match Expressions (PHP 8.0)
 - [x] Named Arguments (PHP 8.0)
-- [x] Attributes (PHP 8.0) - Syntax parsing and AST storage
-- [ ] Attribute Reflection API (PHP 8.0) - Runtime attribute retrieval
+- [x] Attributes (PHP 8.0) - Full support including reflection API
 - [ ] Enums (PHP 8.1)
 - [ ] Fibers (PHP 8.1)
 - [ ] Pipe Operator (PHP 8.5)

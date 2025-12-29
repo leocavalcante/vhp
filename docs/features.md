@@ -261,7 +261,7 @@ function factorial($n) {
 echo factorial(5); // 120
 ```
 
-### Built-in Functions (63)
+### Built-in Functions (71)
 
 ```php
 <?php
@@ -295,6 +295,10 @@ echo sprintf("Name: %s, Age: %d", "John", 25);
 #### Output Functions (4)
 
 `print`, `var_dump`, `print_r`, `printf`
+
+#### Reflection Functions (8)
+
+`get_class_attributes`, `get_method_attributes`, `get_property_attributes`, `get_function_attributes`, `get_parameter_attributes`, `get_method_parameter_attributes`, `get_interface_attributes`, `get_trait_attributes`
 
 ## Classes & Objects
 
@@ -1076,15 +1080,66 @@ class Point {
 }
 ```
 
+### Runtime Attribute Reflection
+
+VHP provides built-in functions to retrieve attributes at runtime:
+
+```php
+<?php
+#[Route("/api/users")]
+class UserController {
+    #[ValidateRequest]
+    public function create(#[FromBody] $data) {}
+}
+
+// Get class attributes
+$class_attrs = get_class_attributes("UserController");
+// Returns: [["name" => "Route", "arguments" => [["name" => null, "value" => "/api/users"]]]]
+
+// Get method attributes
+$method_attrs = get_method_attributes("UserController", "create");
+
+// Get parameter attributes
+$param_attrs = get_method_parameter_attributes("UserController", "create", "data");
+```
+
+**Available Reflection Functions:**
+
+| Function | Description |
+|----------|-------------|
+| `get_class_attributes($class)` | Get all attributes for a class |
+| `get_method_attributes($class, $method)` | Get all attributes for a method |
+| `get_property_attributes($class, $property)` | Get all attributes for a property |
+| `get_function_attributes($function)` | Get all attributes for a function |
+| `get_parameter_attributes($function, $param)` | Get all attributes for a function parameter |
+| `get_method_parameter_attributes($class, $method, $param)` | Get all attributes for a method parameter |
+| `get_interface_attributes($interface)` | Get all attributes for an interface |
+| `get_trait_attributes($trait)` | Get all attributes for a trait |
+
+**Return Format:**
+
+Each function returns an array of attributes. Each attribute is an associative array:
+
+```php
+<?php
+[
+    "name" => "AttributeName",
+    "arguments" => [
+        [
+            "name" => "param_name",  // null for positional args
+            "value" => "param_value"
+        ]
+    ]
+]
+```
+
 ### Current Implementation Status
 
-VHP currently supports:
+VHP fully supports:
 - ✅ Parsing attribute syntax
 - ✅ Storing attributes in the AST
 - ✅ All attribute argument forms (positional, named, mixed)
 - ✅ Attributes on all declarations (classes, methods, properties, functions, parameters, etc.)
-- ⏳ Attribute reflection API (planned)
-
-The attribute reflection API (for retrieving attributes at runtime) is planned for future implementation.
+- ✅ Attribute reflection API for runtime retrieval
 
 
