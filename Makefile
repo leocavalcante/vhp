@@ -1,4 +1,4 @@
-.PHONY: build lint test clean release
+.PHONY: build lint test clean release docs-serve
 
 # Default target
 all: build
@@ -26,3 +26,7 @@ test-verbose: release
 # Clean build artifacts
 clean:
 	cargo clean
+
+# Serve documentation locally
+docs-serve:
+	cd docs && jekyll serve --livereload
