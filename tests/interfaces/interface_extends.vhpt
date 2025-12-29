@@ -1,0 +1,30 @@
+--TEST--
+Interface extending another interface
+--FILE--
+<?php
+
+interface Base {
+    function base();
+}
+
+interface Extended extends Base {
+    function extended();
+}
+
+class Implementation implements Extended {
+    public function base() {
+        echo "base";
+    }
+
+    public function extended() {
+        echo "extended";
+    }
+}
+
+$obj = new Implementation();
+$obj->base();
+echo ",";
+$obj->extended();
+
+--EXPECT--
+base,extended

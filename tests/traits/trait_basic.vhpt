@@ -1,0 +1,20 @@
+--TEST--
+Basic trait declaration and usage
+--FILE--
+<?php
+
+trait Loggable {
+    public function log() {
+        echo "logging";
+    }
+}
+
+class Service {
+    use Loggable;
+}
+
+$svc = new Service();
+$svc->log();
+
+--EXPECT--
+logging

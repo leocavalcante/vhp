@@ -1,0 +1,26 @@
+--TEST--
+Trait conflict resolution with insteadof
+--FILE--
+<?php
+
+trait HelloWorld {
+    public function sayHello() {
+        echo "Hello";
+    }
+}
+
+trait HelloUniverse {
+    public function sayHello() {
+        echo "Universe";
+    }
+}
+
+class Greeter {
+    use HelloWorld, HelloUniverse;
+}
+
+$g = new Greeter();
+$g->sayHello();
+
+--EXPECT_ERROR--
+conflict

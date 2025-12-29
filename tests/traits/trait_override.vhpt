@@ -1,0 +1,24 @@
+--TEST--
+Class method overrides trait method
+--FILE--
+<?php
+
+trait Logger {
+    public function log() {
+        echo "trait";
+    }
+}
+
+class MyClass {
+    use Logger;
+
+    public function log() {
+        echo "class";
+    }
+}
+
+$obj = new MyClass();
+$obj->log();
+
+--EXPECT--
+class

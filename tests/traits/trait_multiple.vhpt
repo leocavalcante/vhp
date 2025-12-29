@@ -1,0 +1,27 @@
+--TEST--
+Multiple trait usage
+--FILE--
+<?php
+
+trait TraitA {
+    public function methodA() {
+        echo "A";
+    }
+}
+
+trait TraitB {
+    public function methodB() {
+        echo "B";
+    }
+}
+
+class Multi {
+    use TraitA, TraitB;
+}
+
+$m = new Multi();
+$m->methodA();
+$m->methodB();
+
+--EXPECT--
+AB

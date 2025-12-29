@@ -1,0 +1,30 @@
+--TEST--
+Multiple interface implementation
+--FILE--
+<?php
+
+interface Readable {
+    function read();
+}
+
+interface Writable {
+    function write();
+}
+
+class File implements Readable, Writable {
+    public function read() {
+        echo "read";
+    }
+
+    public function write() {
+        echo "write";
+    }
+}
+
+$file = new File();
+$file->read();
+echo ",";
+$file->write();
+
+--EXPECT--
+read,write

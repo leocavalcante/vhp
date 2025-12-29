@@ -1,0 +1,20 @@
+--TEST--
+Basic interface declaration and implementation
+--FILE--
+<?php
+
+interface Printable {
+    function output();
+}
+
+class Document implements Printable {
+    public function output() {
+        echo "Document";
+    }
+}
+
+$doc = new Document();
+$doc->output();
+
+--EXPECT--
+Document

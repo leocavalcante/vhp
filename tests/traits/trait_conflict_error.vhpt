@@ -1,0 +1,23 @@
+--TEST--
+Error: unresolved trait conflict
+--FILE--
+<?php
+
+trait T1 {
+    public function method() {
+        echo "T1";
+    }
+}
+
+trait T2 {
+    public function method() {
+        echo "T2";
+    }
+}
+
+class BadClass {
+    use T1, T2;
+}
+
+--EXPECT_ERROR--
+conflict

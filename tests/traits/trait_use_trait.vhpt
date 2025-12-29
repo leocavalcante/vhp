@@ -1,0 +1,30 @@
+--TEST--
+Trait using another trait
+--FILE--
+<?php
+
+trait Base {
+    public function base() {
+        echo "base";
+    }
+}
+
+trait Extended {
+    use Base;
+
+    public function extended() {
+        echo "extended";
+    }
+}
+
+class MyClass {
+    use Extended;
+}
+
+$obj = new MyClass();
+$obj->base();
+echo ",";
+$obj->extended();
+
+--EXPECT--
+base,extended

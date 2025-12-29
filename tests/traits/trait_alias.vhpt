@@ -1,0 +1,20 @@
+--TEST--
+Trait method aliasing with as
+--FILE--
+<?php
+
+trait HelloWorld {
+    public function sayHello() {
+        echo "Hello";
+    }
+}
+
+class Greeter {
+    use HelloWorld;
+}
+
+$g = new Greeter();
+$g->sayHello();
+
+--EXPECT--
+Hello

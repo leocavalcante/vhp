@@ -1,0 +1,24 @@
+--TEST--
+Trait method with different name
+--FILE--
+<?php
+
+trait Utility {
+    public function help() {
+        echo "help";
+    }
+}
+
+class Tool {
+    use Utility;
+
+    public function operate() {
+        echo "operate";
+    }
+}
+
+$t = new Tool();
+$t->operate();
+
+--EXPECT--
+operate

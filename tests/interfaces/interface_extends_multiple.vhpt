@@ -1,0 +1,40 @@
+--TEST--
+Interface extending multiple interfaces
+--FILE--
+<?php
+
+interface ReadableI {
+    function read();
+}
+
+interface WritableI {
+    function write();
+}
+
+interface ReadWritable extends ReadableI, WritableI {
+    function close();
+}
+
+class FileRW implements ReadWritable {
+    public function read() {
+        echo "read";
+    }
+
+    public function write() {
+        echo "write";
+    }
+
+    public function close() {
+        echo "close";
+    }
+}
+
+$f = new FileRW();
+$f->read();
+echo ",";
+$f->write();
+echo ",";
+$f->close();
+
+--EXPECT--
+read,write,close

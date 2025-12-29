@@ -1,0 +1,20 @@
+--TEST--
+Interface with method parameters
+--FILE--
+<?php
+
+interface Configurable {
+    function configure($mode);
+}
+
+class Service implements Configurable {
+    public function configure($mode) {
+        echo "mode:" . $mode;
+    }
+}
+
+$svc = new Service();
+$svc->configure("debug");
+
+--EXPECT--
+mode:debug

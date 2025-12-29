@@ -1,0 +1,27 @@
+--TEST--
+Trait with properties
+--FILE--
+<?php
+
+trait TimeStamped {
+    public $timestamp;
+
+    public function setTimestamp($t) {
+        $this->timestamp = $t;
+    }
+
+    public function getTimestamp() {
+        echo $this->timestamp;
+    }
+}
+
+class Event {
+    use TimeStamped;
+}
+
+$event = new Event();
+$event->setTimestamp(42);
+$event->getTimestamp();
+
+--EXPECT--
+42

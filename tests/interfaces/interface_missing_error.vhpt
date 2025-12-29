@@ -1,0 +1,13 @@
+--TEST--
+Error: interface does not exist
+--FILE--
+<?php
+
+class Data implements NonexistentInterface {
+    public function process() {
+        echo "process";
+    }
+}
+
+--EXPECT_ERROR--
+not found

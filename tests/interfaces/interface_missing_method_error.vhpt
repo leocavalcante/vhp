@@ -1,0 +1,18 @@
+--TEST--
+Error: class missing interface method
+--FILE--
+<?php
+
+interface Drawable {
+    function draw();
+    function render();
+}
+
+class Picture implements Drawable {
+    public function draw() {
+        echo "draw";
+    }
+}
+
+--EXPECT_ERROR--
+does not implement method
