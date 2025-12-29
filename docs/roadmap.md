@@ -86,7 +86,8 @@ VHP is being developed incrementally, with each phase adding new capabilities wh
 - ✅ **Constructor Property Promotion** (PHP 8.0) - Shorthand syntax for declaring and initializing properties in constructor.
 - ✅ **Readonly Properties** (PHP 8.1) - Properties that can only be initialized once.
 - ✅ **Readonly Classes** (PHP 8.2) - Classes where all properties are implicitly readonly.
-- "Clone with" functionality (PHP 8.5)
+- ✅ **Object Cloning** (PHP 5.0) - `clone` operator for creating object copies.
+- ✅ **Clone With** (PHP 8.4) - `clone with` syntax for modifying properties during clone.
 
 ### Phase 6: Modern PHP 8.x Features 🚧
 

@@ -67,6 +67,7 @@ cargo build --release
 - ✅ Constructor Property Promotion (PHP 8.0)
 - ✅ Readonly properties (PHP 8.1)
 - ✅ Readonly classes (PHP 8.2)
+- ✅ Object cloning (`clone` operator and `clone with` syntax)
 - ✅ Match expressions (PHP 8.0)
 - ✅ Named arguments (PHP 8.0)
 - ✅ Attributes with reflection API (PHP 8.0)

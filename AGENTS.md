@@ -62,11 +62,11 @@ src/
         ├── output.rs    # Output functions (4)
         └── reflection.rs # Reflection functions (8)
 
-tests/                   # Test suite organized by feature (284 tests)
+tests/                   # Test suite organized by feature (296 tests)
 ├── arrays/              # Array tests (18)
 ├── attributes/          # Attribute syntax and reflection tests (29)
 ├── builtins/            # Built-in function tests (21)
-├── classes/             # Class and object tests (12)
+├── classes/             # Class and object tests (24)
 ├── comments/            # Comment syntax tests (4)
 ├── control_flow/        # Control flow tests (25)
 ├── echo/                # Echo statement tests (6)
@@ -197,6 +197,8 @@ Source Code → Lexer → Tokens → Parser → AST → Interpreter → Output
 - [x] Constructor Property Promotion (PHP 8.0)
 - [x] Readonly Properties (PHP 8.1)
 - [x] Readonly Classes (PHP 8.2)
+- [x] Object cloning with `clone` keyword (PHP 5.0)
+- [x] Clone with property modification syntax (PHP 8.4)
 
 ### Match Expressions (PHP 8.0)
 - [x] Basic match syntax: `match($expr) { value => result }`
@@ -418,9 +420,10 @@ partial error message to match
 - [x] Trait conflict resolution (`insteadof`, `as`)
 - [x] Traits using other traits
 
-**Remaining for Phase 5 (future):**
+**Remaining for Phase 5:**
 - [x] Readonly Classes (PHP 8.2)
-- [ ] "Clone with" functionality (PHP 8.5)
+- [x] Object cloning with `clone` keyword (PHP 5.0)
+- [x] Clone with property modification syntax (PHP 8.4)
 
 ### Phase 6: Modern PHP 8.x Features (In Progress)
 - [x] Match Expressions (PHP 8.0)

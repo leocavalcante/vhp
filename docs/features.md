@@ -776,6 +776,157 @@ $user->name = "Jane";  // Error: Cannot modify readonly property
 - More concise for immutable classes
 - All visibility modifiers work (public, protected, private)
 
+## Object Cloning
+
+### Basic Clone (PHP 5.0+)
+
+The `clone` operator creates a shallow copy of an object. All property values are copied to the new object, but nested objects are copied by reference.
+
+**Syntax:**
+
+```php
+<?php
+$cloned = clone $original;
+```
+
+**Example:**
+
+```php
+<?php
+class Point {
+    public function __construct(
+        public float $x,
+        public float $y
+    ) {}
+}
+
+$p1 = new Point(1.0, 2.0);
+$p2 = clone $p1;
+
+echo $p1->x;  // 1.0
+echo $p2->x;  // 1.0
+
+$p2->x = 3.0;
+echo $p1->x;  // 1.0 (original unchanged)
+echo $p2->x;  // 3.0
+```
+
+**Notes:**
+- Creates a shallow copy (nested objects are shared by reference)
+- Original object remains unchanged when modifying cloned object's properties
+- Works with all classes and objects
+
+### Clone With (PHP 8.4+)
+
+The `clone with` syntax creates a copy while modifying specific properties in a single expression. This is especially useful for immutable objects with readonly properties.
+
+**Syntax:**
+
+```php
+<?php
+$cloned = clone $original with {
+    property1: value1,
+    property2: value2,
+};
+```
+
+**Example:**
+
+```php
+<?php
+readonly class ImmutablePoint {
+    public function __construct(
+        public float $x,
+        public float $y
+    ) {}
+}
+
+$p1 = new ImmutablePoint(1.0, 2.0);
+$p2 = clone $p1 with { x: 3.0 };
+
+echo $p1->x;  // 1.0
+echo $p1->y;  // 2.0
+echo $p2->x;  // 3.0
+echo $p2->y;  // 2.0 (unchanged)
+```
+
+**Multiple Properties:**
+
+```php
+<?php
+$p1 = new ImmutablePoint(1.0, 2.0);
+$p2 = clone $p1 with { x: 3.0, y: 4.0 };
+
+echo $p2->x;  // 3.0
+echo $p2->y;  // 4.0
+```
+
+**With Expressions:**
+
+Property values can be any expression, including references to the original object:
+
+```php
+<?php
+$p1 = new Point(10.0, 5.0);
+$p2 = clone $p1 with {
+    x: $p1->x * 2.0,
+    y: $p1->y + 10.0
+};
+
+echo $p2->x;  // 20.0
+echo $p2->y;  // 15.0
+```
+
+**With Readonly Properties:**
+
+Clone with allows re-initialization of readonly properties in the cloned object:
+
+```php
+<?php
+class User {
+    public function __construct(
+        public readonly string $id,
+        public readonly string $email
+    ) {}
+}
+
+$user1 = new User("123", "old@example.com");
+$user2 = clone $user1 with { email: "new@example.com" };
+
+echo $user2->email;  // new@example.com
+```
+
+**Notes:**
+- At least one property modification is required
+- Modified properties must exist on the object
+- Trailing commas are allowed: `clone $obj with { x: 1, }`
+- Works seamlessly with readonly classes and properties
+- Property values are evaluated at clone time
+
+### Shallow Copy Behavior
+
+Both `clone` and `clone with` perform shallow copies. If an object contains references to other objects, those references are copied (not the objects themselves):
+
+```php
+<?php
+class Inner {
+    public function __construct(public int $value) {}
+}
+
+class Outer {
+    public function __construct(public Inner $inner) {}
+}
+
+$inner = new Inner(10);
+$o1 = new Outer($inner);
+$o2 = clone $o1;
+
+$o2->inner->value = 20;
+
+echo $o1->inner->value;  // 20 (affected by change to clone)
+echo $o2->inner->value;  // 20
+```
+
 ## Traits
 
 Traits enable code reuse in single inheritance languages by allowing methods to be shared across multiple classes.
