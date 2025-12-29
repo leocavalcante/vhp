@@ -1,0 +1,10 @@
+--TEST--
+Arrow function with complex expression
+--FILE--
+<?php
+$process = fn($a, $b) => $a > $b ? $a - $b : $b - $a;
+echo $process(3, 7) . "\n";
+echo $process(7, 3);
+--EXPECT--
+4
+4

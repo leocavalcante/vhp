@@ -89,6 +89,12 @@ pub enum Expr {
         args: Vec<Argument>,
     },
 
+    // Variable/callable function call: $func(), $obj->method() result(), etc.
+    CallableCall {
+        callable: Box<Expr>,
+        args: Vec<Argument>,
+    },
+
     // Object instantiation: new ClassName(args)
     New {
         class_name: String,

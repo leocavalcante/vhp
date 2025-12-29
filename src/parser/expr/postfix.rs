@@ -87,6 +87,21 @@ pub fn parse_postfix(parser: &mut ExprParser, mut expr: Expr) -> Result<Expr, St
                     break;
                 }
             }
+            TokenKind::LeftParen => {
+                // Variable function call: $func(), closure call, etc.
+                // Only allow for variables for now
+                if matches!(&expr, Expr::Variable(_)) {
+                    parser.advance(); // consume '('
+                    let args = parser.parse_arguments()?;
+                    parser.consume(TokenKind::RightParen, "Expected ')' after arguments")?;
+                    expr = Expr::CallableCall {
+                        callable: Box::new(expr),
+                        args,
+                    };
+                } else {
+                    break;
+                }
+            }
             _ => break,
         }
     }

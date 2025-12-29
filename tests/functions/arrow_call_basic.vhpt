@@ -1,0 +1,8 @@
+--TEST--
+Arrow function call - basic
+--FILE--
+<?php
+$double = fn($n) => $n * 2;
+echo $double(5);
+--EXPECT--
+10

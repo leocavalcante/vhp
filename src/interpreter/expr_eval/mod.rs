@@ -102,6 +102,7 @@ impl<W: Write> Interpreter<W> {
 
             // Function calls
             Expr::FunctionCall { name, args } => self.call_function(name, args),
+            Expr::CallableCall { callable, args } => self.eval_callable_call(callable, args),
 
             // Fiber expressions
             Expr::NewFiber { callback } => self.eval_new_fiber(callback),
@@ -318,5 +319,30 @@ impl<W: Write> Interpreter<W> {
         };
 
         Ok(Value::Closure(Box::new(closure)))
+    }
+
+    /// Evaluate callable call: $func(), where $func is a closure or string function name
+    fn eval_callable_call(
+        &mut self,
+        callable: &Expr,
+        args: &[crate::ast::Argument],
+    ) -> Result<Value, String> {
+        // Evaluate the callable expression
+        let callable_value = self.eval_expr(callable)?;
+
+        match callable_value {
+            Value::Closure(closure) => {
+                // Call the closure
+                self.call_closure(&closure, args)
+            }
+            Value::String(func_name) => {
+                // Variable function call: $func = "strlen"; $func("hello");
+                self.call_function(&func_name, args)
+            }
+            _ => Err(format!(
+                "Value of type {} is not callable",
+                callable_value.get_type()
+            )),
+        }
     }
 }

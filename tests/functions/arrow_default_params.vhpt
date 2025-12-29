@@ -1,0 +1,10 @@
+--TEST--
+Arrow function with default parameter
+--FILE--
+<?php
+$greet = fn($name = "World") => "Hello, " . $name;
+echo $greet() . "\n";
+echo $greet("PHP");
+--EXPECT--
+Hello, World
+Hello, PHP
