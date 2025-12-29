@@ -483,6 +483,12 @@ If adding dependencies becomes necessary, prefer:
    - `docs/roadmap.md` - Update if phases are completed or new phases added
    - `docs/index.md` - Update Quick Start or Goals if needed
 
+4. **docs/plans/** - Feature implementation plans
+   - `docs/plans/planned/` - Contains detailed implementation plans for features not yet implemented
+   - `docs/plans/implemented/` - Contains plans for features that have been completed
+   - **IMPORTANT**: After implementing a feature, move its plan from `planned/` to `implemented/`
+   - This helps track what has been completed and serves as historical reference
+
 ### When to Update Documentation
 
 - After adding new built-in functions
@@ -490,3 +496,4 @@ If adding dependencies becomes necessary, prefer:
 - After refactoring file structure
 - After adding new language features (operators, statements, etc.)
 - After adding new tests that cover new functionality
+- **After implementing a planned feature** - Move the plan file from `docs/plans/planned/` to `docs/plans/implemented/`
