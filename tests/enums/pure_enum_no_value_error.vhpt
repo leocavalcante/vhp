@@ -1,0 +1,14 @@
+--TEST--
+Pure enum cases cannot access value property
+--FILE--
+<?php
+
+enum Status {
+    case Pending;
+}
+
+$s = Status::Pending;
+echo $s->value;
+
+--EXPECT_ERROR--
+Pure enum case Status::Pending does not have a 'value' property

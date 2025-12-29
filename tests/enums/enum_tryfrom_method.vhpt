@@ -1,0 +1,20 @@
+--TEST--
+Enum tryFrom() method returns null on invalid value
+--FILE--
+<?php
+
+enum Priority: int {
+    case Low = 1;
+    case Medium = 5;
+    case High = 10;
+}
+
+$p1 = Priority::tryFrom(5);
+echo $p1->name . "\n";
+
+$p2 = Priority::tryFrom(99);
+var_dump($p2);
+
+--EXPECT--
+Medium
+NULL

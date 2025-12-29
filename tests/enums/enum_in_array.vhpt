@@ -1,0 +1,18 @@
+--TEST--
+Enum cases can be stored in arrays
+--FILE--
+<?php
+
+enum Status {
+    case Pending;
+    case Active;
+    case Archived;
+}
+
+$statuses = [Status::Pending, Status::Active];
+echo $statuses[0]->name . "\n";
+echo $statuses[1]->name;
+
+--EXPECT--
+Pending
+Active

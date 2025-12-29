@@ -1,0 +1,13 @@
+--TEST--
+Accessing undefined enum case throws error
+--FILE--
+<?php
+
+enum Status {
+    case Pending;
+}
+
+$s = Status::InvalidCase;
+
+--EXPECT_ERROR--
+Undefined case 'InvalidCase' for enum 'Status'

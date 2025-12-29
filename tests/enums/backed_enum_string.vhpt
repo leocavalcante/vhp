@@ -1,0 +1,18 @@
+--TEST--
+Backed enum with string values
+--FILE--
+<?php
+
+enum Color: string {
+    case Red = 'red';
+    case Green = 'green';
+    case Blue = 'blue';
+}
+
+$c = Color::Red;
+echo $c->name . "\n";
+echo $c->value;
+
+--EXPECT--
+Red
+red

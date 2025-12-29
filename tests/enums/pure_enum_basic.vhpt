@@ -1,0 +1,16 @@
+--TEST--
+Pure enum basic declaration and case access
+--FILE--
+<?php
+
+enum Status {
+    case Pending;
+    case Active;
+    case Archived;
+}
+
+$status = Status::Active;
+echo $status->name;
+
+--EXPECT--
+Active

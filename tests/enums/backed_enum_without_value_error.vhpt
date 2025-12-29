@@ -1,0 +1,11 @@
+--TEST--
+Backed enum must have case values
+--FILE--
+<?php
+
+enum Priority: int {
+    case Low;
+}
+
+--EXPECT_ERROR--
+Backed enum must have case values

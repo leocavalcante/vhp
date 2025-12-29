@@ -1,0 +1,27 @@
+--TEST--
+Enum cases in switch statement
+--FILE--
+<?php
+
+enum Status {
+    case Pending;
+    case Active;
+    case Archived;
+}
+
+$status = Status::Active;
+
+switch ($status->name) {
+    case "Pending":
+        echo "Waiting";
+        break;
+    case "Active":
+        echo "Running";
+        break;
+    case "Archived":
+        echo "Done";
+        break;
+}
+
+--EXPECT--
+Running

@@ -1,0 +1,20 @@
+--TEST--
+Enum case comparison with identical operator
+--FILE--
+<?php
+
+enum Status {
+    case Pending;
+    case Active;
+}
+
+$s1 = Status::Active;
+$s2 = Status::Active;
+$s3 = Status::Pending;
+
+var_dump($s1 === $s2);
+var_dump($s1 === $s3);
+
+--EXPECT--
+bool(true)
+bool(false)

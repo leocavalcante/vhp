@@ -1,0 +1,16 @@
+--TEST--
+Enum from() method retrieves case by value
+--FILE--
+<?php
+
+enum Priority: int {
+    case Low = 1;
+    case Medium = 5;
+    case High = 10;
+}
+
+$p = Priority::from(5);
+echo $p->name;
+
+--EXPECT--
+Medium

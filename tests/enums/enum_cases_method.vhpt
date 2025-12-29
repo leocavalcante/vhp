@@ -1,0 +1,22 @@
+--TEST--
+Enum cases() method returns all cases
+--FILE--
+<?php
+
+enum Status {
+    case Pending;
+    case Active;
+    case Archived;
+}
+
+$cases = Status::cases();
+echo count($cases) . "\n";
+echo $cases[0]->name . "\n";
+echo $cases[1]->name . "\n";
+echo $cases[2]->name;
+
+--EXPECT--
+3
+Pending
+Active
+Archived

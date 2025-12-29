@@ -1,0 +1,15 @@
+--TEST--
+Enum from() method throws error on invalid value
+--FILE--
+<?php
+
+enum Priority: int {
+    case Low = 1;
+    case Medium = 5;
+    case High = 10;
+}
+
+$p = Priority::from(99);
+
+--EXPECT_ERROR--
+Value '99' is not a valid backing value

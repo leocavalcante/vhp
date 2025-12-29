@@ -1,0 +1,12 @@
+--TEST--
+Backed enum cannot have duplicate values
+--FILE--
+<?php
+
+enum Priority: int {
+    case Low = 1;
+    case Medium = 1;
+}
+
+--EXPECT_ERROR--
+Duplicate case value in backed enum

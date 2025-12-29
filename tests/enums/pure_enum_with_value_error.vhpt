@@ -1,0 +1,11 @@
+--TEST--
+Pure enum cannot have case values
+--FILE--
+<?php
+
+enum Status {
+    case Pending = 1;
+}
+
+--EXPECT_ERROR--
+Pure enum cannot have case values
