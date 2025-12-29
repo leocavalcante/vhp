@@ -26,6 +26,43 @@ pub struct Method {
     pub body: Vec<Stmt>,
 }
 
+/// Interface method signature (no body)
+#[derive(Debug, Clone)]
+pub struct InterfaceMethodSignature {
+    pub name: String,
+    pub params: Vec<FunctionParam>,
+}
+
+/// Interface constant
+#[derive(Debug, Clone)]
+pub struct InterfaceConstant {
+    pub name: String,
+    pub value: Expr,
+}
+
+/// Trait usage in class
+#[derive(Debug, Clone)]
+pub struct TraitUse {
+    pub traits: Vec<String>,
+    pub resolutions: Vec<TraitResolution>,
+}
+
+/// Conflict resolution for traits
+#[derive(Debug, Clone)]
+pub enum TraitResolution {
+    InsteadOf {
+        trait_name: String,
+        method: String,
+        excluded_traits: Vec<String>,
+    },
+    Alias {
+        trait_name: Option<String>,
+        method: String,
+        alias: String,
+        visibility: Option<Visibility>,
+    },
+}
+
 /// Statements
 #[derive(Debug, Clone)]
 pub enum Stmt {
@@ -73,9 +110,23 @@ pub enum Stmt {
         body: Vec<Stmt>,
     },
     Return(Option<Expr>),
+    Interface {
+        name: String,
+        parents: Vec<String>,
+        methods: Vec<InterfaceMethodSignature>,
+        constants: Vec<InterfaceConstant>,
+    },
+    Trait {
+        name: String,
+        uses: Vec<String>,
+        properties: Vec<Property>,
+        methods: Vec<Method>,
+    },
     Class {
         name: String,
         parent: Option<String>,
+        interfaces: Vec<String>,
+        trait_uses: Vec<TraitUse>,
         properties: Vec<Property>,
         methods: Vec<Method>,
     },
