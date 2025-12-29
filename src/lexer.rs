@@ -98,7 +98,10 @@ impl Lexer {
             }
         }
 
-        Err(format!("Unterminated string starting at line {}", start_line))
+        Err(format!(
+            "Unterminated string starting at line {}",
+            start_line
+        ))
     }
 
     fn read_number(&mut self) -> TokenKind {

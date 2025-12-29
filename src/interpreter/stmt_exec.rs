@@ -9,8 +9,8 @@
 use crate::ast::{Program, Property, Stmt, SwitchCase};
 use crate::interpreter::value::Value;
 use crate::interpreter::{
-    ClassDefinition, ControlFlow, EnumDefinition, InterfaceDefinition, Interpreter, TraitDefinition,
-    UserFunction,
+    ClassDefinition, ControlFlow, EnumDefinition, InterfaceDefinition, Interpreter,
+    TraitDefinition, UserFunction,
 };
 use std::collections::HashMap;
 use std::io;
@@ -21,17 +21,13 @@ impl<W: Write> Interpreter<W> {
         match stmt {
             Stmt::Echo(exprs) => {
                 for expr in exprs {
-                    let value = self.eval_expr(expr).map_err(|e| {
-                        io::Error::other(e)
-                    })?;
+                    let value = self.eval_expr(expr).map_err(io::Error::other)?;
                     write!(self.output, "{}", value.to_output_string())?;
                 }
                 Ok(ControlFlow::None)
             }
             Stmt::Expression(expr) => {
-                self.eval_expr(expr).map_err(|e| {
-                    io::Error::other(e)
-                })?;
+                self.eval_expr(expr).map_err(io::Error::other)?;
                 Ok(ControlFlow::None)
             }
             Stmt::Html(html) => {
@@ -44,9 +40,7 @@ impl<W: Write> Interpreter<W> {
                 elseif_branches,
                 else_branch,
             } => {
-                let cond_value = self.eval_expr(condition).map_err(|e| {
-                    io::Error::other(e)
-                })?;
+                let cond_value = self.eval_expr(condition).map_err(io::Error::other)?;
 
                 if cond_value.to_bool() {
                     for stmt in then_branch {
@@ -58,9 +52,7 @@ impl<W: Write> Interpreter<W> {
                 } else {
                     let mut executed = false;
                     for (elseif_cond, elseif_body) in elseif_branches {
-                        let elseif_value = self.eval_expr(elseif_cond).map_err(|e| {
-                            io::Error::other(e)
-                        })?;
+                        let elseif_value = self.eval_expr(elseif_cond).map_err(io::Error::other)?;
                         if elseif_value.to_bool() {
                             for stmt in elseif_body {
                                 let cf = self.execute_stmt(stmt)?;
@@ -88,9 +80,7 @@ impl<W: Write> Interpreter<W> {
             }
             Stmt::While { condition, body } => {
                 loop {
-                    let cond_value = self.eval_expr(condition).map_err(|e| {
-                        io::Error::other(e)
-                    })?;
+                    let cond_value = self.eval_expr(condition).map_err(io::Error::other)?;
 
                     if !cond_value.to_bool() {
                         break;
@@ -136,9 +126,7 @@ impl<W: Write> Interpreter<W> {
                         break;
                     }
 
-                    let cond_value = self.eval_expr(condition).map_err(|e| {
-                        io::Error::other(e)
-                    })?;
+                    let cond_value = self.eval_expr(condition).map_err(io::Error::other)?;
 
                     if !cond_value.to_bool() {
                         break;
@@ -153,16 +141,12 @@ impl<W: Write> Interpreter<W> {
                 body,
             } => {
                 if let Some(init_expr) = init {
-                    self.eval_expr(init_expr).map_err(|e| {
-                        io::Error::other(e)
-                    })?;
+                    self.eval_expr(init_expr).map_err(io::Error::other)?;
                 }
 
                 loop {
                     if let Some(cond_expr) = condition {
-                        let cond_value = self.eval_expr(cond_expr).map_err(|e| {
-                            io::Error::other(e)
-                        })?;
+                        let cond_value = self.eval_expr(cond_expr).map_err(io::Error::other)?;
                         if !cond_value.to_bool() {
                             break;
                         }
@@ -195,9 +179,7 @@ impl<W: Write> Interpreter<W> {
                     }
 
                     if let Some(update_expr) = update {
-                        self.eval_expr(update_expr).map_err(|e| {
-                            io::Error::other(e)
-                        })?;
+                        self.eval_expr(update_expr).map_err(io::Error::other)?;
                     }
                 }
                 Ok(ControlFlow::None)
@@ -208,9 +190,7 @@ impl<W: Write> Interpreter<W> {
                 value,
                 body,
             } => {
-                let array_val = self.eval_expr(array).map_err(|e| {
-                    io::Error::other(e)
-                })?;
+                let array_val = self.eval_expr(array).map_err(io::Error::other)?;
 
                 match array_val {
                     Value::Array(arr) => {
@@ -247,18 +227,14 @@ impl<W: Write> Interpreter<W> {
                 cases,
                 default,
             } => {
-                let switch_value = self.eval_expr(expr).map_err(|e| {
-                    io::Error::other(e)
-                })?;
+                let switch_value = self.eval_expr(expr).map_err(io::Error::other)?;
 
                 let mut matched = false;
                 let mut fall_through = false;
 
                 for SwitchCase { value, body } in cases {
                     if !matched && !fall_through {
-                        let case_value = self.eval_expr(value).map_err(|e| {
-                            io::Error::other(e)
-                        })?;
+                        let case_value = self.eval_expr(value).map_err(io::Error::other)?;
                         if switch_value.loose_equals(&case_value) {
                             matched = true;
                         }
@@ -294,7 +270,12 @@ impl<W: Write> Interpreter<W> {
             }
             Stmt::Break => Ok(ControlFlow::Break),
             Stmt::Continue => Ok(ControlFlow::Continue),
-            Stmt::Function { name, params, body, attributes } => {
+            Stmt::Function {
+                name,
+                params,
+                body,
+                attributes,
+            } => {
                 self.functions.insert(
                     name.clone(),
                     UserFunction {
@@ -307,9 +288,7 @@ impl<W: Write> Interpreter<W> {
             }
             Stmt::Return(expr) => {
                 let value = if let Some(e) = expr {
-                    self.eval_expr(e).map_err(|e| {
-                        io::Error::other(e)
-                    })?
+                    self.eval_expr(e).map_err(io::Error::other)?
                 } else {
                     Value::Null
                 };
@@ -328,9 +307,10 @@ impl<W: Write> Interpreter<W> {
                 // Validate all implemented interfaces exist
                 for iface_name in interfaces {
                     if !self.interfaces.contains_key(&iface_name.to_lowercase()) {
-                        return Err(io::Error::other(
-                            format!("Interface '{}' not found", iface_name),
-                        ));
+                        return Err(io::Error::other(format!(
+                            "Interface '{}' not found",
+                            iface_name
+                        )));
                     }
                 }
 
@@ -354,16 +334,19 @@ impl<W: Write> Interpreter<W> {
                             visibility_map.insert(method_name.clone(), *visibility);
                         }
                     } else {
-                        return Err(io::Error::other(
-                            format!("Parent class '{}' not found", parent_name),
-                        ));
+                        return Err(io::Error::other(format!(
+                            "Parent class '{}' not found",
+                            parent_name
+                        )));
                     }
                 }
 
                 // Add properties from traits
                 for trait_use in trait_uses {
                     for trait_name in &trait_use.traits {
-                        if let Some(trait_def) = self.traits.get(&trait_name.to_lowercase()).cloned() {
+                        if let Some(trait_def) =
+                            self.traits.get(&trait_name.to_lowercase()).cloned()
+                        {
                             // Add trait properties
                             all_properties.extend(trait_def.properties.clone());
 
@@ -411,11 +394,15 @@ impl<W: Write> Interpreter<W> {
                                 });
 
                                 // Prepend assignment: $this->param_name = $param_name
-                                promoted_statements.push(Stmt::Expression(crate::ast::Expr::PropertyAssign {
-                                    object: Box::new(crate::ast::Expr::This),
-                                    property: param.name.clone(),
-                                    value: Box::new(crate::ast::Expr::Variable(param.name.clone())),
-                                }));
+                                promoted_statements.push(Stmt::Expression(
+                                    crate::ast::Expr::PropertyAssign {
+                                        object: Box::new(crate::ast::Expr::This),
+                                        property: param.name.clone(),
+                                        value: Box::new(crate::ast::Expr::Variable(
+                                            param.name.clone(),
+                                        )),
+                                    },
+                                ));
                             }
                         }
 
@@ -439,7 +426,9 @@ impl<W: Write> Interpreter<W> {
                     if let Some(iface_def) = self.interfaces.get(&iface_name.to_lowercase()) {
                         for (method_name, method_params) in &iface_def.methods {
                             let method_name_lower = method_name.to_lowercase();
-                            if let Some(UserFunction { params, .. }) = methods_map.get(&method_name_lower) {
+                            if let Some(UserFunction { params, .. }) =
+                                methods_map.get(&method_name_lower)
+                            {
                                 // Verify parameter count matches
                                 if params.len() != method_params.len() {
                                     return Err(io::Error::other(
@@ -448,10 +437,10 @@ impl<W: Write> Interpreter<W> {
                                     ));
                                 }
                             } else {
-                                return Err(io::Error::other(
-                                    format!("Class '{}' does not implement method '{}' from interface '{}'",
-                                        name, method_name, iface_name),
-                                ));
+                                return Err(io::Error::other(format!(
+                                    "Class '{}' does not implement method '{}' from interface '{}'",
+                                    name, method_name, iface_name
+                                )));
                             }
                         }
                     }
@@ -481,16 +470,19 @@ impl<W: Write> Interpreter<W> {
                 // Validate parent interfaces exist
                 for parent_name in parents {
                     if !self.interfaces.contains_key(&parent_name.to_lowercase()) {
-                        return Err(io::Error::other(
-                            format!("Parent interface '{}' not found", parent_name),
-                        ));
+                        return Err(io::Error::other(format!(
+                            "Parent interface '{}' not found",
+                            parent_name
+                        )));
                     }
                 }
 
                 // Collect all methods from parent interfaces
                 let mut all_methods = Vec::new();
                 for parent_name in parents {
-                    if let Some(parent_iface) = self.interfaces.get(&parent_name.to_lowercase()).cloned() {
+                    if let Some(parent_iface) =
+                        self.interfaces.get(&parent_name.to_lowercase()).cloned()
+                    {
                         all_methods.extend(parent_iface.methods.clone());
                     }
                 }
@@ -503,9 +495,7 @@ impl<W: Write> Interpreter<W> {
                 // Evaluate constants
                 let mut const_map = HashMap::new();
                 for constant in constants {
-                    let value = self.eval_expr(&constant.value).map_err(|e| {
-                        io::Error::other(e)
-                    })?;
+                    let value = self.eval_expr(&constant.value).map_err(io::Error::other)?;
                     const_map.insert(constant.name.clone(), value);
                 }
 
@@ -620,9 +610,7 @@ impl<W: Write> Interpreter<W> {
                                 }
                             }
                             crate::ast::EnumBackingType::None => {
-                                return Err(io::Error::other(
-                                    "Pure enum cannot have case values",
-                                ));
+                                return Err(io::Error::other("Pure enum cannot have case values"));
                             }
                         }
 

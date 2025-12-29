@@ -2,119 +2,119 @@
 #[derive(Debug, Clone, PartialEq)]
 pub enum TokenKind {
     // PHP Tags
-    OpenTag,      // <?php
-    CloseTag,     // ?>
+    OpenTag,  // <?php
+    CloseTag, // ?>
 
     // Keywords
-    Echo,         // echo
-    True,         // true
-    False,        // false
-    Null,         // null
-    If,           // if
-    Else,         // else
-    Elseif,       // elseif
-    While,        // while
-    For,          // for
-    Foreach,      // foreach
-    As,           // as
-    Switch,       // switch
-    Case,         // case
-    Default,      // default
-    Break,        // break
-    Continue,     // continue
-    Do,           // do
-    Function,     // function
-    Return,       // return
-    Match,        // match (PHP 8.0)
+    Echo,     // echo
+    True,     // true
+    False,    // false
+    Null,     // null
+    If,       // if
+    Else,     // else
+    Elseif,   // elseif
+    While,    // while
+    For,      // for
+    Foreach,  // foreach
+    As,       // as
+    Switch,   // switch
+    Case,     // case
+    Default,  // default
+    Break,    // break
+    Continue, // continue
+    Do,       // do
+    Function, // function
+    Return,   // return
+    Match,    // match (PHP 8.0)
 
     // OOP Keywords
-    Class,        // class
-    New,          // new
-    Public,       // public
-    Private,      // private
-    Protected,    // protected
-    Extends,      // extends
-    Parent,       // parent
-    Interface,    // interface
-    Implements,   // implements
-    Trait,        // trait
-    Use,          // use (for traits in class)
-    Insteadof,    // insteadof
-    Readonly,     // readonly (PHP 8.1)
-    Enum,         // enum (PHP 8.1)
-    Clone,        // clone (PHP 5.0)
-    With,         // with (PHP 8.4) - for clone with syntax
+    Class,      // class
+    New,        // new
+    Public,     // public
+    Private,    // private
+    Protected,  // protected
+    Extends,    // extends
+    Parent,     // parent
+    Interface,  // interface
+    Implements, // implements
+    Trait,      // trait
+    Use,        // use (for traits in class)
+    Insteadof,  // insteadof
+    Readonly,   // readonly (PHP 8.1)
+    Enum,       // enum (PHP 8.1)
+    Clone,      // clone (PHP 5.0)
+    With,       // with (PHP 8.4) - for clone with syntax
 
     // Identifiers and Variables
-    Variable(String),  // $name
+    Variable(String),   // $name
     Identifier(String), // function names, etc.
 
     // Literals
-    String(String),    // "string" or 'string'
-    Integer(i64),      // 123
-    Float(f64),        // 1.23
+    String(String), // "string" or 'string'
+    Integer(i64),   // 123
+    Float(f64),     // 1.23
 
     // Assignment Operators
-    Assign,            // =
-    PlusAssign,        // +=
-    MinusAssign,       // -=
-    MulAssign,         // *=
-    DivAssign,         // /=
-    ModAssign,         // %=
-    ConcatAssign,      // .=
+    Assign,       // =
+    PlusAssign,   // +=
+    MinusAssign,  // -=
+    MulAssign,    // *=
+    DivAssign,    // /=
+    ModAssign,    // %=
+    ConcatAssign, // .=
 
     // Arithmetic Operators
-    Plus,              // +
-    Minus,             // -
-    Mul,               // *
-    Div,               // /
-    Mod,               // %
-    Pow,               // **
+    Plus,  // +
+    Minus, // -
+    Mul,   // *
+    Div,   // /
+    Mod,   // %
+    Pow,   // **
 
     // String Operator
-    Concat,            // .
+    Concat, // .
 
     // Comparison Operators
-    Equal,             // ==
-    Identical,         // ===
-    NotEqual,          // !=
-    NotIdentical,      // !==
-    LessThan,          // <
-    GreaterThan,       // >
-    LessEqual,         // <=
-    GreaterEqual,      // >=
-    Spaceship,         // <=>
+    Equal,        // ==
+    Identical,    // ===
+    NotEqual,     // !=
+    NotIdentical, // !==
+    LessThan,     // <
+    GreaterThan,  // >
+    LessEqual,    // <=
+    GreaterEqual, // >=
+    Spaceship,    // <=>
 
     // Logical Operators
-    And,               // && or 'and'
-    Or,                // || or 'or'
-    Not,               // !
-    Xor,               // xor
+    And, // && or 'and'
+    Or,  // || or 'or'
+    Not, // !
+    Xor, // xor
 
     // Increment/Decrement
-    Increment,         // ++
-    Decrement,         // --
+    Increment, // ++
+    Decrement, // --
 
     // Punctuation
-    Semicolon,         // ;
-    Comma,             // ,
-    LeftParen,         // (
-    RightParen,        // )
-    LeftBrace,         // {
-    RightBrace,        // }
-    LeftBracket,       // [
-    RightBracket,      // ]
-    QuestionMark,      // ?
-    Colon,             // :
-    NullCoalesce,      // ??
-    DoubleArrow,       // =>
-    Arrow,             // ->
-    DoubleColon,       // ::
-    Pipe,              // |> (PHP 8.5 pipe operator)
-    Hash,              // # (for attributes when followed by [)
+    Semicolon,    // ;
+    Comma,        // ,
+    LeftParen,    // (
+    RightParen,   // )
+    LeftBrace,    // {
+    RightBrace,   // }
+    LeftBracket,  // [
+    RightBracket, // ]
+    QuestionMark, // ?
+    Colon,        // :
+    NullCoalesce, // ??
+    DoubleArrow,  // =>
+    Arrow,        // ->
+    DoubleColon,  // ::
+    Pipe,         // |> (PHP 8.5 pipe operator)
+    Hash,         // # (for attributes when followed by [)
 
     // Special
-    Html(String),      // Raw HTML outside PHP tags
+    Html(String), // Raw HTML outside PHP tags
     Eof,
 }
 

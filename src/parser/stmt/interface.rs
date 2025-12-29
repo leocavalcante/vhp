@@ -5,10 +5,10 @@
 //! - Interface methods
 //! - Interface constants
 
+use super::super::precedence::Precedence;
+use super::StmtParser;
 use crate::ast::{FunctionParam, InterfaceConstant, InterfaceMethodSignature, Stmt};
 use crate::token::TokenKind;
-use super::StmtParser;
-use super::super::precedence::Precedence;
 
 impl<'a> StmtParser<'a> {
     /// Parse interface declaration
@@ -80,7 +80,11 @@ impl<'a> StmtParser<'a> {
                     let value = self.parse_expression(Precedence::None)?;
                     self.consume(TokenKind::Semicolon, "Expected ';' after constant value")?;
 
-                    constants.push(InterfaceConstant { name, value, attributes });
+                    constants.push(InterfaceConstant {
+                        name,
+                        value,
+                        attributes,
+                    });
                     continue;
                 }
             }
@@ -171,7 +175,11 @@ impl<'a> StmtParser<'a> {
         self.consume(TokenKind::RightParen, "Expected ')' after parameters")?;
         self.consume(TokenKind::Semicolon, "Expected ';' after method signature")?;
 
-        Ok(InterfaceMethodSignature { name, params, attributes: Vec::new() })
+        Ok(InterfaceMethodSignature {
+            name,
+            params,
+            attributes: Vec::new(),
+        })
     }
 
     /// Parse interface constant (attributes are already parsed by caller)
@@ -196,6 +204,10 @@ impl<'a> StmtParser<'a> {
         let value = self.parse_expression(Precedence::None)?;
         self.consume(TokenKind::Semicolon, "Expected ';' after constant value")?;
 
-        Ok(InterfaceConstant { name, value, attributes: Vec::new() })
+        Ok(InterfaceConstant {
+            name,
+            value,
+            attributes: Vec::new(),
+        })
     }
 }

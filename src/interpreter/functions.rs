@@ -171,9 +171,7 @@ impl<W: Write> Interpreter<W> {
         // Execute function body
         let mut return_value = Value::Null;
         for stmt in &func.body.clone() {
-            let cf = self
-                .execute_stmt(stmt)
-                .map_err(|e| e.to_string())?;
+            let cf = self.execute_stmt(stmt).map_err(|e| e.to_string())?;
             if let crate::interpreter::ControlFlow::Return(val) = cf {
                 return_value = val;
                 break;
@@ -250,10 +248,7 @@ impl<W: Write> Interpreter<W> {
         for arg in args {
             if let Some(ref name) = arg.name {
                 if !func.params.iter().any(|p| p.name == *name) {
-                    return Err(format!(
-                        "Unknown named parameter ${}",
-                        name
-                    ));
+                    return Err(format!("Unknown named parameter ${}", name));
                 }
             }
         }
@@ -278,9 +273,7 @@ impl<W: Write> Interpreter<W> {
         // Execute function body
         let mut return_value = Value::Null;
         for stmt in &func.body.clone() {
-            let cf = self
-                .execute_stmt(stmt)
-                .map_err(|e| e.to_string())?;
+            let cf = self.execute_stmt(stmt).map_err(|e| e.to_string())?;
             if let crate::interpreter::ControlFlow::Return(val) = cf {
                 return_value = val;
                 break;
@@ -294,7 +287,12 @@ impl<W: Write> Interpreter<W> {
         Ok(return_value)
     }
 
-    pub(super) fn eval_assign(&mut self, var: &str, op: &AssignOp, value: &crate::ast::Expr) -> Result<Value, String> {
+    pub(super) fn eval_assign(
+        &mut self,
+        var: &str,
+        op: &AssignOp,
+        value: &crate::ast::Expr,
+    ) -> Result<Value, String> {
         let new_value = match op {
             AssignOp::Assign => self.eval_expr(value)?,
             AssignOp::AddAssign => {
@@ -351,7 +349,11 @@ impl<W: Write> Interpreter<W> {
     }
 
     /// Helper to call a function with pre-evaluated argument values
-    pub(super) fn call_function_with_values(&mut self, name: &str, arg_values: &[Value]) -> Result<Value, String> {
+    pub(super) fn call_function_with_values(
+        &mut self,
+        name: &str,
+        arg_values: &[Value],
+    ) -> Result<Value, String> {
         // Check for built-in functions first (case-insensitive)
         let lower_name = name.to_lowercase();
         match lower_name.as_str() {

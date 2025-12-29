@@ -1,8 +1,10 @@
 //! Expression parsing
 
-use crate::ast::{Argument, ArrayElement, AssignOp, BinaryOp, Expr, MatchArm, PropertyModification, UnaryOp};
+use super::precedence::{get_precedence, is_right_assoc, Precedence};
+use crate::ast::{
+    Argument, ArrayElement, AssignOp, BinaryOp, Expr, MatchArm, PropertyModification, UnaryOp,
+};
 use crate::token::{Token, TokenKind};
-use super::precedence::{Precedence, get_precedence, is_right_assoc};
 
 pub struct ExprParser<'a> {
     tokens: &'a [Token],
@@ -93,9 +95,12 @@ impl<'a> ExprParser<'a> {
                     // Check for placeholder ... (three dots)
                     if self.check(&TokenKind::Concat)
                         && *self.pos + 1 < self.tokens.len()
-                        && std::mem::discriminant(&self.tokens[*self.pos + 1].kind) == std::mem::discriminant(&TokenKind::Concat)
+                        && std::mem::discriminant(&self.tokens[*self.pos + 1].kind)
+                            == std::mem::discriminant(&TokenKind::Concat)
                         && *self.pos + 2 < self.tokens.len()
-                        && std::mem::discriminant(&self.tokens[*self.pos + 2].kind) == std::mem::discriminant(&TokenKind::Concat) {
+                        && std::mem::discriminant(&self.tokens[*self.pos + 2].kind)
+                            == std::mem::discriminant(&TokenKind::Concat)
+                    {
                         // This is a placeholder (...)
                         self.advance(); // consume first .
                         self.advance(); // consume second .
@@ -218,7 +223,10 @@ impl<'a> ExprParser<'a> {
                 conditions.push(self.parse_expression(Precedence::None)?);
             }
 
-            self.consume(TokenKind::DoubleArrow, "Expected '=>' after match condition(s)")?;
+            self.consume(
+                TokenKind::DoubleArrow,
+                "Expected '=>' after match condition(s)",
+            )?;
             let result = self.parse_expression(Precedence::None)?;
 
             arms.push(MatchArm {
@@ -343,8 +351,8 @@ impl<'a> ExprParser<'a> {
                     // Check for empty brackets (append syntax: $arr[] = ...)
                     if self.check(&TokenKind::RightBracket) {
                         self.advance(); // consume ']'
-                        // This creates an ArrayAccess with a special marker
-                        // The assignment handling will recognize this
+                                        // This creates an ArrayAccess with a special marker
+                                        // The assignment handling will recognize this
                         expr = Expr::ArrayAccess {
                             array: Box::new(expr),
                             index: Box::new(Expr::Null), // Placeholder for append
@@ -545,7 +553,10 @@ impl<'a> ExprParser<'a> {
                     if self.check(&TokenKind::LeftParen) {
                         self.advance(); // consume '('
                         let args = self.parse_arguments()?;
-                        self.consume(TokenKind::RightParen, "Expected ')' after static method arguments")?;
+                        self.consume(
+                            TokenKind::RightParen,
+                            "Expected ')' after static method arguments",
+                        )?;
                         let call = Expr::StaticMethodCall {
                             class_name: name,
                             method: method_or_case,
@@ -564,7 +575,10 @@ impl<'a> ExprParser<'a> {
                     // Regular function call
                     self.advance(); // consume '('
                     let args = self.parse_arguments()?;
-                    self.consume(TokenKind::RightParen, "Expected ')' after function arguments")?;
+                    self.consume(
+                        TokenKind::RightParen,
+                        "Expected ')' after function arguments",
+                    )?;
                     let call = Expr::FunctionCall { name, args };
                     self.parse_postfix(call)
                 } else {
@@ -592,9 +606,15 @@ impl<'a> ExprParser<'a> {
                         ));
                     };
 
-                    self.consume(TokenKind::LeftParen, "Expected '(' after parent method name")?;
+                    self.consume(
+                        TokenKind::LeftParen,
+                        "Expected '(' after parent method name",
+                    )?;
                     let args = self.parse_arguments()?;
-                    self.consume(TokenKind::RightParen, "Expected ')' after parent method arguments")?;
+                    self.consume(
+                        TokenKind::RightParen,
+                        "Expected ')' after parent method arguments",
+                    )?;
                     let call = Expr::StaticMethodCall {
                         class_name: "parent".to_string(),
                         method,
@@ -604,8 +624,7 @@ impl<'a> ExprParser<'a> {
                 } else {
                     Err(format!(
                         "Expected '::' after 'parent' at line {}, column {}",
-                        token.line,
-                        token.column
+                        token.line, token.column
                     ))
                 }
             }
@@ -627,7 +646,10 @@ impl<'a> ExprParser<'a> {
                 if self.check(&TokenKind::LeftParen) {
                     self.advance(); // consume '('
                     args = self.parse_arguments()?;
-                    self.consume(TokenKind::RightParen, "Expected ')' after constructor arguments")?;
+                    self.consume(
+                        TokenKind::RightParen,
+                        "Expected ')' after constructor arguments",
+                    )?;
                 }
 
                 let new_expr = Expr::New { class_name, args };

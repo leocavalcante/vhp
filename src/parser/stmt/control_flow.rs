@@ -9,10 +9,10 @@
 //! - switch statements
 //! - break and continue statements
 
+use super::super::precedence::Precedence;
+use super::StmtParser;
 use crate::ast::{Stmt, SwitchCase};
 use crate::token::TokenKind;
-use super::StmtParser;
-use super::super::precedence::Precedence;
 
 impl<'a> StmtParser<'a> {
     /// Parse if statement
@@ -226,7 +226,10 @@ impl<'a> StmtParser<'a> {
         self.advance(); // consume 'switch'
         self.consume(TokenKind::LeftParen, "Expected '(' after 'switch'")?;
         let expr = self.parse_expression(Precedence::None)?;
-        self.consume(TokenKind::RightParen, "Expected ')' after switch expression")?;
+        self.consume(
+            TokenKind::RightParen,
+            "Expected ')' after switch expression",
+        )?;
 
         let using_alt_syntax = self.check(&TokenKind::Colon);
 

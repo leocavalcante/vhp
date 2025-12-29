@@ -7,9 +7,9 @@
 //! - Visibility modifiers
 //! - Trait usage within classes
 
+use super::StmtParser;
 use crate::ast::Stmt;
 use crate::token::TokenKind;
-use super::StmtParser;
 
 impl<'a> StmtParser<'a> {
     /// Parse class declaration
@@ -103,21 +103,38 @@ impl<'a> StmtParser<'a> {
             let visibility = self.parse_visibility();
 
             // Check for readonly modifier if not already found (can appear after visibility)
-            let readonly = readonly_first || if self.check(&TokenKind::Readonly) {
-                self.advance();
-                true
-            } else {
-                false
-            };
+            let readonly = readonly_first
+                || if self.check(&TokenKind::Readonly) {
+                    self.advance();
+                    true
+                } else {
+                    false
+                };
 
             // Skip type hints (not supported yet, but we need to skip them)
             // Common PHP types: string, int, float, bool, array, object, mixed, etc.
             if let TokenKind::Identifier(type_name) = &self.current().kind {
                 let type_lower = type_name.to_lowercase();
-                if matches!(type_lower.as_str(),
-                    "string" | "int" | "float" | "bool" | "array" | "object" | "mixed" |
-                    "callable" | "iterable" | "void" | "never" | "true" | "false" | "null" |
-                    "self" | "parent" | "static") {
+                if matches!(
+                    type_lower.as_str(),
+                    "string"
+                        | "int"
+                        | "float"
+                        | "bool"
+                        | "array"
+                        | "object"
+                        | "mixed"
+                        | "callable"
+                        | "iterable"
+                        | "void"
+                        | "never"
+                        | "true"
+                        | "false"
+                        | "null"
+                        | "self"
+                        | "parent"
+                        | "static"
+                ) {
                     // Skip the type
                     self.advance();
                     // Handle array type brackets if present
@@ -175,5 +192,4 @@ impl<'a> StmtParser<'a> {
             attributes: Vec::new(),
         })
     }
-
 }

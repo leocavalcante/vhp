@@ -6,9 +6,9 @@
 //! - Trait conflict resolution (insteadof, as)
 //! - Trait properties and methods
 
+use super::StmtParser;
 use crate::ast::{Stmt, TraitResolution, TraitUse};
 use crate::token::TokenKind;
-use super::StmtParser;
 
 impl<'a> StmtParser<'a> {
     /// Parse trait declaration
@@ -106,13 +106,19 @@ impl<'a> StmtParser<'a> {
                 resolutions.push(self.parse_trait_resolution()?);
             }
 
-            self.consume(TokenKind::RightBrace, "Expected '}' after trait resolutions")?;
+            self.consume(
+                TokenKind::RightBrace,
+                "Expected '}' after trait resolutions",
+            )?;
         } else {
             // No braces means this is a simple use; without resolutions
             self.consume(TokenKind::Semicolon, "Expected ';' after trait use")?;
         }
 
-        Ok(TraitUse { traits, resolutions })
+        Ok(TraitUse {
+            traits,
+            resolutions,
+        })
     }
 
     /// Parse trait resolution (insteadof or as clause)

@@ -5,10 +5,10 @@
 //! - Enum cases (pure and backed)
 //! - Enum methods
 
+use super::super::precedence::Precedence;
+use super::StmtParser;
 use crate::ast::{EnumBackingType, EnumCase, FunctionParam, Method, Stmt, Visibility};
 use crate::token::TokenKind;
-use super::StmtParser;
-use super::super::precedence::Precedence;
 
 impl<'a> StmtParser<'a> {
     /// Parse enum declaration: enum Name: type { case Value; case Value = expr; ... }
@@ -111,7 +111,10 @@ impl<'a> StmtParser<'a> {
                     name: case_name,
                     value,
                 });
-            } else if self.check(&TokenKind::Public) || self.check(&TokenKind::Private) || self.check(&TokenKind::Protected) {
+            } else if self.check(&TokenKind::Public)
+                || self.check(&TokenKind::Private)
+                || self.check(&TokenKind::Protected)
+            {
                 // Parse method (enums can have methods)
                 let visibility = match &self.current().kind {
                     TokenKind::Public => Visibility::Public,
@@ -121,7 +124,10 @@ impl<'a> StmtParser<'a> {
                 };
                 self.advance();
 
-                self.consume(TokenKind::Function, "Expected 'function' after visibility modifier in enum")?;
+                self.consume(
+                    TokenKind::Function,
+                    "Expected 'function' after visibility modifier in enum",
+                )?;
 
                 let method_name = if let TokenKind::Identifier(id) = &self.current().kind {
                     let name = id.clone();
@@ -200,10 +206,7 @@ impl<'a> StmtParser<'a> {
         self.consume(TokenKind::RightBrace, "Expected '}' after enum body")?;
 
         if cases.is_empty() {
-            return Err(format!(
-                "Enum '{}' must have at least one case",
-                name
-            ));
+            return Err(format!("Enum '{}' must have at least one case", name));
         }
 
         Ok(Stmt::Enum {

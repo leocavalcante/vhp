@@ -108,7 +108,10 @@ pub fn isset(args: &[Value]) -> Result<Value, String> {
     if args.is_empty() {
         return Err("isset() expects at least 1 parameter".to_string());
     }
-    Ok(Value::Bool(!matches!(args.first(), Some(Value::Null) | None)))
+    Ok(Value::Bool(!matches!(
+        args.first(),
+        Some(Value::Null) | None
+    )))
 }
 
 /// empty - Determine whether a variable is empty
@@ -116,5 +119,7 @@ pub fn empty(args: &[Value]) -> Result<Value, String> {
     if args.is_empty() {
         return Err("empty() expects exactly 1 parameter".to_string());
     }
-    Ok(Value::Bool(!args.first().map(|v| v.to_bool()).unwrap_or(false)))
+    Ok(Value::Bool(
+        !args.first().map(|v| v.to_bool()).unwrap_or(false),
+    ))
 }

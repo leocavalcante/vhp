@@ -2,10 +2,10 @@
 //!
 //! Handles parsing of function declarations and return statements.
 
+use super::super::precedence::Precedence;
+use super::StmtParser;
 use crate::ast::{FunctionParam, Stmt};
 use crate::token::TokenKind;
-use super::StmtParser;
-use super::super::precedence::Precedence;
 
 impl<'a> StmtParser<'a> {
     /// Parse function declaration
@@ -35,10 +35,26 @@ impl<'a> StmtParser<'a> {
                 // Skip type hints (not supported yet)
                 if let TokenKind::Identifier(type_name) = &self.current().kind {
                     let type_lower = type_name.to_lowercase();
-                    if matches!(type_lower.as_str(),
-                        "string" | "int" | "float" | "bool" | "array" | "object" | "mixed" |
-                        "callable" | "iterable" | "void" | "never" | "true" | "false" | "null" |
-                        "self" | "parent" | "static") {
+                    if matches!(
+                        type_lower.as_str(),
+                        "string"
+                            | "int"
+                            | "float"
+                            | "bool"
+                            | "array"
+                            | "object"
+                            | "mixed"
+                            | "callable"
+                            | "iterable"
+                            | "void"
+                            | "never"
+                            | "true"
+                            | "false"
+                            | "null"
+                            | "self"
+                            | "parent"
+                            | "static"
+                    ) {
                         // Skip the type
                         self.advance();
                         // Handle array type brackets if present
@@ -107,7 +123,12 @@ impl<'a> StmtParser<'a> {
 
         self.consume(TokenKind::RightBrace, "Expected '}' after function body")?;
 
-        Ok(Stmt::Function { name, params, body, attributes: Vec::new() })
+        Ok(Stmt::Function {
+            name,
+            params,
+            body,
+            attributes: Vec::new(),
+        })
     }
 
     /// Parse return statement

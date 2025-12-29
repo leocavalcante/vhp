@@ -70,7 +70,9 @@ pub fn ltrim(args: &[Value]) -> Result<Value, String> {
     if args.is_empty() {
         return Err("ltrim() expects at least 1 parameter".to_string());
     }
-    Ok(Value::String(args[0].to_string_val().trim_start().to_string()))
+    Ok(Value::String(
+        args[0].to_string_val().trim_start().to_string(),
+    ))
 }
 
 /// rtrim - Strip whitespace from end
@@ -78,7 +80,9 @@ pub fn rtrim(args: &[Value]) -> Result<Value, String> {
     if args.is_empty() {
         return Err("rtrim() expects at least 1 parameter".to_string());
     }
-    Ok(Value::String(args[0].to_string_val().trim_end().to_string()))
+    Ok(Value::String(
+        args[0].to_string_val().trim_end().to_string(),
+    ))
 }
 
 /// str_repeat - Repeat a string

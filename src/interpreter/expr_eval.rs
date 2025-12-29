@@ -9,9 +9,7 @@
 //! - Clone expressions
 //! - Pipe operator
 
-use crate::ast::{
-    ArrayElement, AssignOp, BinaryOp, Expr, MatchArm, PropertyModification, UnaryOp,
-};
+use crate::ast::{ArrayElement, AssignOp, BinaryOp, Expr, MatchArm, PropertyModification, UnaryOp};
 use crate::interpreter::value::{ArrayKey, Value};
 use crate::interpreter::Interpreter;
 use std::io::Write;
@@ -25,11 +23,7 @@ impl<W: Write> Interpreter<W> {
             Expr::Float(n) => Ok(Value::Float(*n)),
             Expr::String(s) => Ok(Value::String(s.clone())),
 
-            Expr::Variable(name) => Ok(self
-                .variables
-                .get(name)
-                .cloned()
-                .unwrap_or(Value::Null)),
+            Expr::Variable(name) => Ok(self.variables.get(name).cloned().unwrap_or(Value::Null)),
 
             Expr::Array(elements) => self.eval_array(elements),
 
@@ -67,7 +61,9 @@ impl<W: Write> Interpreter<W> {
 
             Expr::New { class_name, args } => self.eval_new(class_name, args),
 
-            Expr::PropertyAccess { object, property } => self.eval_property_access(object, property),
+            Expr::PropertyAccess { object, property } => {
+                self.eval_property_access(object, property)
+            }
 
             Expr::MethodCall {
                 object,
@@ -101,9 +97,10 @@ impl<W: Write> Interpreter<W> {
                 default,
             } => self.eval_match(expr, arms, default),
 
-            Expr::EnumCase { enum_name, case_name } => {
-                self.eval_enum_case(enum_name, case_name)
-            }
+            Expr::EnumCase {
+                enum_name,
+                case_name,
+            } => self.eval_enum_case(enum_name, case_name),
 
             Expr::Clone { object } => self.eval_clone(object),
 
@@ -115,7 +112,10 @@ impl<W: Write> Interpreter<W> {
             Expr::Placeholder => {
                 // Placeholder is only valid inside pipe operator argument lists
                 // If we reach here, it's an error
-                Err("Placeholder (...) can only be used in pipe operator function calls".to_string())
+                Err(
+                    "Placeholder (...) can only be used in pipe operator function calls"
+                        .to_string(),
+                )
             }
         }
     }
@@ -166,7 +166,9 @@ impl<W: Write> Interpreter<W> {
                 // String access by index
                 let idx = index_val.to_int();
                 if idx >= 0 && (idx as usize) < s.len() {
-                    Ok(Value::String(s.chars().nth(idx as usize).unwrap().to_string()))
+                    Ok(Value::String(
+                        s.chars().nth(idx as usize).unwrap().to_string(),
+                    ))
                 } else {
                     Ok(Value::String(String::new()))
                 }
@@ -210,7 +212,10 @@ impl<W: Write> Interpreter<W> {
         };
 
         // For nested access, we need to traverse and update
-        if let Expr::ArrayAccess { index: outer_index, .. } = array_expr {
+        if let Expr::ArrayAccess {
+            index: outer_index, ..
+        } = array_expr
+        {
             // This is nested: $arr[outer][index] = value
             // We need to handle this recursively
             let outer_key = ArrayKey::from_value(&self.eval_expr(outer_index)?);
@@ -237,7 +242,13 @@ impl<W: Write> Interpreter<W> {
                 // Append: find max int key + 1
                 let max_key = new_inner
                     .iter()
-                    .filter_map(|(k, _)| if let ArrayKey::Integer(n) = k { Some(*n) } else { None })
+                    .filter_map(|(k, _)| {
+                        if let ArrayKey::Integer(n) = k {
+                            Some(*n)
+                        } else {
+                            None
+                        }
+                    })
                     .max()
                     .unwrap_or(-1);
                 ArrayKey::Integer(max_key + 1)
@@ -271,7 +282,13 @@ impl<W: Write> Interpreter<W> {
             // Append: find max int key + 1
             let max_key = arr
                 .iter()
-                .filter_map(|(k, _)| if let ArrayKey::Integer(n) = k { Some(*n) } else { None })
+                .filter_map(|(k, _)| {
+                    if let ArrayKey::Integer(n) = k {
+                        Some(*n)
+                    } else {
+                        None
+                    }
+                })
                 .max()
                 .unwrap_or(-1);
             ArrayKey::Integer(max_key + 1)
@@ -525,11 +542,19 @@ impl<W: Write> Interpreter<W> {
             BinaryOp::Xor => Ok(Value::Bool(left_val.to_bool() ^ right_val.to_bool())),
 
             // Already handled above
-            BinaryOp::And | BinaryOp::Or | BinaryOp::NullCoalesce | BinaryOp::Pipe => unreachable!(),
+            BinaryOp::And | BinaryOp::Or | BinaryOp::NullCoalesce | BinaryOp::Pipe => {
+                unreachable!()
+            }
         }
     }
 
-    pub(super) fn numeric_op<F, G>(&self, left: &Value, right: &Value, int_op: F, float_op: G) -> Result<Value, String>
+    pub(super) fn numeric_op<F, G>(
+        &self,
+        left: &Value,
+        right: &Value,
+        int_op: F,
+        float_op: G,
+    ) -> Result<Value, String>
     where
         F: Fn(i64, i64) -> i64,
         G: Fn(f64, f64) -> f64,
@@ -578,7 +603,9 @@ impl<W: Write> Interpreter<W> {
         let enum_name_lower = enum_name.to_lowercase();
 
         // Look up enum definition
-        let enum_def = self.enums.get(&enum_name_lower)
+        let enum_def = self
+            .enums
+            .get(&enum_name_lower)
             .ok_or_else(|| format!("Undefined enum '{}'", enum_name))?;
 
         // Find the case
@@ -592,7 +619,10 @@ impl<W: Write> Interpreter<W> {
             }
         }
 
-        Err(format!("Undefined case '{}' for enum '{}'", case_name, enum_name))
+        Err(format!(
+            "Undefined case '{}' for enum '{}'",
+            case_name, enum_name
+        ))
     }
 
     pub(super) fn eval_clone(&mut self, object_expr: &Expr) -> Result<Value, String> {
@@ -681,7 +711,9 @@ impl<W: Write> Interpreter<W> {
         match right {
             Expr::FunctionCall { name, args } => {
                 // Find placeholder position
-                let placeholder_pos = args.iter().position(|arg| matches!(&*arg.value, Expr::Placeholder));
+                let placeholder_pos = args
+                    .iter()
+                    .position(|arg| matches!(&*arg.value, Expr::Placeholder));
 
                 let mut arg_values = Vec::new();
 
@@ -706,7 +738,11 @@ impl<W: Write> Interpreter<W> {
                 self.call_function_with_values(name, &arg_values)
             }
 
-            Expr::MethodCall { object, method, args } => {
+            Expr::MethodCall {
+                object,
+                method,
+                args,
+            } => {
                 let object_value = self.eval_expr(object)?;
 
                 // Evaluate arguments with piped value as first
@@ -720,7 +756,11 @@ impl<W: Write> Interpreter<W> {
                         let method_lower = method.to_lowercase();
 
                         // Look up the method in the class definition
-                        if let Some(class_def) = self.classes.get(&instance.class_name.to_lowercase()).cloned() {
+                        if let Some(class_def) = self
+                            .classes
+                            .get(&instance.class_name.to_lowercase())
+                            .cloned()
+                        {
                             if let Some(method_func) = class_def.methods.get(&method_lower) {
                                 // Set current object context
                                 let saved_object = self.current_object.clone();

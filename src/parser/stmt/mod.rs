@@ -9,17 +9,17 @@
 //! - trait_: trait definitions and usage
 //! - enum_: enum definitions
 
+pub mod class;
 pub mod control_flow;
 pub mod declarations;
-pub mod class;
+pub mod enum_;
 pub mod interface;
 pub mod trait_;
-pub mod enum_;
 
-use crate::ast::{Attribute, AttributeArgument, Expr, Method, Property, Stmt, Visibility};
-use crate::token::{Token, TokenKind};
 use super::expr::ExprParser;
 use super::precedence::Precedence;
+use crate::ast::{Attribute, AttributeArgument, Expr, Method, Property, Stmt, Visibility};
+use crate::token::{Token, TokenKind};
 
 pub struct StmtParser<'a> {
     pub tokens: &'a [Token],
@@ -141,13 +141,13 @@ impl<'a> StmtParser<'a> {
                         }
                     }
 
-                    self.consume(TokenKind::RightParen, "Expected ')' after attribute arguments")?;
+                    self.consume(
+                        TokenKind::RightParen,
+                        "Expected ')' after attribute arguments",
+                    )?;
                 }
 
-                attributes.push(Attribute {
-                    name,
-                    arguments,
-                });
+                attributes.push(Attribute { name, arguments });
 
                 // Check for comma (multiple attributes in same #[...])
                 if !self.check(&TokenKind::Comma) {
@@ -214,8 +214,13 @@ impl<'a> StmtParser<'a> {
                             || s.to_lowercase() == "endwhile"
                             || s.to_lowercase() == "endfor"
                             || s.to_lowercase() == "endforeach"
-                            || s.to_lowercase() == "endswitch" => break,
-                    TokenKind::Else | TokenKind::Elseif | TokenKind::Case | TokenKind::Default => break,
+                            || s.to_lowercase() == "endswitch" =>
+                    {
+                        break
+                    }
+                    TokenKind::Else | TokenKind::Elseif | TokenKind::Case | TokenKind::Default => {
+                        break
+                    }
                     _ => {}
                 }
 
@@ -284,7 +289,7 @@ impl<'a> StmtParser<'a> {
             name,
             visibility,
             default,
-            readonly: false, // Will be set by caller if needed
+            readonly: false,        // Will be set by caller if needed
             attributes: Vec::new(), // Will be set by caller
         })
     }
@@ -362,10 +367,26 @@ impl<'a> StmtParser<'a> {
                 // Skip type hints (not supported yet)
                 if let TokenKind::Identifier(type_name) = &self.current().kind {
                     let type_lower = type_name.to_lowercase();
-                    if matches!(type_lower.as_str(),
-                        "string" | "int" | "float" | "bool" | "array" | "object" | "mixed" |
-                        "callable" | "iterable" | "void" | "never" | "true" | "false" | "null" |
-                        "self" | "parent" | "static") {
+                    if matches!(
+                        type_lower.as_str(),
+                        "string"
+                            | "int"
+                            | "float"
+                            | "bool"
+                            | "array"
+                            | "object"
+                            | "mixed"
+                            | "callable"
+                            | "iterable"
+                            | "void"
+                            | "never"
+                            | "true"
+                            | "false"
+                            | "null"
+                            | "self"
+                            | "parent"
+                            | "static"
+                    ) {
                         // Skip the type
                         self.advance();
                         // Handle array type brackets if present
@@ -486,14 +507,22 @@ impl<'a> StmtParser<'a> {
             TokenKind::Continue => Ok(Some(self.parse_continue()?)),
             TokenKind::Function => {
                 let mut func = self.parse_function()?;
-                if let Stmt::Function { attributes: ref mut attrs, .. } = func {
+                if let Stmt::Function {
+                    attributes: ref mut attrs,
+                    ..
+                } = func
+                {
                     *attrs = attributes;
                 }
                 Ok(Some(func))
             }
             TokenKind::Class => {
                 let mut class = self.parse_class()?;
-                if let Stmt::Class { attributes: ref mut attrs, .. } = class {
+                if let Stmt::Class {
+                    attributes: ref mut attrs,
+                    ..
+                } = class
+                {
                     *attrs = attributes;
                 }
                 Ok(Some(class))
@@ -501,28 +530,44 @@ impl<'a> StmtParser<'a> {
             TokenKind::Readonly => {
                 // readonly can be used before class keyword (PHP 8.2)
                 let mut class = self.parse_class()?;
-                if let Stmt::Class { attributes: ref mut attrs, .. } = class {
+                if let Stmt::Class {
+                    attributes: ref mut attrs,
+                    ..
+                } = class
+                {
                     *attrs = attributes;
                 }
                 Ok(Some(class))
             }
             TokenKind::Interface => {
                 let mut iface = self.parse_interface()?;
-                if let Stmt::Interface { attributes: ref mut attrs, .. } = iface {
+                if let Stmt::Interface {
+                    attributes: ref mut attrs,
+                    ..
+                } = iface
+                {
                     *attrs = attributes;
                 }
                 Ok(Some(iface))
             }
             TokenKind::Trait => {
                 let mut trait_stmt = self.parse_trait()?;
-                if let Stmt::Trait { attributes: ref mut attrs, .. } = trait_stmt {
+                if let Stmt::Trait {
+                    attributes: ref mut attrs,
+                    ..
+                } = trait_stmt
+                {
                     *attrs = attributes;
                 }
                 Ok(Some(trait_stmt))
             }
             TokenKind::Enum => {
                 let mut enum_stmt = self.parse_enum()?;
-                if let Stmt::Enum { attributes: ref mut attrs, .. } = enum_stmt {
+                if let Stmt::Enum {
+                    attributes: ref mut attrs,
+                    ..
+                } = enum_stmt
+                {
                     *attrs = attributes;
                 }
                 Ok(Some(enum_stmt))

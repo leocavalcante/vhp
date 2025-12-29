@@ -40,7 +40,11 @@ impl<W: Write> Interpreter<W> {
     }
 
     /// Find method in class hierarchy
-    pub(super) fn find_method(&self, class_name: &str, method_name: &str) -> Option<(crate::interpreter::UserFunction, String)> {
+    pub(super) fn find_method(
+        &self,
+        class_name: &str,
+        method_name: &str,
+    ) -> Option<(crate::interpreter::UserFunction, String)> {
         let class_def = self.classes.get(&class_name.to_lowercase())?;
 
         if let Some(method) = class_def.methods.get(&method_name.to_lowercase()) {
@@ -55,7 +59,11 @@ impl<W: Write> Interpreter<W> {
     }
 
     /// Evaluate object instantiation (new ClassName(...))
-    pub(super) fn eval_new(&mut self, class_name: &str, args: &[Argument]) -> Result<Value, String> {
+    pub(super) fn eval_new(
+        &mut self,
+        class_name: &str,
+        args: &[Argument],
+    ) -> Result<Value, String> {
         let class_name_lower = class_name.to_lowercase();
 
         // Check if class exists
@@ -106,7 +114,12 @@ impl<W: Write> Interpreter<W> {
         // Check for constructor (__construct)
         if let Some((constructor, declaring_class)) = self.find_method(class_name, "__construct") {
             // Call constructor with $this bound and named argument support
-            self.call_method_on_object_with_arguments(&mut instance, &constructor, args, declaring_class)?;
+            self.call_method_on_object_with_arguments(
+                &mut instance,
+                &constructor,
+                args,
+                declaring_class,
+            )?;
         }
 
         // After constructor completes, mark all current readonly properties as initialized
@@ -119,9 +132,8 @@ impl<W: Write> Interpreter<W> {
         // If class itself is readonly (PHP 8.2), all properties are implicitly readonly
         if class_readonly {
             // Get all property names from the instance and mark them as readonly
-            let all_property_names: Vec<String> = instance.properties.keys()
-                .map(|k| k.to_string())
-                .collect();
+            let all_property_names: Vec<String> =
+                instance.properties.keys().map(|k| k.to_string()).collect();
 
             // Add all properties to readonly set
             for prop_name in all_property_names {
@@ -135,7 +147,11 @@ impl<W: Write> Interpreter<W> {
     }
 
     /// Evaluate property access ($obj->property)
-    pub(super) fn eval_property_access(&mut self, object: &crate::ast::Expr, property: &str) -> Result<Value, String> {
+    pub(super) fn eval_property_access(
+        &mut self,
+        object: &crate::ast::Expr,
+        property: &str,
+    ) -> Result<Value, String> {
         let obj_value = self.eval_expr(object)?;
 
         // Handle enum case properties
@@ -202,17 +218,18 @@ impl<W: Write> Interpreter<W> {
                 let class_name = instance.class_name.clone();
 
                 // Look up method in hierarchy
-                let (method_func, declaring_class) = self
-                    .find_method(&class_name, method)
-                    .ok_or_else(|| {
-                        format!(
-                            "Call to undefined method {}::{}()",
-                            class_name, method
-                        )
+                let (method_func, declaring_class) =
+                    self.find_method(&class_name, method).ok_or_else(|| {
+                        format!("Call to undefined method {}::{}()", class_name, method)
                     })?;
 
                 // Call method with $this bound and named argument support
-                let result = self.call_method_on_object_with_arguments(&mut instance, &method_func, args, declaring_class)?;
+                let result = self.call_method_on_object_with_arguments(
+                    &mut instance,
+                    &method_func,
+                    args,
+                    declaring_class,
+                )?;
 
                 // Write back the modified instance to the variable if applicable
                 if let Some(name) = var_name {
@@ -278,7 +295,9 @@ impl<W: Write> Interpreter<W> {
                         ));
                     }
 
-                    instance.properties.insert(property.to_string(), val.clone());
+                    instance
+                        .properties
+                        .insert(property.to_string(), val.clone());
 
                     // If this is a readonly property, mark it as initialized
                     if instance.readonly_properties.contains(property) {
@@ -299,9 +318,9 @@ impl<W: Write> Interpreter<W> {
                 // For other expressions, evaluate and try to assign
                 let obj_value = self.eval_expr(object)?;
                 match obj_value {
-                    Value::Object(_) => Err(
-                        "Cannot assign property on temporary object expression".to_string(),
-                    ),
+                    Value::Object(_) => {
+                        Err("Cannot assign property on temporary object expression".to_string())
+                    }
                     _ => Err(format!(
                         "Cannot access property on non-object ({})",
                         obj_value.get_type()
@@ -322,7 +341,10 @@ impl<W: Write> Interpreter<W> {
 
         let target_class = if class_name_lower == "parent" {
             if let Some(current_class_name) = &self.current_class {
-                let current_class_def = self.classes.get(&current_class_name.to_lowercase()).unwrap();
+                let current_class_def = self
+                    .classes
+                    .get(&current_class_name.to_lowercase())
+                    .unwrap();
                 if let Some(parent) = &current_class_def.parent {
                     parent.clone()
                 } else {
@@ -451,12 +473,7 @@ impl<W: Write> Interpreter<W> {
         // Look up method in hierarchy
         let (method_func, declaring_class) = self
             .find_method(&target_class, method)
-            .ok_or_else(|| {
-                format!(
-                    "Call to undefined method {}::{}()",
-                    target_class, method
-                )
-            })?;
+            .ok_or_else(|| format!("Call to undefined method {}::{}()", target_class, method))?;
 
         // Evaluate all arguments
         let mut arg_values = Vec::new();
@@ -465,7 +482,8 @@ impl<W: Write> Interpreter<W> {
         }
 
         // Build a map of named arguments for quick lookup
-        let mut named_args: std::collections::HashMap<String, Value> = std::collections::HashMap::new();
+        let mut named_args: std::collections::HashMap<String, Value> =
+            std::collections::HashMap::new();
         let mut positional_idx = 0;
 
         for (i, arg) in args.iter().enumerate() {
@@ -497,10 +515,7 @@ impl<W: Write> Interpreter<W> {
             } else if let Some(ref default_expr) = param.default {
                 self.eval_expr(default_expr)?
             } else {
-                return Err(format!(
-                    "Missing argument for parameter ${}",
-                    param.name
-                ));
+                return Err(format!("Missing argument for parameter ${}", param.name));
             };
 
             if positional_arg_idx < positional_idx {
@@ -528,7 +543,8 @@ impl<W: Write> Interpreter<W> {
                     return_value = v;
                     break;
                 }
-                crate::interpreter::ControlFlow::Break | crate::interpreter::ControlFlow::Continue => break,
+                crate::interpreter::ControlFlow::Break
+                | crate::interpreter::ControlFlow::Continue => break,
                 crate::interpreter::ControlFlow::None => {}
             }
         }
@@ -582,7 +598,8 @@ impl<W: Write> Interpreter<W> {
                     return_value = v;
                     break;
                 }
-                crate::interpreter::ControlFlow::Break | crate::interpreter::ControlFlow::Continue => break,
+                crate::interpreter::ControlFlow::Break
+                | crate::interpreter::ControlFlow::Continue => break,
                 crate::interpreter::ControlFlow::None => {}
             }
         }
@@ -627,7 +644,8 @@ impl<W: Write> Interpreter<W> {
         }
 
         // Build a map of named arguments for quick lookup
-        let mut named_args: std::collections::HashMap<String, Value> = std::collections::HashMap::new();
+        let mut named_args: std::collections::HashMap<String, Value> =
+            std::collections::HashMap::new();
         let mut positional_idx = 0;
 
         for (i, arg) in args.iter().enumerate() {
@@ -676,7 +694,8 @@ impl<W: Write> Interpreter<W> {
                     return_value = v;
                     break;
                 }
-                crate::interpreter::ControlFlow::Break | crate::interpreter::ControlFlow::Continue => break,
+                crate::interpreter::ControlFlow::Break
+                | crate::interpreter::ControlFlow::Continue => break,
                 crate::interpreter::ControlFlow::None => {}
             }
         }

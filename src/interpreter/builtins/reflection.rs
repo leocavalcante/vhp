@@ -1,7 +1,7 @@
 //! Reflection built-in functions for attributes
 
-use crate::interpreter::value::{ArrayKey, Value};
 use crate::ast::{Attribute, AttributeArgument, Expr};
+use crate::interpreter::value::{ArrayKey, Value};
 
 /// Convert an Attribute AST node to a runtime Value (associative array)
 /// Format: ["name" => "AttributeName", "arguments" => [...]]
@@ -17,12 +17,7 @@ pub fn attribute_to_value(attr: &Attribute) -> Value {
                 attr.arguments
                     .iter()
                     .enumerate()
-                    .map(|(idx, arg)| {
-                        (
-                            ArrayKey::Integer(idx as i64),
-                            argument_to_value(arg),
-                        )
-                    })
+                    .map(|(idx, arg)| (ArrayKey::Integer(idx as i64), argument_to_value(arg)))
                     .collect(),
             ),
         ),
@@ -102,12 +97,7 @@ pub fn get_class_attributes(
             .attributes
             .iter()
             .enumerate()
-            .map(|(idx, attr)| {
-                (
-                    ArrayKey::Integer(idx as i64),
-                    attribute_to_value(attr),
-                )
-            })
+            .map(|(idx, attr)| (ArrayKey::Integer(idx as i64), attribute_to_value(attr)))
             .collect();
         Ok(Value::Array(attrs))
     } else {
@@ -136,16 +126,14 @@ pub fn get_method_attributes(
                 .attributes
                 .iter()
                 .enumerate()
-                .map(|(idx, attr)| {
-                    (
-                        ArrayKey::Integer(idx as i64),
-                        attribute_to_value(attr),
-                    )
-                })
+                .map(|(idx, attr)| (ArrayKey::Integer(idx as i64), attribute_to_value(attr)))
                 .collect();
             Ok(Value::Array(attrs))
         } else {
-            Err(format!("Method '{}::{}' not found", class_name, method_name))
+            Err(format!(
+                "Method '{}::{}' not found",
+                class_name, method_name
+            ))
         }
     } else {
         Err(format!("Class '{}' not found", class_name))
@@ -178,16 +166,14 @@ pub fn get_property_attributes(
                 .attributes
                 .iter()
                 .enumerate()
-                .map(|(idx, attr)| {
-                    (
-                        ArrayKey::Integer(idx as i64),
-                        attribute_to_value(attr),
-                    )
-                })
+                .map(|(idx, attr)| (ArrayKey::Integer(idx as i64), attribute_to_value(attr)))
                 .collect();
             Ok(Value::Array(attrs))
         } else {
-            Err(format!("Property '{}::{}' not found", class_name, property_name))
+            Err(format!(
+                "Property '{}::{}' not found",
+                class_name, property_name
+            ))
         }
     } else {
         Err(format!("Class '{}' not found", class_name))
@@ -217,12 +203,7 @@ pub fn get_function_attributes(
             .attributes
             .iter()
             .enumerate()
-            .map(|(idx, attr)| {
-                (
-                    ArrayKey::Integer(idx as i64),
-                    attribute_to_value(attr),
-                )
-            })
+            .map(|(idx, attr)| (ArrayKey::Integer(idx as i64), attribute_to_value(attr)))
             .collect();
         Ok(Value::Array(attrs))
     } else {
@@ -261,16 +242,14 @@ pub fn get_parameter_attributes(
                 .attributes
                 .iter()
                 .enumerate()
-                .map(|(idx, attr)| {
-                    (
-                        ArrayKey::Integer(idx as i64),
-                        attribute_to_value(attr),
-                    )
-                })
+                .map(|(idx, attr)| (ArrayKey::Integer(idx as i64), attribute_to_value(attr)))
                 .collect();
             Ok(Value::Array(attrs))
         } else {
-            Err(format!("Parameter '{}' in function '{}' not found", parameter_name, function_name))
+            Err(format!(
+                "Parameter '{}' in function '{}' not found",
+                parameter_name, function_name
+            ))
         }
     } else {
         Err(format!("Function '{}' not found", function_name))
@@ -306,19 +285,20 @@ pub fn get_method_parameter_attributes(
                     .attributes
                     .iter()
                     .enumerate()
-                    .map(|(idx, attr)| {
-                        (
-                            ArrayKey::Integer(idx as i64),
-                            attribute_to_value(attr),
-                        )
-                    })
+                    .map(|(idx, attr)| (ArrayKey::Integer(idx as i64), attribute_to_value(attr)))
                     .collect();
                 Ok(Value::Array(attrs))
             } else {
-                Err(format!("Parameter '{}' in method '{}::{}' not found", parameter_name, class_name, method_name))
+                Err(format!(
+                    "Parameter '{}' in method '{}::{}' not found",
+                    parameter_name, class_name, method_name
+                ))
             }
         } else {
-            Err(format!("Method '{}::{}' not found", class_name, method_name))
+            Err(format!(
+                "Method '{}::{}' not found",
+                class_name, method_name
+            ))
         }
     } else {
         Err(format!("Class '{}' not found", class_name))
@@ -343,12 +323,7 @@ pub fn get_interface_attributes(
             .attributes
             .iter()
             .enumerate()
-            .map(|(idx, attr)| {
-                (
-                    ArrayKey::Integer(idx as i64),
-                    attribute_to_value(attr),
-                )
-            })
+            .map(|(idx, attr)| (ArrayKey::Integer(idx as i64), attribute_to_value(attr)))
             .collect();
         Ok(Value::Array(attrs))
     } else {
@@ -374,12 +349,7 @@ pub fn get_trait_attributes(
             .attributes
             .iter()
             .enumerate()
-            .map(|(idx, attr)| {
-                (
-                    ArrayKey::Integer(idx as i64),
-                    attribute_to_value(attr),
-                )
-            })
+            .map(|(idx, attr)| (ArrayKey::Integer(idx as i64), attribute_to_value(attr)))
             .collect();
         Ok(Value::Array(attrs))
     } else {
