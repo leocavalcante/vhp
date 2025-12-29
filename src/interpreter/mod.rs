@@ -963,20 +963,45 @@ impl<W: Write> Interpreter<W> {
         // Create new object instance
         let mut instance = ObjectInstance::new(class_name.to_string());
 
-        // Initialize properties with default values
+        // Initialize properties with default values and track readonly
         for prop in properties {
             let default_val = if let Some(ref default_expr) = prop.default {
                 self.eval_expr(default_expr)?
             } else {
                 Value::Null
             };
-            instance.properties.insert(prop.name, default_val);
+            instance.properties.insert(prop.name.clone(), default_val);
+
+            // Track readonly properties and mark with defaults as initialized
+            if prop.readonly {
+                instance.readonly_properties.insert(prop.name.clone());
+                if prop.default.is_some() {
+                    instance.initialized_readonly.insert(prop.name.clone());
+                }
+            }
+        }
+
+        // Also handle constructor promoted properties
+        let class_def = self.classes.get(&class_name_lower).unwrap();
+        if let Some(constructor) = class_def.methods.get("__construct") {
+            for param in &constructor.params {
+                if param.visibility.is_some() && param.readonly {
+                    instance.readonly_properties.insert(param.name.clone());
+                }
+            }
         }
 
         // Check for constructor (__construct)
         if let Some((constructor, declaring_class)) = self.find_method(class_name, "__construct") {
             // Call constructor with $this bound and named argument support
             self.call_method_on_object_with_arguments(&mut instance, &constructor, args, declaring_class)?;
+        }
+
+        // After constructor completes, mark all current readonly properties as initialized
+        for prop_name in instance.readonly_properties.iter() {
+            if instance.properties.contains_key(prop_name) {
+                instance.initialized_readonly.insert(prop_name.clone());
+            }
         }
 
         Ok(Value::Object(instance))
@@ -1060,7 +1085,23 @@ impl<W: Write> Interpreter<W> {
                 // Evaluate value first to avoid borrow conflicts
                 let val = self.eval_expr(value)?;
                 if let Some(ref mut obj) = self.current_object {
+                    // Check if property is readonly and already initialized
+                    if obj.readonly_properties.contains(property)
+                        && obj.initialized_readonly.contains(property)
+                    {
+                        return Err(format!(
+                            "Cannot modify readonly property {}::${}",
+                            obj.class_name, property
+                        ));
+                    }
+
                     obj.properties.insert(property.to_string(), val.clone());
+
+                    // If this is a readonly property, mark it as initialized
+                    if obj.readonly_properties.contains(property) {
+                        obj.initialized_readonly.insert(property.to_string());
+                    }
+
                     Ok(val)
                 } else {
                     Err("Cannot use $this outside of object context".to_string())
@@ -1071,7 +1112,23 @@ impl<W: Write> Interpreter<W> {
                 let val = self.eval_expr(value)?;
                 // Get the object from variable
                 if let Some(Value::Object(mut instance)) = self.variables.get(var_name).cloned() {
+                    // Check if property is readonly and already initialized
+                    if instance.readonly_properties.contains(property)
+                        && instance.initialized_readonly.contains(property)
+                    {
+                        return Err(format!(
+                            "Cannot modify readonly property {}::${}",
+                            instance.class_name, property
+                        ));
+                    }
+
                     instance.properties.insert(property.to_string(), val.clone());
+
+                    // If this is a readonly property, mark it as initialized
+                    if instance.readonly_properties.contains(property) {
+                        instance.initialized_readonly.insert(property.to_string());
+                    }
+
                     self.variables
                         .insert(var_name.clone(), Value::Object(instance));
                     Ok(val)
@@ -1800,6 +1857,7 @@ impl<W: Write> Interpreter<W> {
                                     name: param.name.clone(),
                                     visibility,
                                     default: param.default.clone(),
+                                    readonly: param.readonly,
                                 });
 
                                 // Prepend assignment: $this->param_name = $param_name
