@@ -9,7 +9,7 @@ mod value;
 pub use value::{ArrayKey, ObjectInstance, Value};
 
 use crate::ast::{
-    Argument, AssignOp, BinaryOp, Expr, FunctionParam, MatchArm, Program, Property, Stmt, SwitchCase,
+    Argument, AssignOp, BinaryOp, Expr, FunctionParam, MatchArm, Program, Property, PropertyModification, Stmt, SwitchCase,
     UnaryOp, Visibility,
 };
 use std::collections::HashMap;
@@ -203,6 +203,13 @@ impl<W: Write> Interpreter<W> {
             Expr::EnumCase { enum_name, case_name } => {
                 self.eval_enum_case(enum_name, case_name)
             }
+
+            Expr::Clone { object } => self.eval_clone(object),
+
+            Expr::CloneWith {
+                object,
+                modifications,
+            } => self.eval_clone_with(object, modifications),
         }
     }
 
@@ -2375,6 +2382,86 @@ impl<W: Write> Interpreter<W> {
         }
 
         Err(format!("Undefined case '{}' for enum '{}'", case_name, enum_name))
+    }
+
+    /// Evaluate clone expression: clone $obj
+    fn eval_clone(&mut self, object_expr: &Expr) -> Result<Value, String> {
+        let object_value = self.eval_expr(object_expr)?;
+
+        match object_value {
+            Value::Object(instance) => {
+                // Create a deep clone of the object
+                let cloned_instance = ObjectInstance {
+                    class_name: instance.class_name.clone(),
+                    properties: instance.properties.clone(),
+                    readonly_properties: instance.readonly_properties.clone(),
+                    initialized_readonly: std::collections::HashSet::new(), // Reset initialization tracking
+                };
+
+                // For a cloned object, readonly properties can be re-initialized
+                // This is PHP's behavior: clone creates a new object context
+                Ok(Value::Object(cloned_instance))
+            }
+            _ => Err(format!(
+                "__clone method called on non-object ({})",
+                object_value.get_type()
+            )),
+        }
+    }
+
+    /// Evaluate clone with expression: clone $obj with { prop: value, ... }
+    fn eval_clone_with(
+        &mut self,
+        object_expr: &Expr,
+        modifications: &[PropertyModification],
+    ) -> Result<Value, String> {
+        let object_value = self.eval_expr(object_expr)?;
+
+        match object_value {
+            Value::Object(instance) => {
+                // Create a deep clone of the object
+                let mut cloned_instance = ObjectInstance {
+                    class_name: instance.class_name.clone(),
+                    properties: instance.properties.clone(),
+                    readonly_properties: instance.readonly_properties.clone(),
+                    initialized_readonly: std::collections::HashSet::new(), // Reset for clone
+                };
+
+                // Apply modifications
+                for modification in modifications {
+                    let property_name = &modification.property;
+
+                    // Check if property exists in the original object
+                    if !cloned_instance.properties.contains_key(property_name) {
+                        return Err(format!(
+                            "Property '{}' does not exist on class '{}'",
+                            property_name, cloned_instance.class_name
+                        ));
+                    }
+
+                    // Evaluate the new value
+                    let new_value = self.eval_expr(&modification.value)?;
+
+                    // Set the property value
+                    cloned_instance
+                        .properties
+                        .insert(property_name.clone(), new_value);
+
+                    // Mark readonly property as initialized if it's readonly
+                    if cloned_instance.readonly_properties.contains(property_name) {
+                        cloned_instance
+                            .initialized_readonly
+                            .insert(property_name.clone());
+                    }
+                }
+
+                Ok(Value::Object(cloned_instance))
+            }
+            _ => Err(format!(
+                "Clone with called on non-object ({})",
+                object_value.get_type()
+            )),
+        }
     }
 }
 
