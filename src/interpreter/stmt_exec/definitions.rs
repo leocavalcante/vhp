@@ -109,20 +109,17 @@ impl<W: Write> Interpreter<W> {
         let mut visibility_map = HashMap::new();
         let mut all_properties = Vec::new();
 
-        // If there's a parent class, inherit its properties and methods
+        // If there's a parent class, inherit its properties
         if let Some(parent_name) = &resolved_parent {
             let parent_name_lower = parent_name.to_lowercase();
             if let Some(parent_class) = self.classes.get(&parent_name_lower).cloned() {
                 // Inherit parent properties
                 all_properties.extend(parent_class.properties.clone());
 
-                // Inherit parent methods
-                for (method_name, method_func) in parent_class.methods.iter() {
-                    methods_map.insert(method_name.clone(), method_func.clone());
-                }
-                for (method_name, visibility) in parent_class.method_visibility.iter() {
-                    visibility_map.insert(method_name.clone(), *visibility);
-                }
+                // NOTE: We do NOT inherit methods here!
+                // Methods are looked up via the hierarchy traversal in find_method().
+                // If we copy parent methods here, we lose track of which class declared them,
+                // which breaks self:: resolution (self:: should refer to the defining class, not the called class).
             } else {
                 return Err(std::io::Error::other(format!(
                     "Parent class '{}' not found",
@@ -248,7 +245,6 @@ impl<W: Write> Interpreter<W> {
 
         // Clone values that will be used after moving to ClassDefinition
         let resolved_parent_clone = resolved_parent.clone();
-        let all_properties_clone = all_properties.clone();
 
         let class_def = ClassDefinition {
             name: name.to_string(),
