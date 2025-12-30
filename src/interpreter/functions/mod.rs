@@ -301,6 +301,16 @@ impl<W: Write> Interpreter<W> {
         // Execute closure body
         let result = match &closure.body {
             ClosureBody::Expression(expr) => self.eval_expr(expr)?,
+            ClosureBody::FunctionRef(name) => {
+                // Call the referenced function with pre-evaluated values
+                self.call_function_with_values(name, &arg_values)?
+            }
+            ClosureBody::MethodRef { .. } => {
+                return Err("Method callables not yet fully implemented".to_string());
+            }
+            ClosureBody::StaticMethodRef { .. } => {
+                return Err("Static method callables not yet fully implemented".to_string());
+            }
         };
 
         // Restore variables

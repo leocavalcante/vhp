@@ -1,0 +1,12 @@
+--TEST--
+First-class callable with multiple parameters
+--FILE--
+<?php
+function add($a, $b) {
+    return $a + $b;
+}
+
+$adder = add(...);
+echo $adder(10, 5);
+--EXPECT--
+15

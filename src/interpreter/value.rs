@@ -16,6 +16,17 @@ pub struct Closure {
 #[derive(Debug, Clone)]
 pub enum ClosureBody {
     Expression(Box<crate::ast::Expr>), // For arrow functions: fn($x) => $x * 2
+    FunctionRef(String),                // For first-class callables: strlen(...)
+    MethodRef {
+        // For first-class method callables: $obj->method(...)
+        object: Box<Value>,
+        method: String,
+    },
+    StaticMethodRef {
+        // For first-class static callables: Class::method(...)
+        class: String,
+        method: String,
+    },
 }
 
 /// Fiber instance representation

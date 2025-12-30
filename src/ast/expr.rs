@@ -178,4 +178,19 @@ pub enum Expr {
         params: Vec<crate::ast::FunctionParam>,
         body: Box<Expr>, // Single expression (not statement block)
     },
+
+    // First-class callable (PHP 8.1): functionName(...)
+    CallableFromFunction(String),
+
+    // First-class callable from method (PHP 8.1): $obj->method(...)
+    CallableFromMethod {
+        object: Box<Expr>,
+        method: String,
+    },
+
+    // First-class callable from static method (PHP 8.1): Class::method(...)
+    CallableFromStaticMethod {
+        class: String,
+        method: String,
+    },
 }

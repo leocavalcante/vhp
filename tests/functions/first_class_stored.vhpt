@@ -1,0 +1,13 @@
+--TEST--
+First-class callable stored in variable
+--FILE--
+<?php
+$trim = trim(...);
+$upper = strtoupper(...);
+
+$text = "  hello  ";
+$text = $trim($text);
+$text = $upper($text);
+echo $text;
+--EXPECT--
+HELLO

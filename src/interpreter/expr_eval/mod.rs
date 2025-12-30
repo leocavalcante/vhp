@@ -141,6 +141,15 @@ impl<W: Write> Interpreter<W> {
             Expr::ArrowFunction { params, body } => {
                 self.eval_arrow_function(params, body)
             }
+            Expr::CallableFromFunction(name) => {
+                self.eval_callable_from_function(name)
+            }
+            Expr::CallableFromMethod { object, method } => {
+                self.eval_callable_from_method(object, method)
+            }
+            Expr::CallableFromStaticMethod { class, method } => {
+                self.eval_callable_from_static_method(class, method)
+            }
         }
     }
 
@@ -344,5 +353,68 @@ impl<W: Write> Interpreter<W> {
                 callable_value.get_type()
             )),
         }
+    }
+
+    /// Create closure from function name (PHP 8.1 first-class callable)
+    fn eval_callable_from_function(&self, name: &str) -> Result<Value, String> {
+        use crate::interpreter::value::{Closure, ClosureBody};
+        use std::collections::HashMap;
+
+        // Create a closure that references the function
+        let closure = Closure {
+            params: vec![], // Will be determined at call time
+            body: ClosureBody::FunctionRef(name.to_string()),
+            captured_vars: HashMap::new(),
+        };
+
+        Ok(Value::Closure(Box::new(closure)))
+    }
+
+    /// Create closure from method (PHP 8.1 first-class callable)
+    fn eval_callable_from_method(&mut self, object: &Expr, method: &str) -> Result<Value, String> {
+        use crate::interpreter::value::{Closure, ClosureBody};
+        use std::collections::HashMap;
+
+        // Evaluate the object
+        let obj_value = self.eval_expr(object)?;
+
+        // Verify it's an object
+        if !matches!(obj_value, Value::Object(_)) {
+            return Err("Cannot create callable from non-object".to_string());
+        }
+
+        // Create closure bound to this object and method
+        let closure = Closure {
+            params: vec![],
+            body: ClosureBody::MethodRef {
+                object: Box::new(obj_value),
+                method: method.to_string(),
+            },
+            captured_vars: HashMap::new(),
+        };
+
+        Ok(Value::Closure(Box::new(closure)))
+    }
+
+    /// Create closure from static method (PHP 8.1 first-class callable)
+    fn eval_callable_from_static_method(
+        &self,
+        class: &str,
+        method: &str,
+    ) -> Result<Value, String> {
+        use crate::interpreter::value::{Closure, ClosureBody};
+        use std::collections::HashMap;
+
+        // Create closure referencing the static method
+        let closure = Closure {
+            params: vec![],
+            body: ClosureBody::StaticMethodRef {
+                class: class.to_string(),
+                method: method.to_string(),
+            },
+            captured_vars: HashMap::new(),
+        };
+
+        Ok(Value::Closure(Box::new(closure)))
     }
 }

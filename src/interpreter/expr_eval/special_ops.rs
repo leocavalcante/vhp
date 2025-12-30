@@ -169,6 +169,12 @@ pub(crate) fn eval_pipe<W: Write>(
 
     // The right side must be a function call or method call
     match right {
+        Expr::CallableFromFunction(name) => {
+            // First-class callable: $value |> func(...)
+            // Call the function with the piped value as the only argument
+            interpreter.call_function_with_values(name, &[piped_value])
+        }
+        
         Expr::FunctionCall { name, args } => {
             // Find placeholder position
             let placeholder_pos = args

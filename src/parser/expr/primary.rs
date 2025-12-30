@@ -284,6 +284,25 @@ impl<'a> ExprParser<'a> {
                             }
                         }
                         
+                        // Check for first-class callable: Class::method(...)
+                        // Must be ONLY ... with no other arguments
+                        if self.check(&TokenKind::Ellipsis) {
+                            let start_pos = *self.pos;
+                            self.advance(); // consume '...'
+                            
+                            if self.check(&TokenKind::RightParen) {
+                                self.advance(); // consume ')'
+                                let callable = Expr::CallableFromStaticMethod {
+                                    class: name,
+                                    method: method_or_case,
+                                };
+                                return parse_postfix(self, callable);
+                            } else {
+                                // Not a first-class callable, rewind
+                                *self.pos = start_pos;
+                            }
+                        }
+                        
                         // Regular static method call
                         let args = self.parse_arguments()?;
                         self.consume(
@@ -305,8 +324,27 @@ impl<'a> ExprParser<'a> {
                         parse_postfix(self, expr)
                     }
                 } else if self.check(&TokenKind::LeftParen) {
-                    // Regular function call
+                    // Function call or first-class callable
                     self.advance(); // consume '('
+                    
+                    // Check for first-class callable: func(...)
+                    // Must be ONLY ... with no other arguments
+                    if self.check(&TokenKind::Ellipsis) {
+                        let start_pos = *self.pos;
+                        self.advance(); // consume '...'
+                        
+                        // Check if this is the only thing in the parentheses
+                        if self.check(&TokenKind::RightParen) {
+                            self.advance(); // consume ')'
+                            let callable = Expr::CallableFromFunction(name);
+                            return parse_postfix(self, callable);
+                        } else {
+                            // Not a first-class callable, rewind and parse as regular call with spread
+                            *self.pos = start_pos;
+                        }
+                    }
+                    
+                    // Regular function call with arguments
                     let args = self.parse_arguments()?;
                     self.consume(
                         TokenKind::RightParen,
