@@ -1015,6 +1015,220 @@ echo $user->getName();  // John
 - Abstract classes can contain both abstract and concrete methods
 - Abstract methods can only exist in abstract classes
 
+## Asymmetric Visibility (PHP 8.4)
+
+Asymmetric visibility allows different visibility modifiers for reading and writing properties. This enables the common pattern of public read access but restricted write access without requiring explicit getter/setter methods.
+
+### Syntax
+
+```php
+<?php
+class ClassName {
+    public private(set) $property;     // Public read, private write
+    public protected(set) $property;   // Public read, protected write
+    protected private(set) $property;  // Protected read, private write
+}
+```
+
+The syntax is: `<read-visibility> <write-visibility>(set) $property`
+
+### Basic Usage
+
+```php
+<?php
+class User {
+    public private(set) string $name;
+
+    public function __construct(string $name) {
+        $this->name = $name;  // OK: write inside class
+    }
+}
+
+$user = new User("Alice");
+echo $user->name;      // OK: public read
+$user->name = "Bob";   // Error: Cannot modify private property
+```
+
+### Public Read, Protected Write
+
+```php
+<?php
+class Base {
+    public protected(set) int $count = 0;
+}
+
+class Child extends Base {
+    public function increment() {
+        $this->count++;  // OK: protected write in subclass
+    }
+}
+
+$child = new Child();
+echo $child->count;     // OK: public read (0)
+$child->increment();
+echo $child->count;     // OK: public read (1)
+$child->count = 5;      // Error: Cannot modify protected property
+```
+
+### Protected Read, Private Write
+
+```php
+<?php
+class Base {
+    protected private(set) string $status = "pending";
+
+    private function updateStatus(string $newStatus) {
+        $this->status = $newStatus;  // OK: private write inside class
+    }
+}
+
+class Child extends Base {
+    public function getStatus() {
+        return $this->status;  // OK: protected read in subclass
+    }
+
+    public function setStatus(string $s) {
+        $this->status = $s;  // Error: Cannot modify private property
+    }
+}
+```
+
+### With Static Properties
+
+Asymmetric visibility works with static properties:
+
+```php
+<?php
+class Config {
+    public private(set) static int $version = 1;
+
+    public static function upgrade() {
+        self::$version++;  // OK: write inside class
+    }
+}
+
+echo Config::$version;  // OK: public read (1)
+Config::upgrade();
+echo Config::$version;  // OK: public read (2)
+Config::$version = 5;   // Error: Cannot modify private property
+```
+
+### Multiple Properties
+
+Classes can have multiple properties with different asymmetric visibility:
+
+```php
+<?php
+class Data {
+    public private(set) int $id;
+    public protected(set) string $name;
+    public int $value;  // Symmetric visibility
+
+    public function __construct(int $id, string $name, int $value) {
+        $this->id = $id;
+        $this->name = $name;
+        $this->value = $value;
+    }
+}
+
+$data = new Data(1, "test", 42);
+echo $data->id;      // OK: public read
+echo $data->name;    // OK: public read
+echo $data->value;   // OK: public read
+
+$data->value = 100;  // OK: public write
+$data->id = 2;       // Error: Cannot modify private property
+$data->name = "x";   // Error: Cannot modify protected property (outside class)
+```
+
+### With Inheritance
+
+Write visibility is inherited and respected across the class hierarchy:
+
+```php
+<?php
+class Base {
+    public protected(set) string $status = "pending";
+}
+
+class Child extends Base {
+    public function approve() {
+        $this->status = "approved";  // OK: protected write in subclass
+    }
+}
+
+$child = new Child();
+echo $child->status;  // pending
+$child->approve();
+echo $child->status;  // approved
+$child->status = "x"; // Error: Cannot modify protected property
+```
+
+### Validation Rules
+
+The write visibility must be equal to or more restrictive than the read visibility:
+
+**Valid combinations:**
+- `public private(set)` ✓ (most common)
+- `public protected(set)` ✓
+- `protected private(set)` ✓
+
+**Invalid combinations:**
+- `private public(set)` ✗ (write cannot be less restrictive)
+- `private protected(set)` ✗
+- `protected public(set)` ✗
+- `public public(set)` ✗ (redundant, just use `public`)
+- `private private(set)` ✗ (redundant, just use `private`)
+
+### Incompatibilities
+
+Asymmetric visibility cannot be combined with:
+
+**Readonly properties:**
+```php
+<?php
+class User {
+    public private(set) readonly string $name;  // Error
+}
+// Error: Readonly properties cannot have asymmetric visibility
+```
+
+Both features solve the same problem (restricting writes), so they're mutually exclusive.
+
+**Property hooks with set:**
+```php
+<?php
+class Temperature {
+    public private(set) float $celsius {  // Error
+        set {
+            $this->celsius = $value;
+        }
+    }
+}
+// Error: Properties with set hooks cannot have asymmetric visibility
+```
+
+If you need custom set logic, use property hooks instead of asymmetric visibility.
+
+### Use Cases
+
+Asymmetric visibility is ideal for:
+
+1. **Immutable public data** - Properties that should be publicly readable but only internally modifiable
+2. **Controlled state changes** - Properties that can only be modified through specific methods
+3. **Counter/statistics** - Public counters that can only be incremented internally
+4. **Configuration** - Public config that can only be set during initialization
+5. **IDs and timestamps** - Values that should never be changed after creation
+
+### Notes
+
+- Asymmetric visibility is purely a visibility control mechanism
+- It doesn't affect property initialization in constructors
+- Works with constructor property promotion
+- Compatible with attributes
+- Works with both instance and static properties
+- Write visibility is checked at runtime based on the current class context
+
 ## Final Classes and Methods
 
 The `final` keyword prevents classes from being extended and methods from being overridden.

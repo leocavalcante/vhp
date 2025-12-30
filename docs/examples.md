@@ -506,3 +506,214 @@ echo "App: " . Registry::get("app_name") . "\n";  // App: VHP Framework
 echo "Version: " . Registry::get("version") . "\n";  // Version: 1.0.0
 ```
 
+## Asymmetric Visibility (PHP 8.4)
+
+Asymmetric visibility allows public read access with restricted write access, eliminating the need for getter/setter boilerplate.
+
+```php
+<?php
+// Example 1: Basic asymmetric visibility - public read, private write
+class User {
+    public private(set) string $id;
+    public private(set) string $email;
+    public string $name;  // Symmetric: public read/write
+
+    public function __construct(string $id, string $email, string $name) {
+        $this->id = $id;      // OK: write inside class
+        $this->email = $email;
+        $this->name = $name;
+    }
+
+    public function updateEmail(string $newEmail) {
+        // Validation logic here
+        $this->email = $newEmail;  // OK: write inside class
+    }
+}
+
+$user = new User("123", "user@example.com", "Alice");
+echo $user->id . "\n";     // OK: public read - 123
+echo $user->email . "\n";  // OK: public read - user@example.com
+
+$user->name = "Bob";       // OK: public write (symmetric visibility)
+// $user->id = "456";      // Error: Cannot modify private property
+// $user->email = "new@example.com";  // Error: Cannot modify private property
+
+$user->updateEmail("new@example.com");  // OK: write through method
+echo $user->email . "\n";  // new@example.com
+
+// Example 2: Public read, protected write - inheritance pattern
+class Counter {
+    public protected(set) int $count = 0;
+    public protected(set) int $maxValue = 100;
+
+    public function getValue(): int {
+        return $this->count;
+    }
+}
+
+class ResettableCounter extends Counter {
+    public function increment() {
+        if ($this->count < $this->maxValue) {
+            $this->count++;  // OK: protected write in subclass
+        }
+    }
+
+    public function reset() {
+        $this->count = 0;  // OK: protected write in subclass
+    }
+}
+
+$counter = new ResettableCounter();
+echo $counter->count . "\n";      // OK: public read - 0
+echo $counter->maxValue . "\n";   // OK: public read - 100
+
+$counter->increment();
+$counter->increment();
+echo $counter->count . "\n";      // OK: public read - 2
+
+// $counter->count = 10;          // Error: Cannot modify protected property
+// $counter->maxValue = 200;      // Error: Cannot modify protected property
+
+$counter->reset();
+echo $counter->count . "\n";      // OK: public read - 0
+
+// Example 3: Immutable value objects
+readonly class Point {
+    public function __construct(
+        public private(set) float $x,
+        public private(set) float $y
+    ) {}
+
+    public function distanceFrom(Point $other): float {
+        $dx = $this->x - $other->x;
+        $dy = $this->y - $other->y;
+        return sqrt($dx * $dx + $dy * $dy);
+    }
+}
+
+$p1 = new Point(0.0, 0.0);
+$p2 = new Point(3.0, 4.0);
+
+echo "P1: (" . $p1->x . ", " . $p1->y . ")\n";  // P1: (0, 0)
+echo "P2: (" . $p2->x . ", " . $p2->y . ")\n";  // P2: (3, 4)
+echo "Distance: " . $p1->distanceFrom($p2) . "\n";  // Distance: 5
+
+// $p1->x = 1.0;  // Error: Cannot modify private property
+// $p1->y = 1.0;  // Error: Cannot modify private property
+
+// Example 4: Static properties with asymmetric visibility
+class AppConfig {
+    public private(set) static string $environment = "development";
+    public private(set) static bool $debug = true;
+    public private(set) static array $settings = [];
+
+    public static function initialize(string $env) {
+        self::$environment = $env;  // OK: write inside class
+        self::$debug = ($env === "development");
+        self::$settings = [
+            "timeout" => 30,
+            "retries" => 3
+        ];
+    }
+
+    public static function setSetting(string $key, $value) {
+        self::$settings[$key] = $value;  // OK: write inside class
+    }
+}
+
+// Public read access
+echo "Environment: " . AppConfig::$environment . "\n";  // development
+echo "Debug: " . (AppConfig::$debug ? "on" : "off") . "\n";  // on
+
+// AppConfig::$environment = "production";  // Error: Cannot modify private property
+// AppConfig::$debug = false;               // Error: Cannot modify private property
+
+// Must use method to modify
+AppConfig::initialize("production");
+echo "Environment: " . AppConfig::$environment . "\n";  // production
+echo "Debug: " . (AppConfig::$debug ? "on" : "off") . "\n";  // off
+
+// Example 5: Protected read, private write
+class Authenticator {
+    protected private(set) string $token = "";
+    protected private(set) bool $authenticated = false;
+
+    private function setToken(string $token) {
+        $this->token = $token;  // OK: private write inside class
+        $this->authenticated = true;
+    }
+
+    public function login(string $username, string $password): bool {
+        // Authentication logic here
+        if ($username === "admin" && $password === "secret") {
+            $this->setToken("token_" . uniqid());
+            return true;
+        }
+        return false;
+    }
+
+    public function isAuthenticated(): bool {
+        return $this->authenticated;
+    }
+}
+
+class ExtendedAuthenticator extends Authenticator {
+    public function getAuthStatus(): string {
+        // OK: protected read in subclass
+        if ($this->authenticated) {
+            return "Authenticated with token: " . substr($this->token, 0, 10) . "...";
+        }
+        return "Not authenticated";
+    }
+
+    public function forceLogout() {
+        // $this->authenticated = false;  // Error: Cannot modify private property
+        // $this->token = "";              // Error: Cannot modify private property
+        // Must use public interface
+    }
+}
+
+$auth = new ExtendedAuthenticator();
+echo $auth->getAuthStatus() . "\n";  // Not authenticated
+
+if ($auth->login("admin", "secret")) {
+    echo $auth->getAuthStatus() . "\n";  // Authenticated with token: token_...
+}
+
+// Example 6: Practical use case - Event sourcing
+class Event {
+    public private(set) string $id;
+    public private(set) string $type;
+    public private(set) array $data;
+    public private(set) int $timestamp;
+
+    public function __construct(string $type, array $data) {
+        $this->id = uniqid("evt_", true);
+        $this->type = $type;
+        $this->data = $data;
+        $this->timestamp = time();
+    }
+
+    public function toArray(): array {
+        return [
+            "id" => $this->id,
+            "type" => $this->type,
+            "data" => $this->data,
+            "timestamp" => $this->timestamp
+        ];
+    }
+}
+
+$event = new Event("user.created", ["username" => "alice", "email" => "alice@example.com"]);
+
+// Public read access to all properties
+echo "Event ID: " . $event->id . "\n";
+echo "Event Type: " . $event->type . "\n";
+echo "Timestamp: " . $event->timestamp . "\n";
+
+// Cannot modify immutable event properties
+// $event->id = "evt_new";         // Error: Cannot modify private property
+// $event->type = "user.updated";  // Error: Cannot modify private property
+// $event->timestamp = time();     // Error: Cannot modify private property
+```
+

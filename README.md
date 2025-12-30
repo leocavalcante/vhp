@@ -216,6 +216,7 @@ That's the difference between a tool and an ecosystem.
 - ✅ Readonly properties (PHP 8.1)
 - ✅ Readonly classes (PHP 8.2)
 - ✅ Property hooks with get/set (PHP 8.4)
+- ✅ Asymmetric visibility (PHP 8.4)
 - ✅ Object cloning with `clone` and `clone with`
 - ✅ Magic methods (__toString, __invoke, __get/__set, __call)
 
