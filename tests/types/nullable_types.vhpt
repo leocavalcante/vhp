@@ -1,0 +1,16 @@
+--TEST--
+Nullable type hints
+--FILE--
+<?php
+function findUser(?int $id): ?string {
+    if ($id === null) {
+        return null;
+    }
+    return "User" . $id;
+}
+
+echo findUser(123) . "\n";
+echo (findUser(null) === null ? "null" : "not null");
+--EXPECT--
+User123
+null

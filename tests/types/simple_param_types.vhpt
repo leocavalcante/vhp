@@ -1,0 +1,17 @@
+--TEST--
+Simple parameter type hints
+--FILE--
+<?php
+function greet(string $name): string {
+    return "Hello, " . $name;
+}
+
+function add(int $a, int $b): int {
+    return $a + $b;
+}
+
+echo greet("World") . "\n";
+echo add(5, 3);
+--EXPECT--
+Hello, World
+8

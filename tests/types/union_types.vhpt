@@ -1,0 +1,16 @@
+--TEST--
+Union type hints (PHP 8.0)
+--FILE--
+<?php
+function process(int|string $value): int|string {
+    if (is_int($value)) {
+        return $value * 2;
+    }
+    return strtoupper($value);
+}
+
+echo process(5) . "\n";
+echo process("hello");
+--EXPECT--
+10
+HELLO

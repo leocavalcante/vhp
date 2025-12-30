@@ -1,0 +1,15 @@
+--TEST--
+Mixed type hint
+--FILE--
+<?php
+function anything(mixed $value): mixed {
+    return $value;
+}
+
+echo anything(42) . "\n";
+echo anything("hello") . "\n";
+echo (anything(null) === null ? "null" : "not null");
+--EXPECT--
+42
+hello
+null

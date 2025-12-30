@@ -1,0 +1,11 @@
+--TEST--
+Void return type
+--FILE--
+<?php
+function logMessage(string $msg): void {
+    echo $msg;
+}
+
+logMessage("Hello, World!");
+--EXPECT--
+Hello, World!

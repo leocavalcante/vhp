@@ -1,0 +1,20 @@
+--TEST--
+Method parameter and return type hints
+--FILE--
+<?php
+class Calculator {
+    public function add(int $a, int $b): int {
+        return $a + $b;
+    }
+    
+    public function greet(string $name): string {
+        return "Hello, " . $name;
+    }
+}
+
+$calc = new Calculator();
+echo $calc->add(10, 20) . "\n";
+echo $calc->greet("PHP");
+--EXPECT--
+30
+Hello, PHP
