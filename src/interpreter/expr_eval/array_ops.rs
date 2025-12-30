@@ -86,6 +86,59 @@ pub(crate) fn eval_array_assign<W: Write>(
 ) -> Result<Value, String> {
     let new_value = interpreter.eval_expr(value_expr)?;
 
+    // Handle static property access (e.g., Class::$array[] = value)
+    if let Expr::StaticPropertyAccess { class, property } = array_expr {
+        // Get the array from the static property
+        let mut arr = match interpreter.get_static_property(class, property)? {
+            Value::Array(a) => a,
+            Value::Null => Vec::new(),
+            _ => return Err("Cannot use array assignment on non-array property".to_string()),
+        };
+
+        // Calculate the key
+        let key = if let Some(idx_expr) = index {
+            ArrayKey::from_value(&interpreter.eval_expr(idx_expr)?)
+        } else {
+            // Append: find max integer key + 1
+            let max_key = arr
+                .iter()
+                .filter_map(|(k, _)| {
+                    if let ArrayKey::Integer(n) = k {
+                        Some(*n)
+                    } else {
+                        None
+                    }
+                })
+                .max()
+                .unwrap_or(-1);
+            ArrayKey::Integer(max_key + 1)
+        };
+
+        // Apply the operation
+        let value_to_store = if let Some(idx) = arr.iter().position(|(k, _)| k == &key) {
+            match op {
+                AssignOp::Assign => new_value.clone(),
+                _ => {
+                    let current = &arr[idx].1;
+                    interpreter.apply_compound_assign_op(current, op, &new_value)?
+                }
+            }
+        } else {
+            new_value.clone()
+        };
+
+        // Update or insert
+        if let Some(idx) = arr.iter().position(|(k, _)| k == &key) {
+            arr[idx].1 = value_to_store.clone();
+        } else {
+            arr.push((key, value_to_store.clone()));
+        }
+
+        // Write the array back to the static property
+        interpreter.set_static_property(class, property, Value::Array(arr))?;
+        return Ok(value_to_store);
+    }
+
     // Handle property access specially (e.g., $this->array[] = value)
     if let Expr::PropertyAccess { object, property } = array_expr {
         // Get the array from the property
