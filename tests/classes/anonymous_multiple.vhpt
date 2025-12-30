@@ -1,0 +1,17 @@
+--TEST--
+Multiple anonymous classes are independent
+--FILE--
+<?php
+$a = new class {
+    public $value = "A";
+};
+
+$b = new class {
+    public $value = "B";
+};
+
+echo $a->value . "\n";
+echo $b->value;
+--EXPECT--
+A
+B

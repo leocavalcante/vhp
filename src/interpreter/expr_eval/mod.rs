@@ -74,6 +74,22 @@ impl<W: Write> Interpreter<W> {
 
             // Object/OOP operations
             Expr::New { class_name, args } => object_ops::eval_new(self, class_name, args),
+            Expr::NewAnonymousClass {
+                constructor_args,
+                parent,
+                interfaces,
+                traits,
+                properties,
+                methods,
+            } => object_ops::eval_new_anonymous_class(
+                self,
+                constructor_args,
+                parent,
+                interfaces,
+                traits,
+                properties,
+                methods,
+            ),
             Expr::PropertyAccess { object, property } => {
                 object_ops::eval_property_access(self, object, property)
             }

@@ -111,6 +111,9 @@ pub struct Interpreter<W: Write> {
     fibers: HashMap<usize, value::FiberInstance>, // All fibers by ID
     current_fiber: Option<usize>,                 // Currently executing fiber ID
     fiber_counter: usize,                         // For generating unique IDs
+    
+    // Anonymous class support
+    anonymous_class_counter: usize,               // For generating unique class names
 }
 
 impl<W: Write> Interpreter<W> {
@@ -128,6 +131,7 @@ impl<W: Write> Interpreter<W> {
             fibers: HashMap::new(),
             current_fiber: None,
             fiber_counter: 0,
+            anonymous_class_counter: 0,
         }
     }
 

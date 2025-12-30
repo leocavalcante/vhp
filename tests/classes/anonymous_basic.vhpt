@@ -1,0 +1,13 @@
+--TEST--
+Basic anonymous class
+--FILE--
+<?php
+$obj = new class {
+    public function greet() {
+        return "Hello!";
+    }
+};
+
+echo $obj->greet();
+--EXPECT--
+Hello!

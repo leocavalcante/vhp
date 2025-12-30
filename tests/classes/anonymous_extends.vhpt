@@ -1,0 +1,21 @@
+--TEST--
+Anonymous class extending another class
+--FILE--
+<?php
+class Base {
+    protected $value;
+    
+    public function __construct($value) {
+        $this->value = $value;
+    }
+}
+
+$obj = new class(42) extends Base {
+    public function getValue() {
+        return $this->value;
+    }
+};
+
+echo $obj->getValue();
+--EXPECT--
+42

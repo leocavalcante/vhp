@@ -100,6 +100,16 @@ pub enum Expr {
         class_name: String,
         args: Vec<Argument>,
     },
+
+    // Anonymous class instantiation (PHP 7.0): new class(...) extends X implements Y { ... }
+    NewAnonymousClass {
+        constructor_args: Vec<Argument>,
+        parent: Option<String>,
+        interfaces: Vec<String>,
+        traits: Vec<crate::ast::TraitUse>,
+        properties: Vec<crate::ast::Property>,
+        methods: Vec<crate::ast::Method>,
+    },
     
     // Fiber instantiation: new Fiber(callback) - Special case
     NewFiber {

@@ -466,6 +466,13 @@ impl<'a> ExprParser<'a> {
             }
             TokenKind::New => {
                 self.advance(); // consume 'new'
+                
+                // Check for anonymous class: new class ...
+                if self.check(&TokenKind::Class) {
+                    let anon_class = self.parse_anonymous_class()?;
+                    return parse_postfix(self, anon_class);
+                }
+                
                 let class_name = match &self.current().kind {
                     TokenKind::Identifier(name) => {
                         let name = name.clone();
@@ -608,6 +615,150 @@ impl<'a> ExprParser<'a> {
         Ok(Expr::ArrowFunction {
             params,
             body: Box::new(body),
+        })
+    }
+
+    /// Parse anonymous class: new class(...) extends X implements Y { ... }
+    pub fn parse_anonymous_class(&mut self) -> Result<Expr, String> {
+        self.consume(TokenKind::Class, "Expected 'class'")?;
+        
+        // Parse optional constructor arguments: new class(arg1, arg2)
+        let constructor_args = if self.check(&TokenKind::LeftParen) {
+            self.advance();
+            let args = self.parse_arguments()?;
+            self.consume(TokenKind::RightParen, "Expected ')' after constructor arguments")?;
+            args
+        } else {
+            vec![]
+        };
+        
+        // Parse optional extends
+        let parent = if self.check(&TokenKind::Extends) {
+            self.advance();
+            if let TokenKind::Identifier(name) = &self.current().kind {
+                let name = name.clone();
+                self.advance();
+                Some(name)
+            } else {
+                return Err(format!(
+                    "Expected parent class name after 'extends' at line {}, column {}",
+                    self.current().line,
+                    self.current().column
+                ));
+            }
+        } else {
+            None
+        };
+        
+        // Parse optional implements
+        let mut interfaces = vec![];
+        if self.check(&TokenKind::Implements) {
+            self.advance();
+            loop {
+                if let TokenKind::Identifier(name) = &self.current().kind {
+                    interfaces.push(name.clone());
+                    self.advance();
+                } else {
+                    return Err(format!(
+                        "Expected interface name at line {}, column {}",
+                        self.current().line,
+                        self.current().column
+                    ));
+                }
+                
+                if !self.check(&TokenKind::Comma) {
+                    break;
+                }
+                self.advance();
+            }
+        }
+        
+        // Parse class body using StmtParser
+        self.consume(TokenKind::LeftBrace, "Expected '{' for anonymous class body")?;
+        
+        // Create a StmtParser to parse class members
+        let mut stmt_parser = crate::parser::stmt::StmtParser::new(self.tokens, self.pos);
+        
+        let mut traits = vec![];
+        let mut properties = vec![];
+        let mut methods = vec![];
+        
+        while !stmt_parser.check(&TokenKind::RightBrace) && !stmt_parser.check(&TokenKind::Eof) {
+            // Parse class member
+            if stmt_parser.check(&TokenKind::Use) {
+                // Parse trait use
+                stmt_parser.advance();
+                let mut trait_names = vec![];
+                loop {
+                    if let TokenKind::Identifier(name) = &stmt_parser.current().kind {
+                        trait_names.push(name.clone());
+                        stmt_parser.advance();
+                    } else {
+                        return Err(format!(
+                            "Expected trait name at line {}, column {}",
+                            stmt_parser.current().line,
+                            stmt_parser.current().column
+                        ));
+                    }
+                    
+                    if !stmt_parser.check(&TokenKind::Comma) {
+                        break;
+                    }
+                    stmt_parser.advance();
+                }
+                stmt_parser.consume(TokenKind::Semicolon, "Expected ';' after trait use")?;
+                traits.push(crate::ast::TraitUse {
+                    traits: trait_names,
+                    resolutions: vec![],
+                });
+            } else {
+                // Parse visibility and other modifiers
+                let mut visibility = crate::ast::Visibility::Public;
+                let mut is_abstract = false;
+                let mut is_final = false;
+                
+                loop {
+                    if stmt_parser.check(&TokenKind::Public) {
+                        visibility = crate::ast::Visibility::Public;
+                        stmt_parser.advance();
+                    } else if stmt_parser.check(&TokenKind::Protected) {
+                        visibility = crate::ast::Visibility::Protected;
+                        stmt_parser.advance();
+                    } else if stmt_parser.check(&TokenKind::Private) {
+                        visibility = crate::ast::Visibility::Private;
+                        stmt_parser.advance();
+                    } else if stmt_parser.check(&TokenKind::Abstract) {
+                        is_abstract = true;
+                        stmt_parser.advance();
+                    } else if stmt_parser.check(&TokenKind::Final) {
+                        is_final = true;
+                        stmt_parser.advance();
+                    } else {
+                        break;
+                    }
+                }
+                
+                if stmt_parser.check(&TokenKind::Function) {
+                    // It's a method
+                    let method = stmt_parser.parse_method(visibility, is_abstract, is_final)?;
+                    methods.push(method);
+                } else {
+                    // It's a property
+                    let property = stmt_parser.parse_property(visibility)?;
+                    properties.push(property);
+                }
+            }
+        }
+        
+        stmt_parser.consume(TokenKind::RightBrace, "Expected '}' after anonymous class body")?;
+        
+        Ok(Expr::NewAnonymousClass {
+            constructor_args,
+            parent,
+            interfaces,
+            traits,
+            properties,
+            methods,
         })
     }
 }
