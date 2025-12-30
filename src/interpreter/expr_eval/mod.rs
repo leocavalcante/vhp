@@ -385,6 +385,27 @@ impl<W: Write> Interpreter<W> {
                 // Variable function call: $func = "strlen"; $func("hello");
                 self.call_function(&func_name, args)
             }
+            Value::Object(mut obj) => {
+                // Check for __invoke magic method
+                let class = self.classes.get(&obj.class_name).cloned();
+                if let Some(class) = class {
+                    if let Some(method) = class.get_magic_method("__invoke") {
+                        // Evaluate arguments
+                        let arg_values: Result<Vec<_>, _> = args
+                            .iter()
+                            .map(|arg| self.eval_expr(&arg.value))
+                            .collect();
+                        let arg_values = arg_values?;
+
+                        let class_name = obj.class_name.clone();
+                        return self.call_method_on_object(&mut obj, method, &arg_values, class_name);
+                    }
+                }
+                Err(format!(
+                    "Call to undefined method {}::__invoke()",
+                    obj.class_name
+                ))
+            }
             _ => Err(format!(
                 "Value of type {} is not callable",
                 callable_value.get_type()
