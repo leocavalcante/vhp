@@ -710,7 +710,13 @@ impl<W: Write> Interpreter<W> {
                 }
             }
             TypeHint::Union(types) => {
-                // Try each type in the union
+                // First, check for exact matches without coercion
+                for t in types {
+                    if value.matches_type(t) {
+                        return Ok(value.clone());
+                    }
+                }
+                // If no exact match, try coercion
                 for t in types {
                     if let Ok(coerced) = self.coerce_to_type(value, t) {
                         return Ok(coerced);
