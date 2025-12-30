@@ -3091,6 +3091,139 @@ function process(Iterator&Countable $collection): int {
 }
 ```
 
+### DNF Types (PHP 8.2)
+
+DNF (Disjunctive Normal Form) types allow complex type declarations combining union (`|`) and intersection (`&`) types. The format is `(A&B)|C` meaning "either an object that implements both A and B, or just C".
+
+**Syntax:**
+
+```php
+<?php
+// Basic DNF: (A&B)|C
+function process((Loggable&Serializable)|Cacheable $obj): void {
+    // Accept objects that implement both Loggable AND Serializable,
+    // OR objects that implement Cacheable
+}
+
+// Multiple intersections: (A&B)|(C&D)
+function handle((Iterator&Countable)|(ArrayAccess&Traversable) $collection): void {
+    // Complex type combinations
+}
+
+// DNF with simple type: (A&B)|C|D
+function accept((A&B)|C|D $value): void {
+    // Mixed intersection and simple types
+}
+```
+
+**Example:**
+
+```php
+<?php
+interface Loggable {
+    public function log();
+}
+
+interface Serializable {
+    public function serialize();
+}
+
+interface Cacheable {
+    public function cache();
+}
+
+// Accept either (Loggable AND Serializable) OR Cacheable
+function process((Loggable&Serializable)|Cacheable $obj): void {
+    if ($obj instanceof Loggable) {
+        $obj->log();
+    }
+    if ($obj instanceof Cacheable) {
+        $obj->cache();
+    }
+}
+
+class LogSerializable implements Loggable, Serializable {
+    public function log() { echo "Logged\n"; }
+    public function serialize() { return "serialized"; }
+}
+
+class Cache implements Cacheable {
+    public function cache() { echo "Cached\n"; }
+}
+
+process(new LogSerializable());  // OK: matches (Loggable&Serializable)
+process(new Cache());            // OK: matches Cacheable
+```
+
+**With Return Types:**
+
+```php
+<?php
+interface I1 {}
+interface I2 {}
+interface I3 {}
+
+class A implements I1, I2 {}
+
+function get(): (I1&I2)|I3 {
+    return new A();  // Returns object matching (I1&I2)
+}
+
+$result = get();
+echo $result instanceof I1 ? "yes" : "no";  // yes
+```
+
+**Multiple Intersection Groups:**
+
+```php
+<?php
+interface A {}
+interface B {}
+interface C {}
+interface D {}
+
+class AB implements A, B {}
+class CD implements C, D {}
+
+function test((A&B)|(C&D) $obj): string {
+    return get_class($obj);
+}
+
+echo test(new AB());  // AB
+echo test(new CD());  // CD
+```
+
+**Notes:**
+
+- **DNF Form Required**: Must be in Disjunctive Normal Form: `(A&B)|C` is valid, but `A&(B|C)` is not
+- **Parentheses Required**: Intersections in unions must use parentheses: `(A&B)|C`
+- **Type Mixing**: Can mix single types with intersections: `(A&B)|C|D`
+- **Validation**: At runtime, the value must match at least one "branch" of the union
+- **Intersection Matching**: To match an intersection branch, must implement ALL types in that intersection
+- **Class/Interface Types Only**: Only class/interface types can be in intersections (not int, string, etc.)
+- **Inheritance Support**: Subclasses that implement required interfaces match the type
+
+**Error Handling:**
+
+If a value doesn't match any branch of the DNF type, a TypeError is thrown:
+
+```php
+<?php
+interface A {}
+interface B {}
+interface C {}
+
+class OnlyA implements A {}
+
+function process((A&B)|C $obj): void {
+    echo "OK";
+}
+
+// TypeError: Expected type (A&B)|C, got OnlyA
+// OnlyA only implements A, not both A and B, and not C
+process(new OnlyA());
+```
+
 ### Return Type Declarations
 
 Specify the type a function returns using `: type` after the parameter list.

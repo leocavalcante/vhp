@@ -62,7 +62,7 @@ src/
         ├── output.rs    # Output functions (4)
         └── reflection.rs # Reflection functions (8)
 
-tests/                   # Test suite organized by feature (466 tests)
+tests/                   # Test suite organized by feature (479 tests)
 ├── arrays/              # Array tests (18)
 ├── attributes/          # Attribute syntax and reflection tests (29)
 ├── builtins/            # Built-in function tests (26)
@@ -83,7 +83,7 @@ tests/                   # Test suite organized by feature (466 tests)
 ├── strings/             # String literal and escape sequence tests (8)
 ├── tags/                # PHP tag tests (4)
 ├── traits/              # Trait tests (9)
-├── types/               # Type declaration and validation tests (40)
+├── types/               # Type declaration and validation tests (53 including DNF types)
 └── variables/           # Variable assignment and scope tests (8)
 
 Makefile                 # Build automation (build, lint, test targets)
@@ -450,7 +450,8 @@ $value = $input ?? throw new Exception("Missing input");
 - [x] Simple type hints (int, string, float, bool, array, object, callable, mixed, iterable)
 - [x] Nullable types (PHP 7.1) - `?int`, `?string`
 - [x] Union types (PHP 8.0) - `int|string`, `int|float|null`
-- [x] Intersection types (PHP 8.1) - `Iterator&Countable` (parsing)
+- [x] Intersection types (PHP 8.1) - `Iterator&Countable`
+- [x] DNF types (PHP 8.2) - `(A&B)|C`, `(A&B)|(C&D)`
 - [x] Return type declarations (including void, never, static)
 - [x] self/parent types (in class context)
 - [x] Runtime type validation for parameters
@@ -745,10 +746,10 @@ Essential PHP features for compatibility with standard PHP code.
 - [x] Nullable types (PHP 7.1) - `?int`
 - [x] Union types (PHP 8.0) - `int|string`
 - [x] Intersection types (PHP 8.1) - `Iterator&Countable` (parsing)
+- [x] DNF types (PHP 8.2) - `(A&B)|C` (Disjunctive Normal Form)
 - [x] void, never, static return types
 - [x] Runtime type validation for parameters and return types
 - [x] Class type hints
-- [ ] DNF types (PHP 8.2) - `(A&B)|C`
 
 **Namespaces:**
 - [x] namespace declaration (braced and unbraced syntax)

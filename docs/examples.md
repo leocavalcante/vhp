@@ -271,6 +271,139 @@ try {
 // Error: Config key 'invalid' not found
 ```
 
+## DNF Types (PHP 8.2)
+
+DNF (Disjunctive Normal Form) types allow complex type declarations that combine union and intersection types.
+
+```php
+<?php
+// Example 1: Basic DNF type - (A&B)|C
+interface Loggable {
+    public function log();
+}
+
+interface Serializable {
+    public function serialize();
+}
+
+interface Cacheable {
+    public function cache();
+}
+
+// Accept either (Loggable AND Serializable) OR Cacheable
+function process((Loggable&Serializable)|Cacheable $obj): void {
+    if ($obj instanceof Loggable) {
+        $obj->log();
+    }
+    if ($obj instanceof Cacheable) {
+        $obj->cache();
+    }
+}
+
+class LogSerializable implements Loggable, Serializable {
+    public function log() { echo "Logged\n"; }
+    public function serialize() { return "serialized"; }
+}
+
+class Cache implements Cacheable {
+    public function cache() { echo "Cached\n"; }
+}
+
+process(new LogSerializable());  // OK: matches (Loggable&Serializable)
+process(new Cache());            // OK: matches Cacheable
+
+// Example 2: Multiple intersection groups - (A&B)|(C&D)
+interface Iterator {}
+interface Countable {}
+interface ArrayAccess {}
+interface Traversable {}
+
+class CountableIterator implements Iterator, Countable {}
+class TraversableArray implements ArrayAccess, Traversable {}
+
+function handle((Iterator&Countable)|(ArrayAccess&Traversable) $collection): string {
+    return get_class($collection);
+}
+
+echo handle(new CountableIterator()) . "\n";   // CountableIterator
+echo handle(new TraversableArray()) . "\n";    // TraversableArray
+
+// Example 3: DNF with return types
+interface Readable {
+    public function read();
+}
+
+interface Writable {
+    public function write($data);
+}
+
+interface Stream {
+    public function stream();
+}
+
+class File implements Readable, Writable {
+    public function read() { return "data"; }
+    public function write($data) {}
+}
+
+function openResource(): (Readable&Writable)|Stream {
+    return new File();
+}
+
+$resource = openResource();
+echo $resource->read();  // data
+
+// Example 4: Type validation with DNF
+interface A {}
+interface B {}
+interface C {}
+
+class AB implements A, B {}
+class OnlyA implements A {}
+
+function test((A&B)|C $obj): void {
+    echo "Valid type\n";
+}
+
+test(new AB());      // Valid type
+// test(new OnlyA());  // TypeError: Expected type (A&B)|C
+// OnlyA only implements A, not both A and B, and not C
+
+// Example 5: Complex business logic with DNF
+interface PaymentMethod {
+    public function charge($amount);
+}
+
+interface Refundable {
+    public function refund($amount);
+}
+
+interface Recurring {
+    public function setupRecurring($interval);
+}
+
+class CreditCard implements PaymentMethod, Refundable {
+    public function charge($amount) { return "Charged $amount"; }
+    public function refund($amount) { return "Refunded $amount"; }
+}
+
+class Subscription implements Recurring {
+    public function setupRecurring($interval) { return "Recurring: $interval"; }
+}
+
+function processPayment((PaymentMethod&Refundable)|Recurring $method): string {
+    if ($method instanceof PaymentMethod) {
+        return $method->charge(100);
+    } elseif ($method instanceof Recurring) {
+        return $method->setupRecurring("monthly");
+    }
+    return "Unknown";
+}
+
+echo processPayment(new CreditCard()) . "\n";    // Charged 100
+echo processPayment(new Subscription()) . "\n";  // Recurring: monthly
+```
+
 ## Declare Strict Types (PHP 7.0)
 
 The `declare(strict_types=1)` directive enables strict type checking, preventing automatic type coercion.

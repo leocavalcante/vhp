@@ -121,13 +121,13 @@ This phase focuses on implementing core PHP language features that are essential
 - [x] **Type declarations** - Parameter and return type hints (`int`, `string`, `float`, `bool`, `array`, `callable`, `object`, `iterable`, `mixed`)
 - [x] **Nullable types** (PHP 7.1) - `?int`, `?string` syntax
 - [x] **Union types** (PHP 8.0) - `int|string`, `int|null`
-- [x] **Intersection types** (PHP 8.1) - `Iterator&Countable` (parsing)
+- [x] **Intersection types** (PHP 8.1) - `Iterator&Countable`
+- [x] **DNF types** (PHP 8.2) - Disjunctive Normal Form `(A&B)|C`, `(A&B)|(C&D)`
 - [x] **void return type** (PHP 7.1) - Functions that return nothing
 - [x] **never return type** (PHP 8.1) - Functions that never return (throw or exit)
 - [x] **static return type** (PHP 8.0) - Return type for late static binding
 - [x] **Runtime type validation** - Full enforcement of parameter and return types
 - [x] **Class type hints** - Custom class/interface types
-- [ ] **DNF types** (PHP 8.2) - Disjunctive Normal Form `(A&B)|C`
 - [ ] **true/false/null as standalone types** (PHP 8.2)
 
 #### Namespaces

@@ -43,7 +43,7 @@ Every. Single. Line. Written through prompts to AI agents. Zero manual coding.
 - **🎯 Zero Dependencies** — Pure standard library, no external crates, no bloat
 - **✨ PHP 8.x Compatible** — Run your WordPress, Laravel, Drupal — *unchanged*
 - **🔮 Modern Features** — Arrow functions, match expressions, fibers, attributes, pipe operator
-- **📈 Battle-Tested** — 443 comprehensive tests and counting
+- **📈 Battle-Tested** — 479 comprehensive tests and counting
 
 ## ⚡ Get Started in 60 Seconds
 
@@ -225,6 +225,8 @@ That's the difference between a tool and an ecosystem.
 - ✅ Simple types (int, string, float, bool, array, object, callable, iterable, mixed)
 - ✅ Nullable types (?int, ?string, PHP 7.1)
 - ✅ Union types (int|string, PHP 8.0)
+- ✅ Intersection types (Iterator&Countable, PHP 8.1)
+- ✅ DNF types ((A&B)|C, PHP 8.2)
 - ✅ Class type hints
 - ✅ void and never return types
 - ✅ declare(strict_types=1) for strict type checking (PHP 7.0)
