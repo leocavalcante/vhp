@@ -271,6 +271,71 @@ try {
 // Error: Config key 'invalid' not found
 ```
 
+## Declare Strict Types (PHP 7.0)
+
+The `declare(strict_types=1)` directive enables strict type checking, preventing automatic type coercion.
+
+```php
+<?php
+// Example 1: Strict types enabled
+declare(strict_types=1);
+
+function add(int $a, int $b): int {
+    return $a + $b;
+}
+
+echo add(5, 10);     // OK: 15
+echo add(5.0, 10);   // TypeError: must be of type int, float given
+echo add("5", 10);   // TypeError: must be of type int, string given
+
+// Example 2: Without strict types (default coercive mode)
+function multiply(int $a, int $b): int {
+    return $a * $b;
+}
+
+echo multiply("5", "10");  // OK: 50 (strings coerced to integers)
+echo multiply(5.9, 2.1);   // OK: 10 (floats truncated: 5 * 2)
+
+// Example 3: Type widening exception - int to float is allowed
+declare(strict_types=1);
+
+function divide(float $a, float $b): float {
+    return $a / $b;
+}
+
+echo divide(10, 2);      // OK: 5 (int widened to float)
+echo divide(10.0, 2.0);  // OK: 5
+echo divide("10", 2);    // TypeError: string cannot be passed as float
+
+// Example 4: Strict validation for multiple types
+declare(strict_types=1);
+
+function processUser(string $name, int $age, bool $active): string {
+    $status = $active ? "active" : "inactive";
+    return "$name is $age years old ($status)";
+}
+
+echo processUser("Alice", 30, true) . "\n";  // OK
+echo processUser("Bob", "25", true);         // TypeError: age must be int
+
+// Example 5: Block-scoped strict types
+function coercive(int $x): int {
+    return $x;
+}
+
+declare(strict_types=1) {
+    function strict(int $x): int {
+        return $x;
+    }
+
+    // strict() enforces strict types
+    // echo strict("10");  // TypeError
+}
+
+// coercive() uses default type coercion
+echo coercive("10");  // OK: 10
+```
+
 ## Property Hooks (PHP 8.4)
 
 Property hooks provide a clean way to add custom logic to property access without explicit getter/setter methods.

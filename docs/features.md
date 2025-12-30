@@ -3194,3 +3194,224 @@ echo add("hello", "world"); // TypeError: Expected int, got string
 - **Handle type errors** gracefully with try/catch when needed
 - **Test edge cases** to ensure your type hints match actual usage
 
+## Declare Directive - Strict Types (PHP 7.0)
+
+The `declare` directive controls code execution aspects. The most important use is `declare(strict_types=1)` which enables strict type checking for function calls.
+
+### What is Strict Types Mode?
+
+By default, PHP uses **coercive type checking** - it attempts to convert values to match type hints:
+- `"42"` (string) is automatically converted to `42` (int)
+- `1.9` (float) is automatically converted to `1` (int)
+
+With `declare(strict_types=1)`, PHP uses **strict type checking** - type mismatches are rejected:
+- Passing a string where int is expected throws a TypeError
+- Passing a float where int is expected throws a TypeError (except: int can widen to float)
+
+### Basic Syntax
+
+```php
+<?php
+declare(strict_types=1);
+
+function add(int $a, int $b): int {
+    return $a + $b;
+}
+
+echo add(1, 2);      // OK: 3
+echo add(1.5, 2);    // TypeError: must be of type int, float given
+echo add("1", 2);    // TypeError: must be of type int, string given
+```
+
+### Without Strict Types (Default Coercive Mode)
+
+```php
+<?php
+function add(int $a, int $b): int {
+    return $a + $b;
+}
+
+echo add("1", "2");  // OK: 3 (strings coerced to integers)
+echo add(1.9, 2.1);  // OK: 3 (floats coerced to integers: 1 + 2)
+```
+
+### File-Scope Declaration
+
+`declare(strict_types=1)` must be the **first statement** in a file (except for an opening PHP tag):
+
+```php
+<?php
+declare(strict_types=1);  // Must be first!
+
+function test(int $x): void {
+    echo $x;
+}
+
+test(123);     // OK
+test("123");   // TypeError
+```
+
+**Invalid positions:**
+```php
+<?php
+echo "hello";
+declare(strict_types=1);  // Error: must be first statement
+```
+
+### Block-Scoped Declaration
+
+You can also use `declare` with a block to apply strict types to specific code:
+
+```php
+<?php
+function outer(int $n) {
+    return $n;
+}
+
+declare(strict_types=1) {
+    function inner(int $n) {
+        return $n;
+    }
+    // inner() uses strict types
+}
+
+// outer() uses coercive types
+echo outer("42");  // OK: 42 (coerced)
+```
+
+**Alternative syntax:**
+```php
+<?php
+declare(strict_types=1):
+    // Code here
+enddeclare;
+```
+
+### Type Widening Exception
+
+Even in strict mode, **int can be passed where float is expected** (widening is allowed):
+
+```php
+<?php
+declare(strict_types=1);
+
+function half(float $n): float {
+    return $n / 2;
+}
+
+echo half(10);    // OK: 5 (int widened to float)
+echo half(10.0);  // OK: 5
+echo half("10");  // TypeError: string cannot be passed as float
+```
+
+### Caller vs Callee
+
+**Important:** The strict_types mode is determined by the **calling file**, not the function definition file.
+
+If file A has `declare(strict_types=1)` and calls a function in file B (without strict_types), the call uses **strict checking** because it's happening in file A.
+
+### Multiple Directives
+
+You can declare multiple directives at once:
+
+```php
+<?php
+declare(strict_types=1, encoding='UTF-8');
+```
+
+**Supported directives:**
+- `strict_types` - Enable/disable strict type checking (0 or 1)
+- `encoding` - Character encoding (mostly ignored in modern PHP)
+- `ticks` - For `register_tick_function()` (advanced, rarely used)
+
+### Validation Rules
+
+**Strict mode type matching:**
+
+| Hint Type | Value Type | Allowed? |
+|-----------|------------|----------|
+| `int` | `int` | ✅ Yes |
+| `int` | `float` | ❌ No |
+| `int` | `string` | ❌ No |
+| `float` | `int` | ✅ Yes (widening) |
+| `float` | `float` | ✅ Yes |
+| `float` | `string` | ❌ No |
+| `string` | `string` | ✅ Yes |
+| `string` | `int` | ❌ No |
+| `bool` | `bool` | ✅ Yes |
+| `bool` | `int` | ❌ No |
+| `array` | `array` | ✅ Yes |
+| `mixed` | any | ✅ Yes |
+
+### Use Cases
+
+**When to use strict_types:**
+- ✅ New projects where type safety is a priority
+- ✅ Library code that needs predictable behavior
+- ✅ Code that works with sensitive data (financial, security)
+- ✅ When you want to catch type bugs early
+
+**When not to use strict_types:**
+- ⚠️ Legacy codebases that rely on type coercion
+- ⚠️ Code that processes user input (strings) as numbers
+- ⚠️ Quick scripts where flexibility is more important than strictness
+
+### Examples
+
+**Strict validation for parameters:**
+```php
+<?php
+declare(strict_types=1);
+
+function processUser(string $name, int $age, bool $active): void {
+    echo "$name is $age years old";
+    echo $active ? " (active)" : " (inactive)";
+}
+
+processUser("Alice", 30, true);  // OK
+processUser("Bob", "25", true);  // TypeError: age must be int
+processUser("Carol", 40, 1);     // TypeError: active must be bool
+```
+
+**Strict validation for return types:**
+```php
+<?php
+declare(strict_types=1);
+
+function getCount(): int {
+    return 42;     // OK
+}
+
+function getBadCount(): int {
+    return "42";   // TypeError: return value must be int, string given
+}
+```
+
+**Mixed strict and coercive:**
+```php
+<?php
+// File: strict.php
+declare(strict_types=1);
+
+require 'coercive.php';
+
+// This call uses strict checking (caller's mode)
+coerciveFunction(10);    // OK
+coerciveFunction("10");  // TypeError
+
+// File: coercive.php
+function coerciveFunction(int $x) {
+    echo $x;
+}
+```
+
+### Key Points
+
+- `declare(strict_types=1)` affects **parameter** and **return type** validation
+- It must be the **first statement** in the file
+- It's determined by the **calling file**, not the function definition
+- **int → float widening** is allowed even in strict mode
+- **No narrowing** is allowed (float → int, string → int, etc.)
+- Applies to **user-defined functions** and **built-in functions** with type hints
+- Cannot be changed at runtime (compile-time directive)
+

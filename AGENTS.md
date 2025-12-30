@@ -62,7 +62,7 @@ src/
         ├── output.rs    # Output functions (4)
         └── reflection.rs # Reflection functions (8)
 
-tests/                   # Test suite organized by feature (455 tests)
+tests/                   # Test suite organized by feature (466 tests)
 ├── arrays/              # Array tests (18)
 ├── attributes/          # Attribute syntax and reflection tests (29)
 ├── builtins/            # Built-in function tests (26)
@@ -83,7 +83,7 @@ tests/                   # Test suite organized by feature (455 tests)
 ├── strings/             # String literal and escape sequence tests (8)
 ├── tags/                # PHP tag tests (4)
 ├── traits/              # Trait tests (9)
-├── types/               # Type declaration and validation tests (29)
+├── types/               # Type declaration and validation tests (40)
 └── variables/           # Variable assignment and scope tests (8)
 
 Makefile                 # Build automation (build, lint, test targets)
@@ -143,6 +143,7 @@ Source Code → Lexer → Tokens → Parser → AST → Interpreter → Output
 - [x] `continue` statement
 - [x] Nested loop support with proper break/continue scoping
 - [x] Alternative syntax for all control structures (`if:`, `endif;`, `while:`, `endwhile;`, `for:`, `endfor;`, `foreach:`, `endforeach;`, `switch:`, `endswitch;`)
+- [x] `declare` directive with strict_types (PHP 7.0)
 
 ### Arrays
 - [x] Array literals (`[1, 2, 3]`)
@@ -786,7 +787,7 @@ Essential PHP features for compatibility with standard PHP code.
 **Control Flow:**
 - [x] Alternative syntax (`if:`, `endif;`, etc.) - All control structures
 - [ ] goto statement
-- [ ] declare directive (`strict_types`)
+- [x] declare directive (`strict_types`) - PHP 7.0
 
 **Functions:**
 - [x] Arrow functions (PHP 7.4) - `fn($x) => $x * 2`

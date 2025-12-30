@@ -184,7 +184,7 @@ This phase focuses on implementing core PHP language features that are essential
 
 - [x] **Alternative syntax** - `if:`, `endif;`, `foreach:`, `endforeach;`, etc. ✅
 - [ ] **goto statement** - Jump to label
-- [ ] **declare directive** - `declare(strict_types=1);`
+- [x] **declare directive** - `declare(strict_types=1);` ✅
 
 #### Function Features
 

@@ -227,6 +227,7 @@ That's the difference between a tool and an ecosystem.
 - ✅ Union types (int|string, PHP 8.0)
 - ✅ Class type hints
 - ✅ void and never return types
+- ✅ declare(strict_types=1) for strict type checking (PHP 7.0)
 
 **Namespaces:**
 - ✅ Namespace declarations (braced and unbraced syntax, PHP 5.3)
