@@ -53,13 +53,27 @@ impl<W: Write> Interpreter<W> {
         // Handle object properties
         match obj_value {
             Value::Object(instance) => {
+                // Check for property hooks (PHP 8.4)
+                let class = self.classes.get(&instance.class_name).cloned();
+                if let Some(ref class) = class {
+                    // Find property definition
+                    if let Some(prop_def) = class.properties.iter().find(|p| p.name == property) {
+                        // Check if property has a get hook
+                        if let Some(get_hook) = prop_def.hooks.iter().find(|h| {
+                            matches!(h.hook_type, crate::ast::PropertyHookType::Get)
+                        }) {
+                            // Execute the get hook
+                            return self.execute_property_get_hook(&instance, get_hook);
+                        }
+                    }
+                }
+
                 // First check if property exists
                 if let Some(value) = instance.properties.get(property) {
                     Ok(value.clone())
                 } else {
                     // Check for __get magic method
-                    let class = self.classes.get(&instance.class_name).cloned();
-                    if let Some(class) = class {
+                    if let Some(ref class) = class {
                         if let Some(method) = class.get_magic_method("__get") {
                             let class_name = instance.class_name.clone();
                             let mut inst_mut = instance.clone();
@@ -98,6 +112,48 @@ impl<W: Write> Interpreter<W> {
                 // Evaluate value first to avoid borrow conflicts
                 let val = self.eval_expr(value)?;
                 if let Some(ref mut obj) = self.current_object {
+                    // Check for property hooks (PHP 8.4)
+                    let class_name = obj.class_name.clone();
+                    let class = self.classes.get(&class_name).cloned();
+
+                    // Check for set hook before borrowing obj mutably
+                    let set_hook_info = if let Some(ref class) = class {
+                        if let Some(prop_def) = class.properties.iter().find(|p| p.name == property) {
+                            let has_get = prop_def.hooks.iter().any(|h| {
+                                matches!(h.hook_type, crate::ast::PropertyHookType::Get)
+                            });
+                            let has_set = prop_def.hooks.iter().any(|h| {
+                                matches!(h.hook_type, crate::ast::PropertyHookType::Set)
+                            });
+
+                            // Virtual property (get-only)
+                            if has_get && !has_set {
+                                return Err(format!(
+                                    "Cannot write to read-only property {}::${}",
+                                    class_name, property
+                                ));
+                            }
+
+                            // Check if property has a set hook
+                            prop_def.hooks.iter().find(|h| {
+                                matches!(h.hook_type, crate::ast::PropertyHookType::Set)
+                            }).cloned()
+                        } else {
+                            None
+                        }
+                    } else {
+                        None
+                    };
+
+                    // Execute set hook if found
+                    if let Some(set_hook) = set_hook_info {
+                        let mut obj_clone = obj.clone();
+                        let _ = obj; // Release the borrow
+                        self.execute_property_set_hook(&mut obj_clone, &set_hook, val.clone())?;
+                        self.current_object = Some(obj_clone);
+                        return Ok(val);
+                    }
+
                     // Check if property is readonly and already initialized
                     if obj.readonly_properties.contains(property)
                         && obj.initialized_readonly.contains(property)
@@ -153,6 +209,47 @@ impl<W: Write> Interpreter<W> {
                 let val = self.eval_expr(value)?;
                 // Get the object from variable
                 if let Some(Value::Object(mut instance)) = self.variables.get(var_name).cloned() {
+                    // Check for property hooks (PHP 8.4)
+                    let class_name = instance.class_name.clone();
+                    let class = self.classes.get(&class_name).cloned();
+
+                    // Check for set hook
+                    let set_hook_info = if let Some(ref class) = class {
+                        if let Some(prop_def) = class.properties.iter().find(|p| p.name == property) {
+                            let has_get = prop_def.hooks.iter().any(|h| {
+                                matches!(h.hook_type, crate::ast::PropertyHookType::Get)
+                            });
+                            let has_set = prop_def.hooks.iter().any(|h| {
+                                matches!(h.hook_type, crate::ast::PropertyHookType::Set)
+                            });
+
+                            // Virtual property (get-only)
+                            if has_get && !has_set {
+                                return Err(format!(
+                                    "Cannot write to read-only property {}::${}",
+                                    class_name, property
+                                ));
+                            }
+
+                            // Check if property has a set hook
+                            prop_def.hooks.iter().find(|h| {
+                                matches!(h.hook_type, crate::ast::PropertyHookType::Set)
+                            }).cloned()
+                        } else {
+                            None
+                        }
+                    } else {
+                        None
+                    };
+
+                    // Execute set hook if found
+                    if let Some(set_hook) = set_hook_info {
+                        self.execute_property_set_hook(&mut instance, &set_hook, val.clone())?;
+                        self.variables
+                            .insert(var_name.clone(), Value::Object(instance));
+                        return Ok(val);
+                    }
+
                     // Check if property is readonly and already initialized
                     if instance.readonly_properties.contains(property)
                         && instance.initialized_readonly.contains(property)
@@ -228,6 +325,90 @@ impl<W: Write> Interpreter<W> {
                 }
             }
         }
+    }
+
+    /// Execute property get hook (PHP 8.4)
+    fn execute_property_get_hook(
+        &mut self,
+        instance: &crate::interpreter::ObjectInstance,
+        hook: &crate::ast::PropertyHook,
+    ) -> Result<Value, String> {
+        // Save current $this context
+        let prev_this = self.current_object.clone();
+        self.current_object = Some(instance.clone());
+
+        let result = match &hook.body {
+            crate::ast::PropertyHookBody::Expression(expr) => {
+                // Evaluate the expression
+                self.eval_expr(expr)
+            }
+            crate::ast::PropertyHookBody::Block(statements) => {
+                // Execute statements, capture return value
+                let mut result = Value::Null;
+                for stmt in statements {
+                    match stmt {
+                        crate::ast::Stmt::Return(expr_opt) => {
+                            result = if let Some(e) = expr_opt {
+                                self.eval_expr(e)?
+                            } else {
+                                Value::Null
+                            };
+                            break;
+                        }
+                        _ => {
+                            self.execute_stmt(stmt).map_err(|e| e.to_string())?;
+                        }
+                    }
+                }
+                Ok(result)
+            }
+        };
+
+        // Restore $this context
+        self.current_object = prev_this;
+
+        result
+    }
+
+    /// Execute property set hook (PHP 8.4)
+    fn execute_property_set_hook(
+        &mut self,
+        instance: &mut crate::interpreter::ObjectInstance,
+        hook: &crate::ast::PropertyHook,
+        value: Value,
+    ) -> Result<(), String> {
+        // Save current $this context
+        let prev_this = self.current_object.clone();
+        self.current_object = Some(instance.clone());
+
+        // Store the incoming value in a special variable $value
+        let prev_value = self.variables.get("value").cloned();
+        self.variables.insert("value".to_string(), value);
+
+        let result = match &hook.body {
+            crate::ast::PropertyHookBody::Expression(expr) => {
+                // For set hooks, expression form just evaluates (for side effects)
+                self.eval_expr(expr)?;
+                Ok(())
+            }
+            crate::ast::PropertyHookBody::Block(statements) => {
+                // Execute statements
+                for stmt in statements {
+                    self.execute_stmt(stmt).map_err(|e| e.to_string())?;
+                }
+                Ok(())
+            }
+        };
+
+        // Restore context
+        self.current_object = prev_this;
+        if let Some(v) = prev_value {
+            self.variables.insert("value".to_string(), v);
+        } else {
+            self.variables.remove("value");
+        }
+
+        result
     }
 
     /// Get static property value (ClassName::$property, self::$property, parent::$property, static::$property)
