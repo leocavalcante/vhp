@@ -389,6 +389,7 @@ impl<'a> StmtParser<'a> {
             return Ok(Property {
                 name,
                 visibility,
+                write_visibility: None, // Hooks and asymmetric visibility are incompatible
                 default: None, // Properties with hooks cannot have default values
                 readonly: false,
                 is_static: false,
@@ -412,6 +413,7 @@ impl<'a> StmtParser<'a> {
         Ok(Property {
             name,
             visibility,
+            write_visibility: None, // Will be set by caller if needed
             default,
             readonly: false,        // Will be set by caller if needed
             is_static: false,       // Will be set by caller if needed

@@ -9,10 +9,51 @@
 //! - Abstract classes and methods
 
 use super::StmtParser;
-use crate::ast::Stmt;
+use crate::ast::{Stmt, Visibility};
 use crate::token::TokenKind;
 
 impl<'a> StmtParser<'a> {
+    /// Check if current token is an identifier with a specific value
+    #[allow(dead_code)]
+    fn check_identifier(&self, expected: &str) -> bool {
+        if let TokenKind::Identifier(name) = &self.current().kind {
+            name.eq_ignore_ascii_case(expected)
+        } else {
+            false
+        }
+    }
+
+    /// Validate that write visibility is more restrictive than read visibility
+    fn validate_asymmetric_visibility(
+        &self,
+        read: Visibility,
+        write: Visibility,
+    ) -> Result<(), String> {
+        use crate::ast::Visibility::*;
+
+        let valid = match (read, write) {
+            (Public, Public) => false,       // No point - same visibility
+            (Public, Protected) => true,     // OK: write is more restrictive
+            (Public, Private) => true,       // OK: write is more restrictive
+            (Protected, Public) => false,    // Invalid: write is less restrictive
+            (Protected, Protected) => false, // No point - same visibility
+            (Protected, Private) => true,    // OK: write is more restrictive
+            (Private, Public) => false,      // Invalid: write is less restrictive
+            (Private, Protected) => false,   // Invalid: write is less restrictive
+            (Private, Private) => false,     // No point - same visibility
+        };
+
+        if !valid {
+            Err(format!(
+                "Write visibility must be more restrictive than read visibility at line {}, column {}",
+                self.current().line,
+                self.current().column
+            ))
+        } else {
+            Ok(())
+        }
+    }
+
     /// Parse class declaration
     pub fn parse_class(&mut self) -> Result<Stmt, String> {
         // Parse class modifiers in any order: abstract, final, readonly
@@ -139,7 +180,54 @@ impl<'a> StmtParser<'a> {
                 false
             };
 
-            let visibility = self.parse_visibility();
+            // Parse first visibility modifier
+            let first_visibility = self.parse_visibility();
+
+            // Check for asymmetric visibility: read_visibility write_visibility(set)
+            // Example: public private(set) means public read, private write
+            let (read_visibility, write_visibility) = if self.check(&TokenKind::Public)
+                || self.check(&TokenKind::Protected)
+                || self.check(&TokenKind::Private)
+            {
+                // Found a second visibility keyword - this might be asymmetric visibility
+                let second_vis = self.parse_visibility();
+
+                // Check if followed by (set)
+                if self.check(&TokenKind::LeftParen) {
+                    self.advance(); // consume '('
+
+                    if self.check(&TokenKind::Set) {
+                        self.advance(); // consume 'set'
+
+                        self.consume(
+                            TokenKind::RightParen,
+                            "Expected ')' after 'set' in asymmetric visibility",
+                        )?;
+
+                        // first_visibility is read, second_vis is write
+                        (first_visibility, Some(second_vis))
+                    } else {
+                        return Err(format!(
+                            "Expected 'set' after '(' in asymmetric visibility at line {}, column {}",
+                            self.current().line,
+                            self.current().column
+                        ));
+                    }
+                } else {
+                    return Err(format!(
+                        "Expected '(set)' after second visibility modifier at line {}, column {}",
+                        self.current().line,
+                        self.current().column
+                    ));
+                }
+            } else {
+                (first_visibility, None)
+            };
+
+            // Validate asymmetric visibility: write must be more restrictive than read
+            if let Some(write_vis) = write_visibility {
+                self.validate_asymmetric_visibility(read_visibility, write_vis)?;
+            }
 
             // Check for readonly modifier if not already found (can appear after visibility)
             let readonly = readonly_first
@@ -167,6 +255,15 @@ impl<'a> StmtParser<'a> {
                     false
                 };
 
+            // Validate: readonly and asymmetric visibility are incompatible
+            if readonly && write_visibility.is_some() {
+                return Err(format!(
+                    "Readonly properties cannot have asymmetric visibility at line {}, column {}",
+                    self.current().line,
+                    self.current().column
+                ));
+            }
+
             // Parse type hints if present (for property types)
             // Note: Currently type hints are parsed but not yet enforced for properties
             let _property_type = if let TokenKind::Identifier(_) = &self.current().kind {
@@ -179,13 +276,14 @@ impl<'a> StmtParser<'a> {
 
             if self.check(&TokenKind::Function) {
                 let mut method =
-                    self.parse_method(visibility, member_is_abstract, member_is_final)?;
+                    self.parse_method(read_visibility, member_is_abstract, member_is_final)?;
                 method.is_static = is_static;
                 method.attributes = attributes;
                 methods.push(method);
             } else if self.check(&TokenKind::Variable(String::new())) {
                 // Parse property with readonly and static modifiers
-                let mut prop = self.parse_property(visibility)?;
+                let mut prop = self.parse_property(read_visibility)?;
+                prop.write_visibility = write_visibility;
                 prop.readonly = readonly;
                 prop.is_static = is_static;
                 prop.attributes = attributes;
