@@ -310,18 +310,15 @@ impl<'a> StmtParser<'a> {
 
             while !self.check(&TokenKind::Eof) {
                 match &self.current().kind {
-                    TokenKind::Identifier(s)
-                        if s.to_lowercase() == "endif"
-                            || s.to_lowercase() == "endwhile"
-                            || s.to_lowercase() == "endfor"
-                            || s.to_lowercase() == "endforeach"
-                            || s.to_lowercase() == "endswitch" =>
-                    {
-                        break
-                    }
-                    TokenKind::Else | TokenKind::Elseif | TokenKind::Case | TokenKind::Default => {
-                        break
-                    }
+                    TokenKind::Endif
+                    | TokenKind::Endwhile
+                    | TokenKind::Endfor
+                    | TokenKind::Endforeach
+                    | TokenKind::Endswitch
+                    | TokenKind::Else
+                    | TokenKind::Elseif
+                    | TokenKind::Case
+                    | TokenKind::Default => break,
                     _ => {}
                 }
 

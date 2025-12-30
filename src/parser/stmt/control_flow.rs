@@ -17,6 +17,11 @@ use crate::token::TokenKind;
 impl<'a> StmtParser<'a> {
     /// Parse if statement
     pub fn parse_if(&mut self) -> Result<Stmt, String> {
+        self.parse_if_internal(false)
+    }
+
+    /// Internal parse if statement with flag for nested else-if
+    fn parse_if_internal(&mut self, is_nested_else_if: bool) -> Result<Stmt, String> {
         self.advance(); // consume 'if'
         self.consume(TokenKind::LeftParen, "Expected '(' after 'if'")?;
         let condition = self.parse_expression(Precedence::None)?;
@@ -44,23 +49,17 @@ impl<'a> StmtParser<'a> {
 
             // Check for else if (two separate tokens)
             if self.check(&TokenKind::If) {
-                let nested_if = self.parse_if()?;
+                let nested_if = self.parse_if_internal(true)?;
                 else_branch = Some(vec![nested_if]);
             } else {
                 else_branch = Some(self.parse_block()?);
             }
         }
 
-        // Handle endif for alternative syntax
-        if using_alt_syntax {
-            if let TokenKind::Identifier(s) = &self.current().kind {
-                if s.to_lowercase() == "endif" {
-                    self.advance();
-                    if self.check(&TokenKind::Semicolon) {
-                        self.advance();
-                    }
-                }
-            }
+        // Handle endif for alternative syntax (but not for nested else-if)
+        if using_alt_syntax && !is_nested_else_if {
+            self.consume(TokenKind::Endif, "Expected 'endif' to close alternative if syntax")?;
+            self.consume(TokenKind::Semicolon, "Expected ';' after 'endif'")?;
         }
 
         Ok(Stmt::If {
@@ -82,14 +81,8 @@ impl<'a> StmtParser<'a> {
         let body = self.parse_block()?;
 
         if using_alt_syntax {
-            if let TokenKind::Identifier(s) = &self.current().kind {
-                if s.to_lowercase() == "endwhile" {
-                    self.advance();
-                    if self.check(&TokenKind::Semicolon) {
-                        self.advance();
-                    }
-                }
-            }
+            self.consume(TokenKind::Endwhile, "Expected 'endwhile' to close alternative while syntax")?;
+            self.consume(TokenKind::Semicolon, "Expected ';' after 'endwhile'")?;
         }
 
         Ok(Stmt::While { condition, body })
@@ -141,14 +134,8 @@ impl<'a> StmtParser<'a> {
         let body = self.parse_block()?;
 
         if using_alt_syntax {
-            if let TokenKind::Identifier(s) = &self.current().kind {
-                if s.to_lowercase() == "endfor" {
-                    self.advance();
-                    if self.check(&TokenKind::Semicolon) {
-                        self.advance();
-                    }
-                }
-            }
+            self.consume(TokenKind::Endfor, "Expected 'endfor' to close alternative for syntax")?;
+            self.consume(TokenKind::Semicolon, "Expected ';' after 'endfor'")?;
         }
 
         Ok(Stmt::For {
@@ -203,14 +190,8 @@ impl<'a> StmtParser<'a> {
         let body = self.parse_block()?;
 
         if using_alt_syntax {
-            if let TokenKind::Identifier(s) = &self.current().kind {
-                if s.to_lowercase() == "endforeach" {
-                    self.advance();
-                    if self.check(&TokenKind::Semicolon) {
-                        self.advance();
-                    }
-                }
-            }
+            self.consume(TokenKind::Endforeach, "Expected 'endforeach' to close alternative foreach syntax")?;
+            self.consume(TokenKind::Semicolon, "Expected ';' after 'endforeach'")?;
         }
 
         Ok(Stmt::Foreach {
@@ -243,12 +224,8 @@ impl<'a> StmtParser<'a> {
         let mut default = None;
 
         while !self.check(&TokenKind::RightBrace) && !self.check(&TokenKind::Eof) {
-            if using_alt_syntax {
-                if let TokenKind::Identifier(s) = &self.current().kind {
-                    if s.to_lowercase() == "endswitch" {
-                        break;
-                    }
-                }
+            if using_alt_syntax && self.check(&TokenKind::Endswitch) {
+                break;
             }
 
             if self.check(&TokenKind::Case) {
@@ -262,10 +239,8 @@ impl<'a> StmtParser<'a> {
                     && !self.check(&TokenKind::RightBrace)
                     && !self.check(&TokenKind::Eof)
                 {
-                    if let TokenKind::Identifier(s) = &self.current().kind {
-                        if s.to_lowercase() == "endswitch" {
-                            break;
-                        }
+                    if using_alt_syntax && self.check(&TokenKind::Endswitch) {
+                        break;
                     }
 
                     if let Some(stmt) = self.parse_statement()? {
@@ -283,10 +258,8 @@ impl<'a> StmtParser<'a> {
                     && !self.check(&TokenKind::RightBrace)
                     && !self.check(&TokenKind::Eof)
                 {
-                    if let TokenKind::Identifier(s) = &self.current().kind {
-                        if s.to_lowercase() == "endswitch" {
-                            break;
-                        }
+                    if using_alt_syntax && self.check(&TokenKind::Endswitch) {
+                        break;
                     }
 
                     if let Some(stmt) = self.parse_statement()? {
@@ -301,14 +274,8 @@ impl<'a> StmtParser<'a> {
         }
 
         if using_alt_syntax {
-            if let TokenKind::Identifier(s) = &self.current().kind {
-                if s.to_lowercase() == "endswitch" {
-                    self.advance();
-                    if self.check(&TokenKind::Semicolon) {
-                        self.advance();
-                    }
-                }
-            }
+            self.consume(TokenKind::Endswitch, "Expected 'endswitch' to close alternative switch syntax")?;
+            self.consume(TokenKind::Semicolon, "Expected ';' after 'endswitch'")?;
         } else {
             self.consume(TokenKind::RightBrace, "Expected '}' after switch")?;
         }
