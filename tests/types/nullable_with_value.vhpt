@@ -1,0 +1,15 @@
+--TEST--
+Nullable type accepts null or the specified type
+--FILE--
+<?php
+function test(?int $n): string {
+    if ($n === null) {
+        return "null";
+    }
+    return "int: " . $n;
+}
+echo test(null) . "\n";
+echo test(42);
+--EXPECT--
+null
+int: 42

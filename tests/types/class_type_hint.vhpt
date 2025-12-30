@@ -1,0 +1,19 @@
+--TEST--
+Class type hint
+--FILE--
+<?php
+class User {
+    public string $name;
+    public function __construct(string $name) {
+        $this->name = $name;
+    }
+}
+
+function greetUser(User $user): string {
+    return "Hello, " . $user->name;
+}
+
+$user = new User("Alice");
+echo greetUser($user);
+--EXPECT--
+Hello, Alice

@@ -1,0 +1,15 @@
+--TEST--
+Iterable type hint accepts arrays
+--FILE--
+<?php
+function processIterable(iterable $items): int {
+    $count = 0;
+    foreach ($items as $item) {
+        $count = $count + 1;
+    }
+    return $count;
+}
+
+echo processIterable([1, 2, 3, 4, 5]);
+--EXPECT--
+5

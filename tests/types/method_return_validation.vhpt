@@ -1,0 +1,20 @@
+--TEST--
+Method return type validation
+--FILE--
+<?php
+class Calculator {
+    public function add(int $a, int $b): int {
+        return $a + $b;
+    }
+    
+    public function describe(): string {
+        return "I'm a calculator";
+    }
+}
+
+$calc = new Calculator();
+echo $calc->add(5, 3) . "\n";
+echo $calc->describe();
+--EXPECT--
+8
+I'm a calculator

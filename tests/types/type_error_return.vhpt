@@ -1,0 +1,10 @@
+--TEST--
+Type error on wrong return type
+--FILE--
+<?php
+function getString(): string {
+    return 42;
+}
+getString();
+--EXPECT_ERROR--
+Return value must be of type string, int returned

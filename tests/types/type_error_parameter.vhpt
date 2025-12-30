@@ -1,0 +1,10 @@
+--TEST--
+Type error on wrong parameter type
+--FILE--
+<?php
+function requireInt(int $n) {
+    echo $n;
+}
+requireInt("not an int");
+--EXPECT_ERROR--
+must be of type int, string given

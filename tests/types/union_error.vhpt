@@ -1,0 +1,10 @@
+--TEST--
+Union type error on wrong type
+--FILE--
+<?php
+function requireIntOrString(int|string $value) {
+    echo $value;
+}
+requireIntOrString(true);
+--EXPECT_ERROR--
+must be of type int|string, bool given

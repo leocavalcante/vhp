@@ -1,0 +1,14 @@
+--TEST--
+Array parameter type
+--FILE--
+<?php
+function sumArray(array $numbers): int {
+    $sum = 0;
+    foreach ($numbers as $n) {
+        $sum = $sum + $n;
+    }
+    return $sum;
+}
+echo sumArray([1, 2, 3, 4]);
+--EXPECT--
+10

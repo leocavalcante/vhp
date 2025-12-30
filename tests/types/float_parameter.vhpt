@@ -1,0 +1,12 @@
+--TEST--
+Float parameter type (accepts int too)
+--FILE--
+<?php
+function multiply(float $x): float {
+    return $x * 2.5;
+}
+echo multiply(4) . "\n";
+echo multiply(3.5);
+--EXPECT--
+10
+8.75

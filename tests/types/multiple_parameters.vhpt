@@ -1,0 +1,14 @@
+--TEST--
+Multiple parameters with different types
+--FILE--
+<?php
+function format(string $template, int $number, bool $flag): string {
+    $result = $template . $number;
+    if ($flag) {
+        $result = $result . "!";
+    }
+    return $result;
+}
+echo format("Number: ", 42, true);
+--EXPECT--
+Number: 42!

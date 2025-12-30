@@ -1,0 +1,15 @@
+--TEST--
+Nullable parameter type
+--FILE--
+<?php
+function maybeString(?string $s): ?string {
+    if ($s === null) {
+        return "was null";
+    }
+    return $s;
+}
+echo maybeString(null) . "\n";
+echo maybeString("hello");
+--EXPECT--
+was null
+hello

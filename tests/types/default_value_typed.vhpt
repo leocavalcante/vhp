@@ -1,0 +1,12 @@
+--TEST--
+Default value with type hint
+--FILE--
+<?php
+function greet(string $name = "World"): string {
+    return "Hello, " . $name;
+}
+echo greet() . "\n";
+echo greet("Alice");
+--EXPECT--
+Hello, World
+Hello, Alice

@@ -1,0 +1,12 @@
+--TEST--
+Union type int|string|null accepts all three types
+--FILE--
+<?php
+function test(int|string $n): string {
+    return "got: " . $n;
+}
+echo test(42) . "\n";
+echo test("hello");
+--EXPECT--
+got: 42
+got: hello

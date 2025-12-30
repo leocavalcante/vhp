@@ -1,0 +1,10 @@
+--TEST--
+Void function cannot return non-null value
+--FILE--
+<?php
+function wrong(): void {
+    return "something";
+}
+wrong();
+--EXPECT_ERROR--
+must be of type void

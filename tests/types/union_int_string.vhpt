@@ -1,0 +1,12 @@
+--TEST--
+Union types int|string
+--FILE--
+<?php
+function process(int|string $value): int|string {
+    return $value;
+}
+echo process(42) . "\n";
+echo process("hello");
+--EXPECT--
+42
+hello

@@ -1,0 +1,22 @@
+--TEST--
+Constructor with typed parameters
+--FILE--
+<?php
+class User {
+    public string $name;
+    public int $age;
+    
+    public function __construct(string $name, int $age) {
+        $this->name = $name;
+        $this->age = $age;
+    }
+    
+    public function greet(): string {
+        return "Hello, I'm " . $this->name . " and I'm " . $this->age . " years old";
+    }
+}
+
+$user = new User("Alice", 30);
+echo $user->greet();
+--EXPECT--
+Hello, I'm Alice and I'm 30 years old

@@ -1,0 +1,26 @@
+--TEST--
+Object type hint accepts any object
+--FILE--
+<?php
+class Foo {
+    public function getName(): string {
+        return "Foo";
+    }
+}
+class Bar {
+    public function getName(): string {
+        return "Bar";
+    }
+}
+
+function acceptObject(object $obj): string {
+    return $obj->getName();
+}
+
+$foo = new Foo();
+$bar = new Bar();
+echo acceptObject($foo) . "\n";
+echo acceptObject($bar);
+--EXPECT--
+Foo
+Bar

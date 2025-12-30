@@ -1,0 +1,13 @@
+--TEST--
+Constructor type validation error
+--FILE--
+<?php
+class User {
+    public function __construct(int $age) {
+        echo "Age: " . $age;
+    }
+}
+
+new User("not a number");
+--EXPECT_ERROR--
+must be of type int, string given

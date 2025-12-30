@@ -1,0 +1,10 @@
+--TEST--
+Void return type with no explicit return
+--FILE--
+<?php
+function logIt(string $msg): void {
+    echo $msg;
+}
+logIt("logged");
+--EXPECT--
+logged

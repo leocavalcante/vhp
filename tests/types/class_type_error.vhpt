@@ -1,0 +1,21 @@
+--TEST--
+Class type hint error
+--FILE--
+<?php
+class User {
+    public string $name;
+}
+
+class Admin {
+    public string $name;
+}
+
+function requireUser(User $user) {
+    echo $user->name;
+}
+
+$admin = new Admin();
+$admin->name = "Bob";
+requireUser($admin);
+--EXPECT_ERROR--
+must be of type User

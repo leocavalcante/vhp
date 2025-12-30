@@ -1,0 +1,14 @@
+--TEST--
+Method return type error
+--FILE--
+<?php
+class Wrong {
+    public function getString(): string {
+        return 123;
+    }
+}
+
+$obj = new Wrong();
+$obj->getString();
+--EXPECT_ERROR--
+Return value must be of type string, int returned

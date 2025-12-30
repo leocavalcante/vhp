@@ -1,0 +1,13 @@
+--TEST--
+Bool parameter type
+--FILE--
+<?php
+function negate(bool $b): bool {
+    return !$b;
+}
+echo negate(true) ? "false" : "true";
+echo "\n";
+echo negate(false) ? "true" : "false";
+--EXPECT--
+true
+true
