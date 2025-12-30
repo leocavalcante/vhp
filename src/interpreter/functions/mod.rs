@@ -554,7 +554,7 @@ impl<W: Write> Interpreter<W> {
                             }
                         }
                     } else {
-                        return Err(format!("Cannot unset property on non-object"));
+                        return Err("Cannot unset property on non-object".to_string());
                     }
                 }
                 crate::ast::Expr::Variable(name) => {
