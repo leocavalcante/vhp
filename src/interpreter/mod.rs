@@ -335,6 +335,7 @@ impl<W: Write> Interpreter<W> {
                 Property {
                     name: "message".to_string(),
                     visibility: Visibility::Protected,
+                    write_visibility: None,
                     default: Some(Expr::String(String::new())),
                     readonly: false,
                     is_static: false,
@@ -344,6 +345,7 @@ impl<W: Write> Interpreter<W> {
                 Property {
                     name: "code".to_string(),
                     visibility: Visibility::Protected,
+                    write_visibility: None,
                     default: Some(Expr::Integer(0)),
                     readonly: false,
                     is_static: false,

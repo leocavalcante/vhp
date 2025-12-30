@@ -200,6 +200,7 @@ impl<W: Write> Interpreter<W> {
                         all_properties.push(Property {
                             name: param.name.clone(),
                             visibility,
+                            write_visibility: None, // Constructor promotion doesn't support asymmetric visibility
                             default: param.default.clone(),
                             readonly: param.readonly,
                             is_static: false, // Promoted properties cannot be static
