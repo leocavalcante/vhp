@@ -1,10 +1,24 @@
-# Next Roadmap Item - Full Development Cycle
+# Roadmap - Continuous Development Cycle
 
-Execute the complete development workflow for the next roadmap item:
+Execute the complete development workflow for roadmap items **continuously** until the roadmap is complete or the user stops.
 
-## Workflow Stages
+## Continuous Loop
 
-1. **Planning Phase** - Use the architect agent to:
+This command runs in a loop:
+1. Complete one roadmap item (plan → implement → validate → document → commit)
+2. Automatically proceed to the next item
+3. Repeat until roadmap is complete or user intervention
+
+## Pre-Check: Existing Plans
+
+Before each iteration, check `docs/plans/planned/`:
+- If plans exist, **skip the Planning Phase** and proceed directly to Implementation
+- Pick the next feasible plan from the planned directory (prioritize by roadmap order or simplicity)
+- Only run the architect agent if no planned plans exist
+
+## Workflow Stages (Per Item)
+
+1. **Planning Phase** (SKIP if plans exist in `docs/plans/planned/`) - Use the architect agent to:
    - Analyze the roadmap and identify the next uncompleted item
    - Research existing codebase patterns
    - Design a detailed implementation plan
@@ -41,29 +55,46 @@ Execute the complete development workflow for the next roadmap item:
    - Push to remote branch
    - Provide summary of completed work
 
+7. **Loop to Next Item** - After successful completion:
+   - Provide brief summary of what was completed
+   - Check for remaining plans in `docs/plans/planned/` or roadmap items
+   - If more items exist, **automatically start the next iteration**
+   - If roadmap is complete, stop and inform the user
+
 ## Instructions
 
 Execute each stage sequentially. If any stage fails:
-- Stop the workflow
+- Stop the workflow immediately
 - Report the failure to the user with details
 - Wait for user intervention before continuing
+- Do NOT proceed to the next roadmap item on failure
 
 Between stages:
 - Verify the previous stage completed successfully
 - Provide brief status updates
 - Check for any blockers
 
-After completion:
+After completing each item:
 - Summarize what was implemented
 - List all commits created
-- Provide the feature summary for reference
+- Announce moving to the next roadmap item
+- Continue the loop automatically
+
+## Stopping Conditions
+
+The loop stops when:
+1. A stage fails (wait for user intervention)
+2. The roadmap is complete (no more plans or roadmap items)
+3. The user manually stops the process
 
 ## Important Notes
 
+- **This command runs continuously** - it will keep implementing roadmap items until done
+- **Check `docs/plans/planned/` first** - skip architect if plans already exist
 - Always run agents sequentially (one at a time)
 - Build the project before running QA
 - Create multiple atomic commits instead of one large commit
 - Follow the Conventional Commits specification
 - Sign all commits with `git commit -s`
 - Only proceed to next stage if current stage succeeds
-- If roadmap is complete, inform the user
+- Failures stop the entire loop - do not skip failed items
