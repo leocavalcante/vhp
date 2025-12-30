@@ -1,0 +1,11 @@
+--TEST--
+Error on accessing undefined static property
+--FILE--
+<?php
+class Test {
+    public static $exists = 1;
+}
+
+echo Test::$missing;
+--EXPECT_ERROR--
+Access to undeclared static property

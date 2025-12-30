@@ -1,0 +1,13 @@
+--TEST--
+Static property with visibility modifiers
+--FILE--
+<?php
+class Secret {
+    private static $password = "secret123";
+    protected static $token = "abc";
+    public static $api_key = "xyz";
+}
+
+echo Secret::$api_key;
+--EXPECT--
+xyz

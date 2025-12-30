@@ -274,6 +274,7 @@ impl<W: Write> Interpreter<W> {
         let mut static_props = HashMap::new();
 
         // First, copy parent's static properties if there's inheritance
+        // (these are shared/inherited from the parent)
         if let Some(parent_name) = &resolved_parent_clone {
             let parent_key = parent_name.to_lowercase();
             if let Some(parent_statics) = self.static_properties.get(&parent_key) {
@@ -282,7 +283,8 @@ impl<W: Write> Interpreter<W> {
         }
 
         // Then add/override with this class's static properties
-        for prop in &all_properties_clone {
+        // Only process properties declared directly in this class, not inherited ones
+        for prop in properties.iter() {
             if prop.is_static {
                 let value = if let Some(default_expr) = &prop.default {
                     self.eval_expr(default_expr)

@@ -1,0 +1,25 @@
+--TEST--
+Difference between self:: and static::
+--FILE--
+<?php
+class Base {
+    protected static $name = "Base";
+
+    public static function withSelf() {
+        return self::$name;
+    }
+
+    public static function withStatic() {
+        return static::$name;
+    }
+}
+
+class Child extends Base {
+    protected static $name = "Child";
+}
+
+echo "self: " . Child::withSelf() . "\n";
+echo "static: " . Child::withStatic();
+--EXPECT--
+self: Base
+static: Child

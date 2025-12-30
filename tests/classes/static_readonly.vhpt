@@ -1,0 +1,12 @@
+--TEST--
+Static readonly property (PHP 8.3+)
+--FILE--
+<?php
+class Config {
+    public static readonly $version = "1.0.0";
+}
+
+echo Config::$version . "\n";
+Config::$version = "2.0.0";
+--EXPECT_ERROR--
+Cannot modify readonly property

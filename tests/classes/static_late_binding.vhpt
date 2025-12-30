@@ -1,0 +1,21 @@
+--TEST--
+Late static binding with static::
+--FILE--
+<?php
+class Animal {
+    protected static $type = "Animal";
+
+    public static function getType() {
+        return static::$type;
+    }
+}
+
+class Dog extends Animal {
+    protected static $type = "Dog";
+}
+
+echo Animal::getType() . "\n";
+echo Dog::getType();
+--EXPECT--
+Animal
+Dog

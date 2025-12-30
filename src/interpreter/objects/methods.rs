@@ -335,13 +335,17 @@ impl<W: Write> Interpreter<W> {
             }
         }
 
-        // Call method without $this (static call), but set current_class
+        // Call method without $this (static call), but set current_class and called_class
         // Save current state
         let saved_variables = self.variables.clone();
         let saved_current_class = self.current_class.take();
+        let saved_called_class = self.called_class.take();
 
         // Set current class to where the method is defined
         self.current_class = Some(declaring_class);
+
+        // Set called_class to the target class (for 'static::' late static binding)
+        self.called_class = Some(target_class.clone());
 
         // Clear variables
         self.variables.clear();
@@ -396,6 +400,7 @@ impl<W: Write> Interpreter<W> {
         // Restore previous state
         self.variables = saved_variables;
         self.current_class = saved_current_class;
+        self.called_class = saved_called_class;
 
         Ok(return_value)
     }
@@ -417,10 +422,14 @@ impl<W: Write> Interpreter<W> {
         let saved_variables = self.variables.clone();
         let saved_current_object = self.current_object.take();
         let saved_current_class = self.current_class.take();
+        let saved_called_class = self.called_class.take();
 
         // Set current object to this instance
         self.current_object = Some(instance.clone());
         self.current_class = Some(declaring_class);
+
+        // Set called_class to the actual object's class (for 'static::' late static binding)
+        self.called_class = Some(instance.class_name.clone());
 
         // Clear variables and set parameters
         self.variables.clear();
@@ -483,6 +492,7 @@ impl<W: Write> Interpreter<W> {
         self.variables = saved_variables;
         self.current_object = saved_current_object;
         self.current_class = saved_current_class;
+        self.called_class = saved_called_class;
 
         Ok(return_value)
     }
@@ -502,10 +512,14 @@ impl<W: Write> Interpreter<W> {
         let saved_variables = self.variables.clone();
         let saved_current_object = self.current_object.take();
         let saved_current_class = self.current_class.take();
+        let saved_called_class = self.called_class.take();
 
         // Set current object to this instance
         self.current_object = Some(instance.clone());
         self.current_class = Some(declaring_class);
+
+        // Set called_class to the actual object's class (for 'static::' late static binding in instance methods)
+        self.called_class = Some(instance.class_name.clone());
 
         // Clear variables
         self.variables.clear();
@@ -602,6 +616,7 @@ impl<W: Write> Interpreter<W> {
         self.variables = saved_variables;
         self.current_object = saved_current_object;
         self.current_class = saved_current_class;
+        self.called_class = saved_called_class;
 
         Ok(return_value)
     }

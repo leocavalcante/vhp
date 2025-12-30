@@ -1,0 +1,13 @@
+--TEST--
+Static property with array value
+--FILE--
+<?php
+class Collection {
+    public static $items = [];
+}
+
+Collection::$items[] = "a";
+Collection::$items[] = "b";
+echo count(Collection::$items);
+--EXPECT--
+2

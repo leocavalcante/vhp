@@ -1,0 +1,20 @@
+--TEST--
+Static property access with self::
+--FILE--
+<?php
+class Config {
+    private static $debug = false;
+
+    public static function setDebug($value) {
+        self::$debug = $value;
+    }
+
+    public static function isDebug() {
+        return self::$debug;
+    }
+}
+
+Config::setDebug(true);
+echo Config::isDebug() ? "yes" : "no";
+--EXPECT--
+yes

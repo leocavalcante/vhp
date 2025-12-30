@@ -1,0 +1,21 @@
+--TEST--
+Static property inheritance
+--FILE--
+<?php
+class Base {
+    protected static $value = "base";
+
+    public static function getValue() {
+        return self::$value;
+    }
+}
+
+class Child extends Base {
+    protected static $value = "child";
+}
+
+echo Base::getValue() . "\n";
+echo Child::getValue();
+--EXPECT--
+base
+child

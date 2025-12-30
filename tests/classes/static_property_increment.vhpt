@@ -1,0 +1,19 @@
+--TEST--
+Static property shared across instances
+--FILE--
+<?php
+class Counter {
+    public static $count = 0;
+
+    public function increment() {
+        self::$count++;
+    }
+}
+
+$a = new Counter();
+$b = new Counter();
+$a->increment();
+$b->increment();
+echo Counter::$count;
+--EXPECT--
+2
