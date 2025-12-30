@@ -1,0 +1,11 @@
+--TEST--
+Anonymous class with properties
+--FILE--
+<?php
+$obj = new class {
+    public $value = "test";
+};
+
+echo $obj->value;
+--EXPECT--
+test

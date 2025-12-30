@@ -89,10 +89,26 @@ pub enum Expr {
         args: Vec<Argument>,
     },
 
+    // Variable/callable function call: $func(), $obj->method() result(), etc.
+    CallableCall {
+        callable: Box<Expr>,
+        args: Vec<Argument>,
+    },
+
     // Object instantiation: new ClassName(args)
     New {
         class_name: String,
         args: Vec<Argument>,
+    },
+
+    // Anonymous class instantiation (PHP 7.0): new class(...) extends X implements Y { ... }
+    NewAnonymousClass {
+        constructor_args: Vec<Argument>,
+        parent: Option<String>,
+        interfaces: Vec<String>,
+        traits: Vec<crate::ast::TraitUse>,
+        properties: Vec<crate::ast::Property>,
+        methods: Vec<crate::ast::Method>,
     },
     
     // Fiber instantiation: new Fiber(callback) - Special case
@@ -166,4 +182,25 @@ pub enum Expr {
 
     // Spread/unpack expression: ...$array
     Spread(Box<Expr>),
+
+    // Arrow function (PHP 7.4): fn($params) => expr
+    ArrowFunction {
+        params: Vec<crate::ast::FunctionParam>,
+        body: Box<Expr>, // Single expression (not statement block)
+    },
+
+    // First-class callable (PHP 8.1): functionName(...)
+    CallableFromFunction(String),
+
+    // First-class callable from method (PHP 8.1): $obj->method(...)
+    CallableFromMethod {
+        object: Box<Expr>,
+        method: String,
+    },
+
+    // First-class callable from static method (PHP 8.1): Class::method(...)
+    CallableFromStaticMethod {
+        class: String,
+        method: String,
+    },
 }

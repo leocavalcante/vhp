@@ -74,6 +74,22 @@ impl<W: Write> Interpreter<W> {
 
             // Object/OOP operations
             Expr::New { class_name, args } => object_ops::eval_new(self, class_name, args),
+            Expr::NewAnonymousClass {
+                constructor_args,
+                parent,
+                interfaces,
+                traits,
+                properties,
+                methods,
+            } => object_ops::eval_new_anonymous_class(
+                self,
+                constructor_args,
+                parent,
+                interfaces,
+                traits,
+                properties,
+                methods,
+            ),
             Expr::PropertyAccess { object, property } => {
                 object_ops::eval_property_access(self, object, property)
             }
@@ -102,6 +118,7 @@ impl<W: Write> Interpreter<W> {
 
             // Function calls
             Expr::FunctionCall { name, args } => self.call_function(name, args),
+            Expr::CallableCall { callable, args } => self.eval_callable_call(callable, args),
 
             // Fiber expressions
             Expr::NewFiber { callback } => self.eval_new_fiber(callback),
@@ -136,6 +153,18 @@ impl<W: Write> Interpreter<W> {
                     "Spread operator (...) can only be used in function call arguments"
                         .to_string(),
                 )
+            }
+            Expr::ArrowFunction { params, body } => {
+                self.eval_arrow_function(params, body)
+            }
+            Expr::CallableFromFunction(name) => {
+                self.eval_callable_from_function(name)
+            }
+            Expr::CallableFromMethod { object, method } => {
+                self.eval_callable_from_method(object, method)
+            }
+            Expr::CallableFromStaticMethod { class, method } => {
+                self.eval_callable_from_static_method(class, method)
             }
         }
     }
@@ -289,5 +318,119 @@ impl<W: Write> Interpreter<W> {
             (Value::Float(a), Value::Integer(b)) => Ok(Value::Float(float_op(*a, *b as f64))),
             _ => Ok(Value::Float(float_op(left.to_float(), right.to_float()))),
         }
+    }
+
+    /// Evaluate arrow function (PHP 7.4): capture variables and create closure
+    fn eval_arrow_function(
+        &self,
+        params: &[crate::ast::FunctionParam],
+        body: &Expr,
+    ) -> Result<Value, String> {
+        use crate::interpreter::value::{Closure, ClosureBody};
+        use std::collections::HashMap;
+
+        // Capture ALL variables from current scope by value
+        // This is the key feature of arrow functions
+        let mut captured_vars = HashMap::new();
+        for (name, value) in &self.variables {
+            captured_vars.insert(name.clone(), value.clone());
+        }
+
+        // Create the closure value
+        let closure = Closure {
+            params: params.to_vec(),
+            body: ClosureBody::Expression(Box::new(body.clone())),
+            captured_vars,
+        };
+
+        Ok(Value::Closure(Box::new(closure)))
+    }
+
+    /// Evaluate callable call: $func(), where $func is a closure or string function name
+    fn eval_callable_call(
+        &mut self,
+        callable: &Expr,
+        args: &[crate::ast::Argument],
+    ) -> Result<Value, String> {
+        // Evaluate the callable expression
+        let callable_value = self.eval_expr(callable)?;
+
+        match callable_value {
+            Value::Closure(closure) => {
+                // Call the closure
+                self.call_closure(&closure, args)
+            }
+            Value::String(func_name) => {
+                // Variable function call: $func = "strlen"; $func("hello");
+                self.call_function(&func_name, args)
+            }
+            _ => Err(format!(
+                "Value of type {} is not callable",
+                callable_value.get_type()
+            )),
+        }
+    }
+
+    /// Create closure from function name (PHP 8.1 first-class callable)
+    fn eval_callable_from_function(&self, name: &str) -> Result<Value, String> {
+        use crate::interpreter::value::{Closure, ClosureBody};
+        use std::collections::HashMap;
+
+        // Create a closure that references the function
+        let closure = Closure {
+            params: vec![], // Will be determined at call time
+            body: ClosureBody::FunctionRef(name.to_string()),
+            captured_vars: HashMap::new(),
+        };
+
+        Ok(Value::Closure(Box::new(closure)))
+    }
+
+    /// Create closure from method (PHP 8.1 first-class callable)
+    fn eval_callable_from_method(&mut self, object: &Expr, method: &str) -> Result<Value, String> {
+        use crate::interpreter::value::{Closure, ClosureBody};
+        use std::collections::HashMap;
+
+        // Evaluate the object
+        let obj_value = self.eval_expr(object)?;
+
+        // Verify it's an object
+        if !matches!(obj_value, Value::Object(_)) {
+            return Err("Cannot create callable from non-object".to_string());
+        }
+
+        // Create closure bound to this object and method
+        let closure = Closure {
+            params: vec![],
+            body: ClosureBody::MethodRef {
+                object: Box::new(obj_value),
+                method: method.to_string(),
+            },
+            captured_vars: HashMap::new(),
+        };
+
+        Ok(Value::Closure(Box::new(closure)))
+    }
+
+    /// Create closure from static method (PHP 8.1 first-class callable)
+    fn eval_callable_from_static_method(
+        &self,
+        class: &str,
+        method: &str,
+    ) -> Result<Value, String> {
+        use crate::interpreter::value::{Closure, ClosureBody};
+        use std::collections::HashMap;
+
+        // Create closure referencing the static method
+        let closure = Closure {
+            params: vec![],
+            body: ClosureBody::StaticMethodRef {
+                class: class.to_string(),
+                method: method.to_string(),
+            },
+            captured_vars: HashMap::new(),
+        };
+
+        Ok(Value::Closure(Box::new(closure)))
     }
 }

@@ -1,0 +1,10 @@
+--TEST--
+Nested arrow functions
+--FILE--
+<?php
+$outer = 5;
+$f = fn($x) => fn($y) => $x + $y + $outer;
+$g = $f(10);
+echo $g(3);
+--EXPECT--
+18

@@ -1,0 +1,8 @@
+--TEST--
+First-class callable from built-in function
+--FILE--
+<?php
+$len = strlen(...);
+echo $len("hello");
+--EXPECT--
+5

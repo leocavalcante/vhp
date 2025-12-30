@@ -1,0 +1,11 @@
+--TEST--
+First-class callable passed as argument
+--FILE--
+<?php
+function apply($value, $func) {
+    return $func($value);
+}
+
+echo apply("hello", strtoupper(...));
+--EXPECT--
+HELLO

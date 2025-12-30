@@ -1,0 +1,9 @@
+--TEST--
+Arrow function with variable capture
+--FILE--
+<?php
+$multiplier = 3;
+$multiply = fn($n) => $n * $multiplier;
+echo $multiply(4);
+--EXPECT--
+12

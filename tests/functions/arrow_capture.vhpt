@@ -1,0 +1,9 @@
+--TEST--
+Arrow function captures variables from outer scope
+--FILE--
+<?php
+$multiplier = 3;
+$multiply = fn($n) => $n * $multiplier;
+echo $multiplier;
+--EXPECT--
+3

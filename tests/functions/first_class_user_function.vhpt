@@ -1,0 +1,12 @@
+--TEST--
+First-class callable from user-defined function
+--FILE--
+<?php
+function double($n) {
+    return $n * 2;
+}
+
+$fn = double(...);
+echo $fn(21);
+--EXPECT--
+42

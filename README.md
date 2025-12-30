@@ -62,8 +62,11 @@ cargo build --release
 - ✅ Control flow (`if`/`else`, `while`, `for`, `foreach`, `switch`)
 - ✅ Arrays (indexed, associative, nested)
 - ✅ User-defined and recursive functions
+- ✅ Arrow functions with automatic variable capture (PHP 7.4)
+- ✅ First-class callables for creating closures from functions (PHP 8.1)
 - ✅ Variadic functions and argument unpacking (`...$args`)
 - ✅ Classes & Objects (properties, methods, constructors, `$this`, static calls, inheritance)
+- ✅ Anonymous classes for inline object creation (PHP 7.0)
 - ✅ Interfaces and Traits
 - ✅ Abstract classes and methods
 - ✅ Final classes and methods

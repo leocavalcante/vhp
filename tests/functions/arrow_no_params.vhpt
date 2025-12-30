@@ -1,0 +1,8 @@
+--TEST--
+Arrow function with no parameters
+--FILE--
+<?php
+$getValue = fn() => 42;
+echo $getValue;
+--EXPECT--
+Object(Closure)

@@ -62,18 +62,18 @@ src/
         ├── output.rs    # Output functions (4)
         └── reflection.rs # Reflection functions (8)
 
-tests/                   # Test suite organized by feature (337 tests)
+tests/                   # Test suite organized by feature (356 tests)
 ├── arrays/              # Array tests (18)
 ├── attributes/          # Attribute syntax and reflection tests (29)
 ├── builtins/            # Built-in function tests (26)
-├── classes/             # Class and object tests (50)
+├── classes/             # Class and object tests (55 including anonymous classes)
 ├── comments/            # Comment syntax tests (4)
 ├── control_flow/        # Control flow tests (29)
 ├── echo/                # Echo statement tests (6)
 ├── enums/               # Enum tests (16)
 ├── errors/              # Error handling tests (8)
 ├── expressions/         # Expression evaluation tests (17)
-├── functions/           # User-defined function tests (28)
+├── functions/           # User-defined function tests (42 including arrow functions and first-class callables)
 ├── html/                # HTML passthrough tests (5)
 ├── interfaces/          # Interface tests (7)
 ├── numbers/             # Numeric literal tests (5)
@@ -204,6 +204,7 @@ Source Code → Lexer → Tokens → Parser → AST → Interpreter → Output
 - [x] Clone with property modification syntax (PHP 8.4)
 - [x] Abstract classes and methods
 - [x] Final classes and methods
+- [x] Anonymous classes (PHP 7.0)
 
 ### Match Expressions (PHP 8.0)
 - [x] Basic match syntax: `match($expr) { value => result }`
@@ -254,6 +255,114 @@ $result = $text
     |> strtoupper(...)
     |> substr(..., 0, 5);
 echo $result; // "HELLO"
+```
+
+### Arrow Functions (PHP 7.4)
+- [x] Basic arrow function syntax: `fn($param) => expression`
+- [x] Automatic variable capture by value from outer scope
+- [x] Single expression body (not statement block)
+- [x] Implicit return of expression result
+- [x] Support for default parameters
+- [x] Support for variadic parameters (`...$args`)
+- [x] Nested arrow functions
+- [x] Variable function calls: `$func()` syntax
+- [x] Callable type (closure values)
+
+**Example:**
+```php
+<?php
+// Basic arrow function
+$double = fn($n) => $n * 2;
+echo $double(5); // 10
+
+// Auto-captures from outer scope by value
+$multiplier = 3;
+$multiply = fn($n) => $n * $multiplier;
+echo $multiply(4); // 12
+
+// Nested arrow functions
+$outer = 5;
+$f = fn($x) => fn($y) => $x + $y + $outer;
+$g = $f(10);
+echo $g(3); // 18
+```
+
+### First-Class Callables (PHP 8.1)
+- [x] Basic syntax: `functionName(...)` creates closure
+- [x] Works with built-in functions
+- [x] Works with user-defined functions
+- [x] Closures can be stored in variables
+- [x] Closures can be passed as arguments
+- [x] Integration with pipe operator: `$x |> trim(...) |> strtoupper(...)`
+- [ ] Method callables: `$obj->method(...)` (parsing only, not yet callable)
+- [ ] Static method callables: `Class::method(...)` (parsing only, not yet callable)
+
+**Example:**
+```php
+<?php
+// Create closure from function
+$len = strlen(...);
+echo $len("hello"); // 5
+
+// Use with pipe operator
+$result = "  hello  "
+    |> trim(...)
+    |> strtoupper(...);
+echo $result; // HELLO
+
+// Pass as argument
+function apply($value, $func) {
+    return $func($value);
+}
+echo apply("hello", strtoupper(...)); // HELLO
+```
+
+### Anonymous Classes (PHP 7.0)
+- [x] Basic syntax: `new class { ... }`
+- [x] Constructor arguments: `new class($arg) { ... }`
+- [x] Extending classes: `new class extends Base { ... }`
+- [x] Implementing interfaces: `new class implements Interface { ... }`
+- [x] Unique internal class names (`class@anonymous$N`)
+- [x] Full property and method support
+- [x] Implicitly final (cannot be extended)
+
+**Example:**
+```php
+<?php
+// Basic anonymous class
+$obj = new class {
+    public function greet() {
+        return "Hello!";
+    }
+};
+echo $obj->greet(); // Hello!
+
+// With constructor
+$greeter = new class("World") {
+    private $name;
+    public function __construct($name) {
+        $this->name = $name;
+    }
+    public function greet() {
+        return "Hello, " . $this->name;
+    }
+};
+echo $greeter->greet(); // Hello, World
+
+// Extending a class
+class Base {
+    protected $value;
+    public function __construct($val) {
+        $this->value = $val;
+    }
+}
+
+$obj = new class(42) extends Base {
+    public function getValue() {
+        return $this->value;
+    }
+};
+echo $obj->getValue(); // 42
 ```
 
 ## Adding New Features
@@ -459,6 +568,9 @@ partial error message to match
 - [x] Enums (PHP 8.1) - Pure and backed enums with built-in methods
 - [x] Pipe Operator (PHP 8.5) - Functional-style function chaining
 - [x] Fibers (PHP 8.1)
+- [x] Arrow Functions (PHP 7.4) - Short closures with automatic variable capture
+- [x] First-Class Callables (PHP 8.1) - `strlen(...)` syntax for function closures
+- [x] Anonymous Classes (PHP 7.0) - Inline class definitions
 
 ### Phase 7: PHP Core Language Compatibility (Planned)
 Essential PHP features for compatibility with standard PHP code.
@@ -511,9 +623,9 @@ Essential PHP features for compatibility with standard PHP code.
 - [ ] declare directive (`strict_types`)
 
 **Functions:**
-- [ ] Arrow functions (PHP 7.4) - `fn($x) => $x * 2`
+- [x] Arrow functions (PHP 7.4) - `fn($x) => $x * 2`
 - [x] Variadic functions and argument unpacking
-- [ ] First-class callables (PHP 8.1) - `strlen(...)`
+- [x] First-class callables (PHP 8.1) - `strlen(...)`
 
 ### Phase 8: PHP 8.5 Features (Planned)
 - [ ] URI Extension - `Uri\Rfc3986\Uri` class

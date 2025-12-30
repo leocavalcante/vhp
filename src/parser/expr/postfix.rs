@@ -51,13 +51,41 @@ pub fn parse_postfix(parser: &mut ExprParser, mut expr: Expr) -> Result<Expr, St
                 // Check if it's a method call or property access
                 if parser.check(&TokenKind::LeftParen) {
                     parser.advance(); // consume '('
-                    let args = parser.parse_arguments()?;
-                    parser.consume(TokenKind::RightParen, "Expected ')' after method arguments")?;
-                    expr = Expr::MethodCall {
-                        object: Box::new(expr),
-                        method: member,
-                        args,
-                    };
+                    
+                    // Check for first-class callable: $obj->method(...)
+                    // Must be ONLY ... with no other arguments
+                    if parser.check(&TokenKind::Ellipsis) {
+                        let start_pos = *parser.pos;
+                        parser.advance(); // consume '...'
+                        
+                        if parser.check(&TokenKind::RightParen) {
+                            parser.advance(); // consume ')'
+                            expr = Expr::CallableFromMethod {
+                                object: Box::new(expr),
+                                method: member,
+                            };
+                        } else {
+                            // Not a first-class callable, rewind
+                            *parser.pos = start_pos;
+                            // Regular method call
+                            let args = parser.parse_arguments()?;
+                            parser.consume(TokenKind::RightParen, "Expected ')' after method arguments")?;
+                            expr = Expr::MethodCall {
+                                object: Box::new(expr),
+                                method: member,
+                                args,
+                            };
+                        }
+                    } else {
+                        // Regular method call
+                        let args = parser.parse_arguments()?;
+                        parser.consume(TokenKind::RightParen, "Expected ')' after method arguments")?;
+                        expr = Expr::MethodCall {
+                            object: Box::new(expr),
+                            method: member,
+                            args,
+                        };
+                    }
                 } else {
                     expr = Expr::PropertyAccess {
                         object: Box::new(expr),
@@ -82,6 +110,21 @@ pub fn parse_postfix(parser: &mut ExprParser, mut expr: Expr) -> Result<Expr, St
                     expr = Expr::Unary {
                         op: UnaryOp::PostDec,
                         expr: Box::new(expr),
+                    };
+                } else {
+                    break;
+                }
+            }
+            TokenKind::LeftParen => {
+                // Variable function call: $func(), closure call, etc.
+                // Only allow for variables for now
+                if matches!(&expr, Expr::Variable(_)) {
+                    parser.advance(); // consume '('
+                    let args = parser.parse_arguments()?;
+                    parser.consume(TokenKind::RightParen, "Expected ')' after arguments")?;
+                    expr = Expr::CallableCall {
+                        callable: Box::new(expr),
+                        args,
                     };
                 } else {
                     break;

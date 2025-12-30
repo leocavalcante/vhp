@@ -1,0 +1,10 @@
+--TEST--
+Arrow function captures by value not reference
+--FILE--
+<?php
+$x = 10;
+$getX = fn() => $x;
+$x = 20;
+echo $getX();
+--EXPECT--
+10
