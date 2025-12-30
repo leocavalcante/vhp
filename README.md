@@ -63,6 +63,7 @@ cargo build --release
 - ✅ Arrays (indexed, associative, nested)
 - ✅ User-defined and recursive functions
 - ✅ Arrow functions with automatic variable capture (PHP 7.4)
+- ✅ First-class callables for creating closures from functions (PHP 8.1)
 - ✅ Variadic functions and argument unpacking (`...$args`)
 - ✅ Classes & Objects (properties, methods, constructors, `$this`, static calls, inheritance)
 - ✅ Interfaces and Traits

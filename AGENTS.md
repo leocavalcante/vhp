@@ -62,7 +62,7 @@ src/
         ├── output.rs    # Output functions (4)
         └── reflection.rs # Reflection functions (8)
 
-tests/                   # Test suite organized by feature (346 tests)
+tests/                   # Test suite organized by feature (351 tests)
 ├── arrays/              # Array tests (18)
 ├── attributes/          # Attribute syntax and reflection tests (29)
 ├── builtins/            # Built-in function tests (26)
@@ -73,7 +73,7 @@ tests/                   # Test suite organized by feature (346 tests)
 ├── enums/               # Enum tests (16)
 ├── errors/              # Error handling tests (8)
 ├── expressions/         # Expression evaluation tests (17)
-├── functions/           # User-defined function tests (37 including arrow functions)
+├── functions/           # User-defined function tests (42 including arrow functions and first-class callables)
 ├── html/                # HTML passthrough tests (5)
 ├── interfaces/          # Interface tests (7)
 ├── numbers/             # Numeric literal tests (5)
@@ -286,6 +286,36 @@ $g = $f(10);
 echo $g(3); // 18
 ```
 
+### First-Class Callables (PHP 8.1)
+- [x] Basic syntax: `functionName(...)` creates closure
+- [x] Works with built-in functions
+- [x] Works with user-defined functions
+- [x] Closures can be stored in variables
+- [x] Closures can be passed as arguments
+- [x] Integration with pipe operator: `$x |> trim(...) |> strtoupper(...)`
+- [ ] Method callables: `$obj->method(...)` (parsing only, not yet callable)
+- [ ] Static method callables: `Class::method(...)` (parsing only, not yet callable)
+
+**Example:**
+```php
+<?php
+// Create closure from function
+$len = strlen(...);
+echo $len("hello"); // 5
+
+// Use with pipe operator
+$result = "  hello  "
+    |> trim(...)
+    |> strtoupper(...);
+echo $result; // HELLO
+
+// Pass as argument
+function apply($value, $func) {
+    return $func($value);
+}
+echo apply("hello", strtoupper(...)); // HELLO
+```
+
 ## Adding New Features
 
 ### 1. Update Token Types (`token.rs`)
@@ -490,6 +520,7 @@ partial error message to match
 - [x] Pipe Operator (PHP 8.5) - Functional-style function chaining
 - [x] Fibers (PHP 8.1)
 - [x] Arrow Functions (PHP 7.4) - Short closures with automatic variable capture
+- [x] First-Class Callables (PHP 8.1) - `strlen(...)` syntax for function closures
 
 ### Phase 7: PHP Core Language Compatibility (Planned)
 Essential PHP features for compatibility with standard PHP code.
@@ -544,7 +575,7 @@ Essential PHP features for compatibility with standard PHP code.
 **Functions:**
 - [x] Arrow functions (PHP 7.4) - `fn($x) => $x * 2`
 - [x] Variadic functions and argument unpacking
-- [ ] First-class callables (PHP 8.1) - `strlen(...)`
+- [x] First-class callables (PHP 8.1) - `strlen(...)`
 
 ### Phase 8: PHP 8.5 Features (Planned)
 - [ ] URI Extension - `Uri\Rfc3986\Uri` class
