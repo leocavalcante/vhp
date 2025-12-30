@@ -100,7 +100,7 @@ pub fn parse_postfix(parser: &mut ExprParser, mut expr: Expr) -> Result<Expr, St
                 }
             }
             TokenKind::Increment => {
-                if let Expr::Variable(_) = &expr {
+                if let Expr::Variable(_) | Expr::StaticPropertyAccess { .. } = &expr {
                     parser.advance();
                     expr = Expr::Unary {
                         op: UnaryOp::PostInc,
@@ -111,7 +111,7 @@ pub fn parse_postfix(parser: &mut ExprParser, mut expr: Expr) -> Result<Expr, St
                 }
             }
             TokenKind::Decrement => {
-                if let Expr::Variable(_) = &expr {
+                if let Expr::Variable(_) | Expr::StaticPropertyAccess { .. } = &expr {
                     parser.advance();
                     expr = Expr::Unary {
                         op: UnaryOp::PostDec,
