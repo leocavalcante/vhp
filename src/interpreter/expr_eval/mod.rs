@@ -134,7 +134,9 @@ impl<W: Write> Interpreter<W> {
 
             // Fiber expressions
             Expr::NewFiber { callback } => self.eval_new_fiber(callback),
-            Expr::FiberSuspend { value } => self.eval_fiber_suspend(value.as_ref().map(|v| v.as_ref())),
+            Expr::FiberSuspend { value } => {
+                self.eval_fiber_suspend(value.as_ref().map(|v| v.as_ref()))
+            }
             Expr::FiberGetCurrent => Ok(self.eval_fiber_get_current()),
 
             // Special expressions
@@ -161,17 +163,10 @@ impl<W: Write> Interpreter<W> {
             }
             Expr::Spread(_) => {
                 // Spread is only valid inside function call argument lists
-                Err(
-                    "Spread operator (...) can only be used in function call arguments"
-                        .to_string(),
-                )
+                Err("Spread operator (...) can only be used in function call arguments".to_string())
             }
-            Expr::ArrowFunction { params, body } => {
-                self.eval_arrow_function(params, body)
-            }
-            Expr::CallableFromFunction(name) => {
-                self.eval_callable_from_function(name)
-            }
+            Expr::ArrowFunction { params, body } => self.eval_arrow_function(params, body),
+            Expr::CallableFromFunction(name) => self.eval_callable_from_function(name),
             Expr::CallableFromMethod { object, method } => {
                 self.eval_callable_from_method(object, method)
             }
@@ -399,18 +394,21 @@ impl<W: Write> Interpreter<W> {
             }
             Value::Object(mut obj) => {
                 // Check for __invoke magic method
-                let class = self.classes.get(&obj.class_name).cloned();
+                let class = self.classes.get(&obj.class_name.to_lowercase()).cloned();
                 if let Some(class) = class {
                     if let Some(method) = class.get_magic_method("__invoke") {
                         // Evaluate arguments
-                        let arg_values: Result<Vec<_>, _> = args
-                            .iter()
-                            .map(|arg| self.eval_expr(&arg.value))
-                            .collect();
+                        let arg_values: Result<Vec<_>, _> =
+                            args.iter().map(|arg| self.eval_expr(&arg.value)).collect();
                         let arg_values = arg_values?;
 
                         let class_name = obj.class_name.clone();
-                        return self.call_method_on_object(&mut obj, method, &arg_values, class_name);
+                        return self.call_method_on_object(
+                            &mut obj,
+                            method,
+                            &arg_values,
+                            class_name,
+                        );
                     }
                 }
                 Err(format!(
@@ -467,11 +465,7 @@ impl<W: Write> Interpreter<W> {
     }
 
     /// Create closure from static method (PHP 8.1 first-class callable)
-    fn eval_callable_from_static_method(
-        &self,
-        class: &str,
-        method: &str,
-    ) -> Result<Value, String> {
+    fn eval_callable_from_static_method(&self, class: &str, method: &str) -> Result<Value, String> {
         use crate::interpreter::value::{Closure, ClosureBody};
         use std::collections::HashMap;
 

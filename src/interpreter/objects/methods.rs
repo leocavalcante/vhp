@@ -85,14 +85,12 @@ impl<W: Write> Interpreter<W> {
                     Ok(result)
                 } else {
                     // Method not found, check for __call magic method
-                    let class = self.classes.get(&class_name).cloned();
+                    let class = self.classes.get(&class_name.to_lowercase()).cloned();
                     if let Some(class) = class {
                         if let Some(call_method) = class.get_magic_method("__call") {
                             // Build args array
-                            let arg_values: Result<Vec<_>, _> = args
-                                .iter()
-                                .map(|arg| self.eval_expr(&arg.value))
-                                .collect();
+                            let arg_values: Result<Vec<_>, _> =
+                                args.iter().map(|arg| self.eval_expr(&arg.value)).collect();
                             let arg_values = arg_values?;
 
                             // Create indexed array from arguments
@@ -102,7 +100,7 @@ impl<W: Write> Interpreter<W> {
                                     .into_iter()
                                     .enumerate()
                                     .map(|(i, v)| (ArrayKey::Integer(i as i64), v))
-                                    .collect()
+                                    .collect(),
                             );
 
                             // Call __call with method name and args array
@@ -122,7 +120,10 @@ impl<W: Write> Interpreter<W> {
                         }
                     }
 
-                    Err(format!("Call to undefined method {}::{}()", class_name, method))
+                    Err(format!(
+                        "Call to undefined method {}::{}()",
+                        class_name, method
+                    ))
                 }
             }
             _ => Err(format!(
@@ -284,10 +285,8 @@ impl<W: Write> Interpreter<W> {
             if let Some(class) = class {
                 if let Some(call_static) = class.get_magic_method("__callStatic") {
                     // Build args array
-                    let arg_values: Result<Vec<_>, _> = args
-                        .iter()
-                        .map(|arg| self.eval_expr(&arg.value))
-                        .collect();
+                    let arg_values: Result<Vec<_>, _> =
+                        args.iter().map(|arg| self.eval_expr(&arg.value)).collect();
                     let arg_values = arg_values?;
 
                     // Create indexed array from arguments
@@ -297,7 +296,7 @@ impl<W: Write> Interpreter<W> {
                             .into_iter()
                             .enumerate()
                             .map(|(i, v)| (ArrayKey::Integer(i as i64), v))
-                            .collect()
+                            .collect(),
                     );
 
                     // Call __callStatic with method name and args array
@@ -309,7 +308,10 @@ impl<W: Write> Interpreter<W> {
                 }
             }
 
-            return Err(format!("Call to undefined method {}::{}()", target_class, method));
+            return Err(format!(
+                "Call to undefined method {}::{}()",
+                target_class, method
+            ));
         }
 
         let (method_func, declaring_class) = method_result.unwrap();
@@ -605,18 +607,19 @@ impl<W: Write> Interpreter<W> {
     }
 
     /// Handle Fiber method calls
-    fn call_fiber_method(&mut self, fiber_id: usize, method: &str, args: &[Argument]) -> Result<Value, String> {
+    fn call_fiber_method(
+        &mut self,
+        fiber_id: usize,
+        method: &str,
+        args: &[Argument],
+    ) -> Result<Value, String> {
         // Evaluate arguments
-        let arg_values: Result<Vec<Value>, String> = args
-            .iter()
-            .map(|arg| self.eval_expr(&arg.value))
-            .collect();
+        let arg_values: Result<Vec<Value>, String> =
+            args.iter().map(|arg| self.eval_expr(&arg.value)).collect();
         let arg_values = arg_values?;
 
         match method.to_lowercase().as_str() {
-            "start" => {
-                self.fiber_start(fiber_id, arg_values)
-            }
+            "start" => self.fiber_start(fiber_id, arg_values),
             "resume" => {
                 let value = arg_values.first().cloned().unwrap_or(Value::Null);
                 self.fiber_resume(fiber_id, value)
@@ -626,36 +629,44 @@ impl<W: Write> Interpreter<W> {
                 Err("Fiber::throw() not yet implemented".to_string())
             }
             "getreturn" => {
-                let fiber = self.fibers.get(&fiber_id)
-                    .ok_or("Invalid fiber ID")?;
-                
+                let fiber = self.fibers.get(&fiber_id).ok_or("Invalid fiber ID")?;
+
                 if fiber.state != crate::interpreter::value::FiberState::Terminated {
                     return Err("Cannot get return value of non-terminated fiber".to_string());
                 }
-                
-                Ok(fiber.return_value.as_ref().map(|v| v.as_ref()).unwrap_or(&Value::Null).clone())
+
+                Ok(fiber
+                    .return_value
+                    .as_ref()
+                    .map(|v| v.as_ref())
+                    .unwrap_or(&Value::Null)
+                    .clone())
             }
             "isstarted" => {
-                let fiber = self.fibers.get(&fiber_id)
-                    .ok_or("Invalid fiber ID")?;
-                Ok(Value::Bool(fiber.state != crate::interpreter::value::FiberState::NotStarted))
+                let fiber = self.fibers.get(&fiber_id).ok_or("Invalid fiber ID")?;
+                Ok(Value::Bool(
+                    fiber.state != crate::interpreter::value::FiberState::NotStarted,
+                ))
             }
             "issuspended" => {
-                let fiber = self.fibers.get(&fiber_id)
-                    .ok_or("Invalid fiber ID")?;
-                Ok(Value::Bool(fiber.state == crate::interpreter::value::FiberState::Suspended))
+                let fiber = self.fibers.get(&fiber_id).ok_or("Invalid fiber ID")?;
+                Ok(Value::Bool(
+                    fiber.state == crate::interpreter::value::FiberState::Suspended,
+                ))
             }
             "isrunning" => {
-                let fiber = self.fibers.get(&fiber_id)
-                    .ok_or("Invalid fiber ID")?;
-                Ok(Value::Bool(fiber.state == crate::interpreter::value::FiberState::Running))
+                let fiber = self.fibers.get(&fiber_id).ok_or("Invalid fiber ID")?;
+                Ok(Value::Bool(
+                    fiber.state == crate::interpreter::value::FiberState::Running,
+                ))
             }
             "isterminated" => {
-                let fiber = self.fibers.get(&fiber_id)
-                    .ok_or("Invalid fiber ID")?;
-                Ok(Value::Bool(fiber.state == crate::interpreter::value::FiberState::Terminated))
+                let fiber = self.fibers.get(&fiber_id).ok_or("Invalid fiber ID")?;
+                Ok(Value::Bool(
+                    fiber.state == crate::interpreter::value::FiberState::Terminated,
+                ))
             }
-            _ => Err(format!("Unknown Fiber method: {}", method))
+            _ => Err(format!("Unknown Fiber method: {}", method)),
         }
     }
 

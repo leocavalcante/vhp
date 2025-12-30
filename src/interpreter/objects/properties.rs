@@ -54,14 +54,19 @@ impl<W: Write> Interpreter<W> {
         match obj_value {
             Value::Object(instance) => {
                 // Check for property hooks (PHP 8.4)
-                let class = self.classes.get(&instance.class_name).cloned();
+                let class = self
+                    .classes
+                    .get(&instance.class_name.to_lowercase())
+                    .cloned();
                 if let Some(ref class) = class {
                     // Find property definition
                     if let Some(prop_def) = class.properties.iter().find(|p| p.name == property) {
                         // Check if property has a get hook
-                        if let Some(get_hook) = prop_def.hooks.iter().find(|h| {
-                            matches!(h.hook_type, crate::ast::PropertyHookType::Get)
-                        }) {
+                        if let Some(get_hook) = prop_def
+                            .hooks
+                            .iter()
+                            .find(|h| matches!(h.hook_type, crate::ast::PropertyHookType::Get))
+                        {
                             // Execute the get hook
                             return self.execute_property_get_hook(&instance, get_hook);
                         }
@@ -114,17 +119,20 @@ impl<W: Write> Interpreter<W> {
                 if let Some(ref mut obj) = self.current_object {
                     // Check for property hooks (PHP 8.4)
                     let class_name = obj.class_name.clone();
-                    let class = self.classes.get(&class_name).cloned();
+                    let class = self.classes.get(&class_name.to_lowercase()).cloned();
 
                     // Check for set hook before borrowing obj mutably
                     let set_hook_info = if let Some(ref class) = class {
-                        if let Some(prop_def) = class.properties.iter().find(|p| p.name == property) {
-                            let has_get = prop_def.hooks.iter().any(|h| {
-                                matches!(h.hook_type, crate::ast::PropertyHookType::Get)
-                            });
-                            let has_set = prop_def.hooks.iter().any(|h| {
-                                matches!(h.hook_type, crate::ast::PropertyHookType::Set)
-                            });
+                        if let Some(prop_def) = class.properties.iter().find(|p| p.name == property)
+                        {
+                            let has_get = prop_def
+                                .hooks
+                                .iter()
+                                .any(|h| matches!(h.hook_type, crate::ast::PropertyHookType::Get));
+                            let has_set = prop_def
+                                .hooks
+                                .iter()
+                                .any(|h| matches!(h.hook_type, crate::ast::PropertyHookType::Set));
 
                             // Virtual property (get-only)
                             if has_get && !has_set {
@@ -135,9 +143,11 @@ impl<W: Write> Interpreter<W> {
                             }
 
                             // Check if property has a set hook
-                            prop_def.hooks.iter().find(|h| {
-                                matches!(h.hook_type, crate::ast::PropertyHookType::Set)
-                            }).cloned()
+                            prop_def
+                                .hooks
+                                .iter()
+                                .find(|h| matches!(h.hook_type, crate::ast::PropertyHookType::Set))
+                                .cloned()
                         } else {
                             None
                         }
@@ -180,7 +190,7 @@ impl<W: Write> Interpreter<W> {
                         Ok(val)
                     } else {
                         // Check for __set magic method for undefined properties
-                        let class = self.classes.get(&obj.class_name).cloned();
+                        let class = self.classes.get(&obj.class_name.to_lowercase()).cloned();
                         if let Some(class) = class {
                             if let Some(method) = class.get_magic_method("__set") {
                                 // Need to clone obj to avoid borrow issues
@@ -211,17 +221,20 @@ impl<W: Write> Interpreter<W> {
                 if let Some(Value::Object(mut instance)) = self.variables.get(var_name).cloned() {
                     // Check for property hooks (PHP 8.4)
                     let class_name = instance.class_name.clone();
-                    let class = self.classes.get(&class_name).cloned();
+                    let class = self.classes.get(&class_name.to_lowercase()).cloned();
 
                     // Check for set hook
                     let set_hook_info = if let Some(ref class) = class {
-                        if let Some(prop_def) = class.properties.iter().find(|p| p.name == property) {
-                            let has_get = prop_def.hooks.iter().any(|h| {
-                                matches!(h.hook_type, crate::ast::PropertyHookType::Get)
-                            });
-                            let has_set = prop_def.hooks.iter().any(|h| {
-                                matches!(h.hook_type, crate::ast::PropertyHookType::Set)
-                            });
+                        if let Some(prop_def) = class.properties.iter().find(|p| p.name == property)
+                        {
+                            let has_get = prop_def
+                                .hooks
+                                .iter()
+                                .any(|h| matches!(h.hook_type, crate::ast::PropertyHookType::Get));
+                            let has_set = prop_def
+                                .hooks
+                                .iter()
+                                .any(|h| matches!(h.hook_type, crate::ast::PropertyHookType::Set));
 
                             // Virtual property (get-only)
                             if has_get && !has_set {
@@ -232,9 +245,11 @@ impl<W: Write> Interpreter<W> {
                             }
 
                             // Check if property has a set hook
-                            prop_def.hooks.iter().find(|h| {
-                                matches!(h.hook_type, crate::ast::PropertyHookType::Set)
-                            }).cloned()
+                            prop_def
+                                .hooks
+                                .iter()
+                                .find(|h| matches!(h.hook_type, crate::ast::PropertyHookType::Set))
+                                .cloned()
                         } else {
                             None
                         }
@@ -280,7 +295,10 @@ impl<W: Write> Interpreter<W> {
                         Ok(val)
                     } else {
                         // Check for __set magic method for undefined properties
-                        let class = self.classes.get(&instance.class_name).cloned();
+                        let class = self
+                            .classes
+                            .get(&instance.class_name.to_lowercase())
+                            .cloned();
                         if let Some(class) = class {
                             if let Some(method) = class.get_magic_method("__set") {
                                 // Call __set but still need to update the variable
@@ -400,6 +418,11 @@ impl<W: Write> Interpreter<W> {
             }
         };
 
+        // Retrieve the modified instance before restoring context
+        if let Some(modified_obj) = self.current_object.clone() {
+            *instance = modified_obj;
+        }
+
         // Restore context
         self.current_object = prev_this;
         if let Some(v) = prev_value {
@@ -429,15 +452,12 @@ impl<W: Write> Interpreter<W> {
             .ok_or_else(|| format!("Class '{}' not found", resolved_class))?;
 
         // Get the property value
-        static_props
-            .get(property)
-            .cloned()
-            .ok_or_else(|| {
-                format!(
-                    "Access to undeclared static property {}::${}",
-                    resolved_class, property
-                )
-            })
+        static_props.get(property).cloned().ok_or_else(|| {
+            format!(
+                "Access to undeclared static property {}::${}",
+                resolved_class, property
+            )
+        })
     }
 
     /// Set static property value
@@ -483,15 +503,18 @@ impl<W: Write> Interpreter<W> {
             }
             "parent" => {
                 // Return the parent class
-                let current = self.current_class
+                let current = self
+                    .current_class
                     .as_ref()
                     .ok_or_else(|| "Cannot use 'parent' outside of class context".to_string())?;
 
-                let class_def = self.classes
+                let class_def = self
+                    .classes
                     .get(&current.to_lowercase())
                     .ok_or_else(|| format!("Current class '{}' not found", current))?;
 
-                class_def.parent
+                class_def
+                    .parent
                     .clone()
                     .ok_or_else(|| "Cannot use 'parent' in class with no parent".to_string())
             }

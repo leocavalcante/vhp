@@ -175,7 +175,7 @@ impl<W: Write> Interpreter<W> {
         // First, evaluate all argument values, handling spread expressions
         let mut arg_values = Vec::new();
         let mut named_args: HashMap<String, Value> = HashMap::new();
-        
+
         for arg in args {
             if let Some(ref name) = arg.name {
                 // Named argument
@@ -460,7 +460,10 @@ impl<W: Write> Interpreter<W> {
                             }
                         } else {
                             // Property doesn't exist, check for __isset
-                            let class = self.classes.get(&instance.class_name).cloned();
+                            let class = self
+                                .classes
+                                .get(&instance.class_name.to_lowercase())
+                                .cloned();
                             if let Some(class) = class {
                                 if let Some(method) = class.get_magic_method("__isset") {
                                     let class_name = instance.class_name.clone();
@@ -525,7 +528,10 @@ impl<W: Write> Interpreter<W> {
                                     .insert(var_name.clone(), Value::Object(instance));
                             } else {
                                 // Property doesn't exist, check for __unset
-                                let class = self.classes.get(&instance.class_name).cloned();
+                                let class = self
+                                    .classes
+                                    .get(&instance.class_name.to_lowercase())
+                                    .cloned();
                                 if let Some(class) = class {
                                     if let Some(method) = class.get_magic_method("__unset") {
                                         let class_name = instance.class_name.clone();
