@@ -18,7 +18,7 @@ pub mod trait_;
 
 use super::expr::ExprParser;
 use super::precedence::Precedence;
-use crate::ast::{Attribute, AttributeArgument, Expr, Method, Property, Stmt, Visibility};
+use crate::ast::{Attribute, AttributeArgument, Expr, Method, Property, PropertyHook, PropertyHookBody, PropertyHookType, Stmt, Visibility};
 use crate::token::{Token, TokenKind};
 
 pub struct StmtParser<'a> {
@@ -372,6 +372,21 @@ impl<'a> StmtParser<'a> {
             ));
         };
 
+        // Check for property hooks (PHP 8.4)
+        if self.check(&TokenKind::LeftBrace) {
+            let hooks = self.parse_property_hooks()?;
+            return Ok(Property {
+                name,
+                visibility,
+                default: None, // Properties with hooks cannot have default values
+                readonly: false,
+                is_static: false,
+                attributes: Vec::new(),
+                hooks,
+            });
+        }
+
+        // Parse optional default value: = expr
         let default = if self.check(&TokenKind::Assign) {
             self.advance();
             Some(self.parse_expression(Precedence::None)?)
@@ -390,7 +405,112 @@ impl<'a> StmtParser<'a> {
             readonly: false,        // Will be set by caller if needed
             is_static: false,       // Will be set by caller if needed
             attributes: Vec::new(), // Will be set by caller
+            hooks: Vec::new(),      // Will be set by caller if needed
         })
+    }
+
+    /// Parse property hooks (PHP 8.4)
+    fn parse_property_hooks(&mut self) -> Result<Vec<PropertyHook>, String> {
+        // Expect opening brace
+        if !self.check(&TokenKind::LeftBrace) {
+            return Err(format!(
+                "Expected '{{' at line {}, column {}",
+                self.current().line,
+                self.current().column
+            ));
+        }
+        self.advance();
+
+        let mut hooks = Vec::new();
+
+        while !self.check(&TokenKind::RightBrace) && !self.check(&TokenKind::Eof) {
+            // Parse hook: get => expr; or set => expr; or get { ... } or set { ... }
+            let hook_type = if self.check(&TokenKind::Get) {
+                self.advance();
+                PropertyHookType::Get
+            } else if self.check(&TokenKind::Set) {
+                self.advance();
+                PropertyHookType::Set
+            } else {
+                return Err(format!(
+                    "Expected 'get' or 'set' in property hook at line {}",
+                    self.current().line
+                ));
+            };
+
+            let body = if self.check(&TokenKind::DoubleArrow) {
+                // Short syntax: get => expr;
+                self.advance();
+                let expr = self.parse_expression(Precedence::None)?;
+                if !self.check(&TokenKind::Semicolon) {
+                    return Err(format!(
+                        "Expected ';' after property hook expression at line {}",
+                        self.current().line
+                    ));
+                }
+                self.advance();
+                PropertyHookBody::Expression(Box::new(expr))
+            } else if self.check(&TokenKind::LeftBrace) {
+                // Block syntax: get { statements }
+                self.advance();
+                let mut statements = Vec::new();
+
+                while !self.check(&TokenKind::RightBrace) && !self.check(&TokenKind::Eof) {
+                    if let Some(stmt) = self.parse_statement()? {
+                        statements.push(stmt);
+                    }
+                }
+
+                if !self.check(&TokenKind::RightBrace) {
+                    return Err(format!(
+                        "Expected '}}' after property hook block at line {}",
+                        self.current().line
+                    ));
+                }
+                self.advance();
+                PropertyHookBody::Block(statements)
+            } else {
+                return Err(format!(
+                    "Expected '=>' or '{{' after hook type at line {}",
+                    self.current().line
+                ));
+            };
+
+            hooks.push(PropertyHook { hook_type, body });
+        }
+
+        if !self.check(&TokenKind::RightBrace) {
+            return Err(format!(
+                "Expected '}}' at line {}, column {}",
+                self.current().line,
+                self.current().column
+            ));
+        }
+        self.advance();
+
+        // Validate hooks
+        if hooks.is_empty() {
+            return Err("Property hooks cannot be empty".to_string());
+        }
+
+        // Check for duplicate hooks
+        let get_count = hooks
+            .iter()
+            .filter(|h| matches!(h.hook_type, PropertyHookType::Get))
+            .count();
+        let set_count = hooks
+            .iter()
+            .filter(|h| matches!(h.hook_type, PropertyHookType::Set))
+            .count();
+
+        if get_count > 1 {
+            return Err("Duplicate 'get' hook in property".to_string());
+        }
+        if set_count > 1 {
+            return Err("Duplicate 'set' hook in property".to_string());
+        }
+
+        Ok(hooks)
     }
 
     /// Parse class method (shared between class and trait)
