@@ -62,6 +62,7 @@ pub enum TokenKind {
     // Namespace Keywords
     Namespace, // namespace
     Const,     // const (for use const and class constants)
+    Declare,   // declare (PHP 7.0)
 
     // Exception Keywords
     Try,     // try

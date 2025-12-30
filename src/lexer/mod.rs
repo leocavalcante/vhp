@@ -207,6 +207,7 @@ impl Lexer {
             "set" => TokenKind::Set,
             "namespace" => TokenKind::Namespace,
             "const" => TokenKind::Const,
+            "declare" => TokenKind::Declare,
             "try" => TokenKind::Try,
             "catch" => TokenKind::Catch,
             "finally" => TokenKind::Finally,
