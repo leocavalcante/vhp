@@ -1,0 +1,20 @@
+--TEST--
+Basic property set hook
+--FILE--
+<?php
+class Temperature {
+    private float $celsius = 0;
+
+    public float $fahrenheit {
+        get => $this->celsius * 9/5 + 32;
+        set {
+            $this->celsius = ($value - 32) * 5/9;
+        }
+    }
+}
+
+$t = new Temperature();
+$t->fahrenheit = 212;
+echo $t->fahrenheit;
+--EXPECT--
+212

@@ -1,0 +1,16 @@
+--TEST--
+Error when writing to computed property
+--FILE--
+<?php
+class Circle {
+    public float $radius = 5.0;
+
+    public float $area {
+        get => 3.14159 * $this->radius * $this->radius;
+    }
+}
+
+$c = new Circle();
+$c->area = 100;
+--EXPECT_ERROR--
+Cannot write to read-only property

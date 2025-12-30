@@ -1,0 +1,17 @@
+--TEST--
+Computed property (get-only)
+--FILE--
+<?php
+class Person {
+    public string $firstName = "John";
+    public string $lastName = "Doe";
+
+    public string $fullName {
+        get => $this->firstName . ' ' . $this->lastName;
+    }
+}
+
+$p = new Person();
+echo $p->fullName;
+--EXPECT--
+John Doe

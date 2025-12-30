@@ -1,0 +1,16 @@
+--TEST--
+Basic property get hook
+--FILE--
+<?php
+class Circle {
+    public float $radius = 5.0;
+
+    public float $diameter {
+        get => $this->radius * 2;
+    }
+}
+
+$c = new Circle();
+echo $c->diameter;
+--EXPECT--
+10

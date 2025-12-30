@@ -1,0 +1,19 @@
+--TEST--
+Property hook with block syntax
+--FILE--
+<?php
+class Logger {
+    private array $log = [];
+
+    public string $message {
+        set {
+            $this->log[] = $value;
+            echo "Logged: " . $value;
+        }
+    }
+}
+
+$logger = new Logger();
+$logger->message = "Hello";
+--EXPECT--
+Logged: Hello
