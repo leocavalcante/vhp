@@ -294,6 +294,87 @@ if !prop.hooks.is_empty() && write_visibility.is_some() {
 }
 ```
 
+### Interpreter Patterns: Union Type Coercion Order
+
+**Date**: 2025-12-30
+**Feature**: Union types (PHP 8.0) with strict_types
+**Issue**: Type coercion tried first match instead of exact match for union types
+**Details**:
+When coercing a value to a union type like `int|string`, the original implementation tried to coerce to each type in order and returned the first successful coercion. This caused `"hello"` to be coerced to `0` (int) instead of being accepted as a string.
+
+The issue manifested when union types were used without `declare(strict_types=1)`. In coercive mode:
+- Value: `"hello"`
+- Type hint: `int|string`
+- Wrong behavior: Coerce to int → `0`
+- Correct behavior: Accept as string (exact match)
+
+**Root Cause**: The coercion algorithm didn't prioritize exact type matches over coercions.
+
+**Solution**: For union types in coercive mode:
+1. First check if the value exactly matches any type in the union (no coercion)
+2. Only if no exact match, then try coercing to each type
+3. Return first successful coercion
+
+```rust
+TypeHint::Union(types) => {
+    // First, check for exact matches without coercion
+    for t in types {
+        if value.matches_type(t) {
+            return Ok(value.clone());
+        }
+    }
+    // If no exact match, try coercion
+    for t in types {
+        if let Ok(coerced) = self.coerce_to_type(value, t) {
+            return Ok(coerced);
+        }
+    }
+    Err("Cannot coerce to any type in union".to_string())
+}
+```
+
+**Prevention**:
+- For union types, always prefer exact matches over coercions
+- Test union types in both strict mode (with `declare(strict_types=1)`) and coercive mode (default)
+- Ensure type tests cover both error cases (wrong type) and success cases (multiple accepted types)
+
+### Testing Patterns: Type Tests Need declare(strict_types=1)
+
+**Date**: 2025-12-30
+**Feature**: Type hints with error expectations
+**Issue**: Tests expecting type errors must include `declare(strict_types=1)`
+**Details**:
+PHP defaults to coercive type mode, which attempts to convert values to match type hints. Type errors only occur when conversion fails or in strict mode.
+
+Test failures seen:
+- Test expects: `Error: must be of type int, string given`
+- Actual output: `0` (string coerced to int)
+
+**Root Cause**: Tests were written assuming strict type checking as default, but PHP (and VHP) default to coercive mode.
+
+**Solution**: Any test expecting a type error message must include `declare(strict_types=1);` immediately after the `<?php` tag:
+
+```php
+--TEST--
+Type error on wrong parameter type
+--FILE--
+<?php
+declare(strict_types=1);
+
+function requireInt(int $n) {
+    echo $n;
+}
+requireInt("not an int");
+--EXPECT_ERROR--
+must be of type int, string given
+```
+
+**Prevention**:
+- All type error tests must use `declare(strict_types=1)`
+- Tests without `declare(strict_types=1)` should expect coercive behavior (conversions, not errors)
+- When adding type-related tests, explicitly decide: strict mode or coercive mode?
+- Document in test which mode is being tested
+
 ---
 
 ## Adding New Learnings
@@ -327,3 +408,4 @@ Categories:
 |------|--------|--------|
 | Initial | Created with foundational learnings | architect |
 | 2025-12-30 | Added PHP Compatibility: Feature Incompatibility Validation pattern from asymmetric-visibility implementation | qa |
+| 2025-12-30 | Added Interpreter Patterns: Union Type Coercion Order and Testing Patterns: Type Tests Need declare(strict_types=1) | qa |
