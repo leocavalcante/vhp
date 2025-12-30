@@ -18,7 +18,7 @@ VHP is being developed incrementally, with each phase adding new capabilities wh
 | **4. Arrays** | ✅ Complete | Literals, access, modification, `foreach`, 15 array functions |
 | **5. Classes & Objects** | ✅ Complete | Classes, properties, methods, constructors, inheritance, interfaces, traits, readonly, cloning |
 | **6. Modern PHP 8.x Features** | ✅ Complete | Match Expressions ✅, Named Arguments ✅, Attributes ✅, Enums ✅, Pipe Operator ✅, Fibers ✅ |
-| **7. PHP Core Language** | 🔄 In Progress | Exceptions ✅, Type System ✅ (parsing), Namespaces, Generators, Abstract/Final ✅, Magic Methods |
+| **7. PHP Core Language** | 🔄 In Progress | Exceptions ✅, Type System ✅ (runtime validation), Namespaces, Generators, Abstract/Final ✅, Magic Methods |
 | **8. PHP 8.5 Features** | 🔄 In Progress | URI Extension, Clone with syntax, #[\NoDiscard], array_first/last ✅, Closures in constants |
 | **9. Standard Library** | 📋 Planned | PCRE regex, sorting, array_map/filter/reduce, JSON, DateTime, file system functions |
 
@@ -115,16 +115,17 @@ This phase focuses on implementing core PHP language features that are essential
 - [x] **Multi-catch** (PHP 7.1) - Catching multiple exception types in one block `catch (TypeA | TypeB $e)`
 - [x] **Throw expression** (PHP 8.0) - Using throw in expressions (arrow functions, null coalesce, ternary)
 
-#### Type System
+#### Type System ✅
 
-- [x] **Type declarations** - Parameter and return type hints (`int`, `string`, `float`, `bool`, `array`, `callable`, `object`, `mixed`)
+- [x] **Type declarations** - Parameter and return type hints (`int`, `string`, `float`, `bool`, `array`, `callable`, `object`, `iterable`, `mixed`)
 - [x] **Nullable types** (PHP 7.1) - `?int`, `?string` syntax
 - [x] **Union types** (PHP 8.0) - `int|string`, `int|null`
-- [x] **Intersection types** (PHP 8.1) - `Iterator&Countable`
+- [x] **Intersection types** (PHP 8.1) - `Iterator&Countable` (parsing)
 - [x] **void return type** (PHP 7.1) - Functions that return nothing
 - [x] **never return type** (PHP 8.1) - Functions that never return (throw or exit)
 - [x] **static return type** (PHP 8.0) - Return type for late static binding
-- [ ] **Runtime type validation** - Enforce types at runtime
+- [x] **Runtime type validation** - Full enforcement of parameter and return types
+- [x] **Class type hints** - Custom class/interface types
 - [ ] **DNF types** (PHP 8.2) - Disjunctive Normal Form `(A&B)|C`
 - [ ] **true/false/null as standalone types** (PHP 8.2)
 

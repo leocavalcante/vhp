@@ -2372,11 +2372,11 @@ throw new Exception("This will crash");
 
 ## Type Declarations (PHP 7.0+)
 
-VHP supports PHP's type declaration syntax for parameters and return types. Type hints are currently parsed and stored but not yet validated at runtime.
+VHP supports PHP's type declaration syntax for parameters and return types with **full runtime validation**. Type mismatches throw descriptive TypeErrors.
 
 ### Parameter Type Hints
 
-Type hints can be added to function and method parameters to document expected types.
+Type hints are validated at runtime to ensure type safety.
 
 ```php
 <?php
@@ -2385,6 +2385,7 @@ function greet(string $name, int $age): void {
 }
 
 greet("Alice", 30); // Output: Hello, Alice. You are 30 years old.
+greet(123, "thirty"); // TypeError: Expected string for parameter $name, got int
 ```
 
 **Supported simple types:**
@@ -2395,6 +2396,7 @@ greet("Alice", 30); // Output: Hello, Alice. You are 30 years old.
 - `array` - Array values
 - `object` - Object instances
 - `callable` - Callable values (functions, closures)
+- `iterable` - Arrays or Traversable objects
 - `mixed` - Any type (PHP 8.0+)
 
 ### Nullable Types (PHP 7.1)
@@ -2413,6 +2415,7 @@ function setName(?string $name): void {
 
 setName(null);    // Output: Name not provided
 setName("Bob");   // Output: Name: Bob
+setName(123);     // TypeError: Expected ?string, got int
 ```
 
 ### Union Types (PHP 8.0)
@@ -2430,6 +2433,7 @@ function process(int|string $value): string {
 
 echo process(42);      // Output: Number: 42
 echo process("hello"); // Output: Text: hello
+echo process(true);    // TypeError: Expected int|string, got bool
 ```
 
 Union types can include null:
@@ -2521,13 +2525,13 @@ class Calculator {
 }
 ```
 
-### Current Limitations
+### Runtime Type Validation
 
-**Type hints are currently for documentation only:**
+**Type validation is fully implemented:**
 - ✅ Type declarations are parsed and stored in the AST
 - ✅ All PHP 7.0-8.1 type syntax is supported
-- ❌ Types are not validated at runtime
-- ❌ No type errors are thrown for mismatches
+- ✅ Types are validated at runtime for parameters and return values
+- ✅ Descriptive TypeErrors are thrown for mismatches
 
 **Example:**
 ```php
@@ -2536,17 +2540,22 @@ function add(int $a, int $b): int {
     return $a + $b;
 }
 
-// This currently works (but shouldn't once validation is added)
-echo add("hello", "world");
+echo add(5, 10);        // Output: 15
+echo add("hello", "world"); // TypeError: Expected int, got string
 ```
 
-Runtime type validation will be added in a future update.
+**Supported validations:**
+- Simple types: int, string, float, bool, array, object, callable, iterable, mixed
+- Nullable types: ?int, ?string, etc.
+- Union types: int|string, int|float|null
+- Class types: User, Exception, etc.
+- Return types: void, never, static
 
 ### Best Practices
 
-- **Use type hints** for better code documentation
+- **Use type hints** for runtime safety and better code documentation
 - **Prefer specific types** over `mixed` when possible
 - **Use nullable types** (`?int`) instead of union with null when accepting a single type or null
-- **Document edge cases** when types don't tell the full story
-- **Prepare for validation** by writing code that would pass type checking
+- **Handle type errors** gracefully with try/catch when needed
+- **Test edge cases** to ensure your type hints match actual usage
 

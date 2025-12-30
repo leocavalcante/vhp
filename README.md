@@ -43,7 +43,7 @@ Every. Single. Line. Written through prompts to AI agents. Zero manual coding.
 - **🎯 Zero Dependencies** — Pure standard library, no external crates, no bloat
 - **✨ PHP 8.x Compatible** — Run your WordPress, Laravel, Drupal — *unchanged*
 - **🔮 Modern Features** — Arrow functions, match expressions, fibers, attributes, pipe operator
-- **📈 Battle-Tested** — 200+ comprehensive tests and counting
+- **📈 Battle-Tested** — 396 comprehensive tests and counting
 
 ## ⚡ Get Started in 60 Seconds
 
@@ -135,7 +135,7 @@ $fiber->resume(); // Non-blocking concurrent execution
 - 🎭 **Interfaces & Traits** — Flexible, composable design patterns
 - 🛡️ **Attributes** — Metadata that doesn't suck (PHP 8.0)
 - 🚫 **Exception Handling** — try/catch/finally with throw expressions
-- 📝 **Type Declarations** — Full parsing support for parameter and return types (PHP 7.0+)
+- ✅ **Runtime Type Validation** — Full parameter and return type checking (PHP 7.0+)
 
 ## 🔥 What Makes VHP Special
 
@@ -215,6 +215,14 @@ That's the difference between a tool and an ecosystem.
 - ✅ Readonly properties (PHP 8.1)
 - ✅ Readonly classes (PHP 8.2)
 - ✅ Object cloning with `clone` and `clone with`
+
+**Type System:**
+- ✅ Runtime type validation for parameters and return types (PHP 7.0+)
+- ✅ Simple types (int, string, float, bool, array, object, callable, iterable, mixed)
+- ✅ Nullable types (?int, ?string, PHP 7.1)
+- ✅ Union types (int|string, PHP 8.0)
+- ✅ Class type hints
+- ✅ void and never return types
 
 **Error Handling:**
 - ✅ Exception handling (try/catch/finally)
