@@ -62,11 +62,11 @@ src/
         ├── output.rs    # Output functions (4)
         └── reflection.rs # Reflection functions (8)
 
-tests/                   # Test suite organized by feature (351 tests)
+tests/                   # Test suite organized by feature (356 tests)
 ├── arrays/              # Array tests (18)
 ├── attributes/          # Attribute syntax and reflection tests (29)
 ├── builtins/            # Built-in function tests (26)
-├── classes/             # Class and object tests (50)
+├── classes/             # Class and object tests (55 including anonymous classes)
 ├── comments/            # Comment syntax tests (4)
 ├── control_flow/        # Control flow tests (29)
 ├── echo/                # Echo statement tests (6)
@@ -204,6 +204,7 @@ Source Code → Lexer → Tokens → Parser → AST → Interpreter → Output
 - [x] Clone with property modification syntax (PHP 8.4)
 - [x] Abstract classes and methods
 - [x] Final classes and methods
+- [x] Anonymous classes (PHP 7.0)
 
 ### Match Expressions (PHP 8.0)
 - [x] Basic match syntax: `match($expr) { value => result }`
@@ -314,6 +315,54 @@ function apply($value, $func) {
     return $func($value);
 }
 echo apply("hello", strtoupper(...)); // HELLO
+```
+
+### Anonymous Classes (PHP 7.0)
+- [x] Basic syntax: `new class { ... }`
+- [x] Constructor arguments: `new class($arg) { ... }`
+- [x] Extending classes: `new class extends Base { ... }`
+- [x] Implementing interfaces: `new class implements Interface { ... }`
+- [x] Unique internal class names (`class@anonymous$N`)
+- [x] Full property and method support
+- [x] Implicitly final (cannot be extended)
+
+**Example:**
+```php
+<?php
+// Basic anonymous class
+$obj = new class {
+    public function greet() {
+        return "Hello!";
+    }
+};
+echo $obj->greet(); // Hello!
+
+// With constructor
+$greeter = new class("World") {
+    private $name;
+    public function __construct($name) {
+        $this->name = $name;
+    }
+    public function greet() {
+        return "Hello, " . $this->name;
+    }
+};
+echo $greeter->greet(); // Hello, World
+
+// Extending a class
+class Base {
+    protected $value;
+    public function __construct($val) {
+        $this->value = $val;
+    }
+}
+
+$obj = new class(42) extends Base {
+    public function getValue() {
+        return $this->value;
+    }
+};
+echo $obj->getValue(); // 42
 ```
 
 ## Adding New Features
@@ -521,6 +570,7 @@ partial error message to match
 - [x] Fibers (PHP 8.1)
 - [x] Arrow Functions (PHP 7.4) - Short closures with automatic variable capture
 - [x] First-Class Callables (PHP 8.1) - `strlen(...)` syntax for function closures
+- [x] Anonymous Classes (PHP 7.0) - Inline class definitions
 
 ### Phase 7: PHP Core Language Compatibility (Planned)
 Essential PHP features for compatibility with standard PHP code.

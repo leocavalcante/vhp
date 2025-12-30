@@ -66,6 +66,7 @@ cargo build --release
 - ✅ First-class callables for creating closures from functions (PHP 8.1)
 - ✅ Variadic functions and argument unpacking (`...$args`)
 - ✅ Classes & Objects (properties, methods, constructors, `$this`, static calls, inheritance)
+- ✅ Anonymous classes for inline object creation (PHP 7.0)
 - ✅ Interfaces and Traits
 - ✅ Abstract classes and methods
 - ✅ Final classes and methods
