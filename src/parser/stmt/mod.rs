@@ -166,7 +166,7 @@ impl<'a> StmtParser<'a> {
     }
 
     /// Parse a type hint
-    /// Supports: int, string, ?int, int|string, array, callable, ClassName, Iterator&Countable
+    /// Supports: int, string, ?int, int|string, array, callable, ClassName, Iterator&Countable, (A&B)|C
     pub fn parse_type_hint(&mut self) -> Result<crate::ast::TypeHint, String> {
         use crate::ast::TypeHint;
 
@@ -178,23 +178,19 @@ impl<'a> StmtParser<'a> {
             false
         };
 
-        // Parse the base type
-        let base_type = self.parse_single_type()?;
+        // Parse the base type or parenthesized intersection
+        let base_type = self.parse_type_component()?;
 
         // Check for union | or intersection &
         if self.check(&TokenKind::BitwiseOr) {
-            let mut types = vec![base_type.clone()];
-            while self.check(&TokenKind::BitwiseOr) {
-                self.advance();
-                types.push(self.parse_single_type()?);
-            }
+            let types_or_dnf = self.parse_union_or_dnf(base_type)?;
             if nullable {
                 // ?int|string is not valid syntax, but int|string|null is
                 return Err(
                     "Cannot use nullable syntax with union types, use |null instead".to_string(),
                 );
             }
-            return Ok(TypeHint::Union(types));
+            return Ok(types_or_dnf);
         }
 
         // Check for intersection & (we need to distinguish from reference &)
@@ -237,6 +233,90 @@ impl<'a> StmtParser<'a> {
             Ok(TypeHint::Nullable(Box::new(base_type)))
         } else {
             Ok(base_type)
+        }
+    }
+
+    /// Parse a type component - either a single type or a parenthesized intersection
+    fn parse_type_component(&mut self) -> Result<crate::ast::TypeHint, String> {
+        use crate::ast::TypeHint;
+
+        // Check for parenthesized intersection: (A&B)
+        if self.check(&TokenKind::LeftParen) {
+            self.advance(); // consume '('
+
+            // Parse the first type in the intersection
+            let first_type = self.parse_single_type()?;
+
+            // Check if this is an intersection (has &) or just a single type in parens
+            let mut types = vec![first_type];
+
+            // Look for & to parse intersection
+            while let TokenKind::Identifier(amp) = &self.current().kind {
+                if amp == "&" {
+                    self.advance(); // consume '&'
+                    types.push(self.parse_single_type()?);
+                } else {
+                    break;
+                }
+            }
+
+            self.consume(
+                TokenKind::RightParen,
+                "Expected ')' after type in parentheses",
+            )?;
+
+            // If we have multiple types, it's an intersection
+            if types.len() > 1 {
+                Ok(TypeHint::Intersection(types))
+            } else {
+                // Single type in parens - just return it
+                Ok(types.into_iter().next().unwrap())
+            }
+        } else {
+            // Parse single type
+            self.parse_single_type()
+        }
+    }
+
+    /// Parse union or DNF type after seeing the first component and |
+    fn parse_union_or_dnf(
+        &mut self,
+        first: crate::ast::TypeHint,
+    ) -> Result<crate::ast::TypeHint, String> {
+        use crate::ast::TypeHint;
+
+        let mut components = vec![first.clone()];
+        let mut has_intersection = matches!(first, TypeHint::Intersection(_));
+
+        // Parse additional components after |
+        while self.check(&TokenKind::BitwiseOr) {
+            self.advance(); // consume '|'
+
+            let component = self.parse_type_component()?;
+
+            if matches!(component, TypeHint::Intersection(_)) {
+                has_intersection = true;
+            }
+
+            components.push(component);
+        }
+
+        // Determine if this is DNF or simple union
+        if has_intersection {
+            // Convert to DNF format: Vec<Vec<TypeHint>>
+            let dnf_components: Result<Vec<Vec<TypeHint>>, String> = components
+                .into_iter()
+                .map(|comp| match comp {
+                    TypeHint::Intersection(types) => Ok(types),
+                    // Single type is an intersection of one element
+                    other => Ok(vec![other]),
+                })
+                .collect();
+
+            Ok(TypeHint::DNF(dnf_components?))
+        } else {
+            // Simple union
+            Ok(TypeHint::Union(components))
         }
     }
 
@@ -608,6 +688,9 @@ impl<'a> StmtParser<'a> {
                     Some(self.parse_type_hint()?)
                 } else if self.check(&TokenKind::QuestionMark) {
                     // Nullable type
+                    Some(self.parse_type_hint()?)
+                } else if self.check(&TokenKind::LeftParen) {
+                    // Parenthesized intersection or DNF type
                     Some(self.parse_type_hint()?)
                 } else {
                     None

@@ -117,6 +117,7 @@ pub struct ClassDefinition {
     pub readonly: bool,    // PHP 8.2+: if true, all properties are implicitly readonly
     #[allow(dead_code)] // Will be used for inheritance support
     pub parent: Option<String>,
+    pub interfaces: Vec<String>, // Implemented interfaces
     pub properties: Vec<crate::ast::Property>,
     pub methods: HashMap<String, UserFunction>,
     #[allow(dead_code)] // Will be used for visibility enforcement
@@ -337,6 +338,7 @@ impl<W: Write> Interpreter<W> {
             is_final: false,
             readonly: false,
             parent: None,
+            interfaces: Vec::new(),
             properties: vec![
                 Property {
                     name: "message".to_string(),
@@ -591,6 +593,110 @@ impl<W: Write> Interpreter<W> {
         // Simplified implementation - return the resume value
         // In a full implementation, we'd restore the exact execution context
         Ok(resume_value)
+    }
+
+    /// Check if an object is an instance of a given class or interface (with full hierarchy checking)
+    /// This method properly traverses the full inheritance chain including:
+    /// - Direct class match
+    /// - Parent class chain (recursively)
+    /// - Implemented interfaces (recursively)
+    /// - Interface inheritance (recursively)
+    pub fn is_instance_of(&self, object_class: &str, target_class: &str) -> bool {
+        let object_class_lower = object_class.to_lowercase();
+        let target_class_lower = target_class.to_lowercase();
+
+        // Check exact match (case-insensitive)
+        if object_class_lower == target_class_lower {
+            return true;
+        }
+
+        // Check if object_class is a class
+        if let Some(class_def) = self.classes.get(&object_class_lower) {
+            // Check parent chain recursively
+            if let Some(parent) = &class_def.parent {
+                if self.is_instance_of(parent, target_class) {
+                    return true;
+                }
+            }
+
+            // Check implemented interfaces recursively
+            for interface in &class_def.interfaces {
+                if self.is_instance_of(interface, target_class) {
+                    return true;
+                }
+            }
+        }
+
+        // Check if object_class is an interface extending other interfaces
+        if let Some(interface_def) = self.interfaces.get(&object_class_lower) {
+            for parent_interface in &interface_def.parents {
+                if self.is_instance_of(parent_interface, target_class) {
+                    return true;
+                }
+            }
+        }
+
+        false
+    }
+
+    /// Check if a value matches a type hint (with full interpreter access for hierarchy checking)
+    /// This is the proper version that handles inheritance correctly.
+    pub fn value_matches_type(&self, value: &Value, type_hint: &crate::ast::TypeHint) -> bool {
+        use crate::ast::TypeHint;
+        match type_hint {
+            TypeHint::Simple(name) => self.value_matches_simple_type(value, name),
+            TypeHint::Nullable(inner) => {
+                matches!(value, Value::Null) || self.value_matches_type(value, inner)
+            }
+            TypeHint::Union(types) => types.iter().any(|t| self.value_matches_type(value, t)),
+            TypeHint::Intersection(types) => {
+                types.iter().all(|t| self.value_matches_type(value, t))
+            }
+            TypeHint::DNF(intersections) => {
+                // DNF: (A&B)|(C&D)|E
+                // Value must match at least one intersection group
+                intersections.iter().any(|group| {
+                    // All types in the group must match
+                    group.iter().all(|t| self.value_matches_type(value, t))
+                })
+            }
+            TypeHint::Class(class_name) => {
+                if let Value::Object(obj) = value {
+                    self.is_instance_of(&obj.class_name, class_name)
+                } else {
+                    false
+                }
+            }
+            TypeHint::Void => false,       // void is for return types only
+            TypeHint::Never => false,      // never is for return types only
+            TypeHint::Static => false,     // Requires class context
+            TypeHint::SelfType => false,   // Requires class context
+            TypeHint::ParentType => false, // Requires class context
+        }
+    }
+
+    /// Helper to check simple type matches
+    fn value_matches_simple_type(&self, value: &Value, type_name: &str) -> bool {
+        match (type_name, value) {
+            ("int", Value::Integer(_)) => true,
+            ("string", Value::String(_)) => true,
+            ("float", Value::Float(_)) => true,
+            ("float", Value::Integer(_)) => true, // int is compatible with float
+            ("bool", Value::Bool(_)) => true,
+            ("array", Value::Array(_)) => true,
+            ("object", Value::Object(_)) => true,
+            ("object", Value::Fiber(_)) => true,
+            ("object", Value::Closure(_)) => true,
+            ("object", Value::EnumCase { .. }) => true,
+            ("callable", Value::Closure(_)) => true,
+            ("callable", Value::String(_)) => true, // function name
+            ("iterable", Value::Array(_)) => true,
+            ("mixed", _) => true,
+            ("null", Value::Null) => true,
+            ("false", Value::Bool(false)) => true,
+            ("true", Value::Bool(true)) => true,
+            _ => false,
+        }
     }
 
     /// Convert value to string, calling __toString if available

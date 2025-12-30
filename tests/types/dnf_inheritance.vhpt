@@ -1,0 +1,19 @@
+--TEST--
+DNF with inheritance: subclass satisfies parent interface
+--FILE--
+<?php
+interface Base {}
+interface Extra {}
+
+class BaseClass implements Base {}
+class Child extends BaseClass implements Extra {}
+
+function test((Base&Extra)|Child $obj): void {
+    echo "ok";
+}
+
+// Child implements Extra and inherits Base
+$child = new Child();
+test($child);
+--EXPECT--
+ok

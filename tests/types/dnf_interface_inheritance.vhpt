@@ -1,0 +1,31 @@
+--TEST--
+DNF with interface inheritance chain
+--FILE--
+<?php
+interface Base {
+    function baseMethod();
+}
+interface Child extends Base {
+    function childMethod();
+}
+interface Other {
+    function otherMethod();
+}
+
+class Implementation implements Child, Other {
+    public function baseMethod() {}
+    public function childMethod() {}
+    public function otherMethod() {}
+}
+
+function test((Base&Other)|string $obj): void {
+    echo "ok";
+}
+
+// Implementation should match (Base&Other) because:
+// - Implementation implements Other directly
+// - Implementation implements Child which extends Base
+$impl = new Implementation();
+test($impl);
+--EXPECT--
+ok

@@ -1,0 +1,18 @@
+--TEST--
+DNF type as return type
+--FILE--
+<?php
+interface I1 {}
+interface I2 {}
+interface I3 {}
+
+class A implements I1, I2 {}
+
+function getValue(): (I1&I2)|I3 {
+    return new A();
+}
+
+$result = getValue();
+echo "yes";
+--EXPECT--
+yes

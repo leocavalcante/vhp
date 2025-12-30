@@ -90,6 +90,8 @@ pub(crate) fn eval_clone<W: Write>(
                 properties: instance.properties.clone(),
                 readonly_properties: instance.readonly_properties.clone(),
                 initialized_readonly: std::collections::HashSet::new(), // Reset initialization tracking
+                parent_class: instance.parent_class.clone(),
+                interfaces: instance.interfaces.clone(),
             };
 
             // For a cloned object, readonly properties can be re-initialized
@@ -119,6 +121,8 @@ pub(crate) fn eval_clone_with<W: Write>(
                 properties: instance.properties.clone(),
                 readonly_properties: instance.readonly_properties.clone(),
                 initialized_readonly: std::collections::HashSet::new(), // Reset for clone
+                parent_class: instance.parent_class.clone(),
+                interfaces: instance.interfaces.clone(),
             };
 
             // Apply modifications

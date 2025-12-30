@@ -1,0 +1,22 @@
+--TEST--
+Complex DNF parsing with parentheses
+--FILE--
+<?php
+interface I1 {}
+interface I2 {}
+interface I3 {}
+interface I4 {}
+
+class A implements I1, I2 {}
+class B implements I3, I4 {}
+
+function complex((I1&I2)|(I3&I4) $x): void {
+    echo "valid";
+}
+
+complex(new A());
+echo "\n";
+complex(new B());
+--EXPECT--
+valid
+valid

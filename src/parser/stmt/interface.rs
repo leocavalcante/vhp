@@ -50,6 +50,11 @@ impl<'a> StmtParser<'a> {
             // Parse attributes that may precede method or constant
             let attributes = self.parse_attributes()?;
 
+            // Skip optional visibility modifier (interface methods are always public)
+            if self.check(&TokenKind::Public) || self.check(&TokenKind::Protected) || self.check(&TokenKind::Private) {
+                self.advance();
+            }
+
             // Check for 'const' keyword
             if self.check(&TokenKind::Const) {
                 // Parse const with the attributes we already parsed
@@ -131,6 +136,9 @@ impl<'a> StmtParser<'a> {
                 let type_hint = if let TokenKind::Identifier(_) = &self.current().kind {
                     Some(self.parse_type_hint()?)
                 } else if self.check(&TokenKind::QuestionMark) {
+                    Some(self.parse_type_hint()?)
+                } else if self.check(&TokenKind::LeftParen) {
+                    // Parenthesized intersection or DNF type
                     Some(self.parse_type_hint()?)
                 } else {
                     None

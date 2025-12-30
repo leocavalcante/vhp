@@ -101,6 +101,7 @@ pub(crate) fn eval_new_anonymous_class<W: Write>(
         is_final: true, // Anonymous classes are implicitly final
         readonly: false,
         parent: parent.clone(),
+        interfaces: Vec::new(), // Anonymous classes don't implement interfaces directly
         properties: properties.to_vec(),
         methods: class_methods,
         method_visibility,

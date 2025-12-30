@@ -268,6 +268,7 @@ impl<W: Write> Interpreter<W> {
             is_final,
             readonly,
             parent: resolved_parent,
+            interfaces: resolved_interfaces,
             properties: all_properties,
             methods: methods_map,
             method_visibility: visibility_map,

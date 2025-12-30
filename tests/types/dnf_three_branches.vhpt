@@ -1,0 +1,23 @@
+--TEST--
+DNF with three union branches: (A&B)|(C&D)|E
+--FILE--
+<?php
+interface A {}
+interface B {}
+interface C {}
+interface D {}
+interface E {}
+
+class AB implements A, B {}
+class CD implements C, D {}
+class JustE implements E {}
+
+function test((A&B)|(C&D)|E $obj): int {
+    return 1;
+}
+
+echo test(new AB());
+echo test(new CD());
+echo test(new JustE());
+--EXPECT--
+111

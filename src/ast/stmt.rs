@@ -70,6 +70,7 @@ pub enum NamespaceBody {
 
 /// Type hint for parameters and return values
 #[derive(Debug, Clone, PartialEq)]
+#[allow(clippy::upper_case_acronyms)]
 pub enum TypeHint {
     /// Simple type: int, string, float, bool, array, object, callable, mixed
     Simple(String),
@@ -79,6 +80,10 @@ pub enum TypeHint {
     Union(Vec<TypeHint>),
     /// Intersection type (PHP 8.1+): Iterator&Countable
     Intersection(Vec<TypeHint>),
+    /// DNF type (PHP 8.2+): (A&B)|C, (A&B)|(C&D)
+    /// Each inner Vec represents an intersection, the outer Vec is the union
+    /// Example: (A&B)|C is represented as [[A, B], [C]]
+    DNF(Vec<Vec<TypeHint>>),
     /// Class/interface type
     Class(String),
     /// void (only for return types)
@@ -102,6 +107,12 @@ impl TypeHint {
                 .iter()
                 .any(|t| matches!(t, TypeHint::Simple(s) if s == "null")),
             TypeHint::Simple(s) => s == "mixed" || s == "null",
+            TypeHint::DNF(intersections) => {
+                // DNF is nullable if any intersection group contains only null
+                intersections.iter().any(|group| {
+                    group.len() == 1 && matches!(&group[0], TypeHint::Simple(s) if s == "null")
+                })
+            }
             _ => false,
         }
     }

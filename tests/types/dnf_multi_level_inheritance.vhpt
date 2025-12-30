@@ -1,0 +1,30 @@
+--TEST--
+DNF with multi-level class inheritance
+--FILE--
+<?php
+interface A {
+    function methodA();
+}
+interface B {
+    function methodB();
+}
+
+class Ancestor implements A {
+    public function methodA() {}
+}
+class Middle extends Ancestor {}
+class Child extends Middle implements B {
+    public function methodB() {}
+}
+
+function test((A&B)|string $obj): void {
+    echo "ok";
+}
+
+// Child should match (A&B) because:
+// - Child implements B directly
+// - Child inherits A from Ancestor through Middle
+$child = new Child();
+test($child);
+--EXPECT--
+ok

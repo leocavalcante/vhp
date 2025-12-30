@@ -40,6 +40,9 @@ impl<'a> StmtParser<'a> {
                 } else if self.check(&TokenKind::QuestionMark) {
                     // Nullable type
                     Some(self.parse_type_hint()?)
+                } else if self.check(&TokenKind::LeftParen) {
+                    // Parenthesized intersection or DNF type
+                    Some(self.parse_type_hint()?)
                 } else {
                     None
                 };

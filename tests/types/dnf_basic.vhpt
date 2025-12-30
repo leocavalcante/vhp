@@ -1,0 +1,35 @@
+--TEST--
+Basic DNF type: (A&B)|C
+--FILE--
+<?php
+interface A {
+    public function a();
+}
+
+interface B {
+    public function b();
+}
+
+interface C {
+    public function c();
+}
+
+class AB implements A, B {
+    public function a() {}
+    public function b() {}
+}
+
+class JustC implements C {
+    public function c() {}
+}
+
+function process((A&B)|C $obj): void {
+    echo "OK";
+}
+
+process(new AB());
+echo "\n";
+process(new JustC());
+--EXPECT--
+OK
+OK

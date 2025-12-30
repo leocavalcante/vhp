@@ -444,9 +444,9 @@ impl<W: Write> Interpreter<W> {
                 Value::Null
             };
 
-            // Validate type hint if present
+            // Validate type hint if present (use interpreter's method for proper inheritance checking)
             if let Some(ref type_hint) = param.type_hint {
-                if !value.matches_type(type_hint) {
+                if !self.value_matches_type(&value, type_hint) {
                     return Err(format!(
                         "Argument {} for parameter ${} must be of type {}, {} given",
                         i + 1,
@@ -560,9 +560,9 @@ impl<W: Write> Interpreter<W> {
                 positional_arg_idx += 1;
             }
 
-            // Validate type hint if present
+            // Validate type hint if present (use interpreter's method for proper inheritance checking)
             if let Some(ref type_hint) = param.type_hint {
-                if !value.matches_type(type_hint) {
+                if !self.value_matches_type(&value, type_hint) {
                     return Err(format!(
                         "Argument for parameter ${} must be of type {}, {} given",
                         param.name,
@@ -701,6 +701,24 @@ impl<W: Write> Interpreter<W> {
                 .map(|t| Self::format_type_hint_for_method(t))
                 .collect::<Vec<_>>()
                 .join("&"),
+            TypeHint::DNF(intersections) => intersections
+                .iter()
+                .map(|group| {
+                    if group.len() == 1 {
+                        Self::format_type_hint_for_method(&group[0])
+                    } else {
+                        format!(
+                            "({})",
+                            group
+                                .iter()
+                                .map(|t| Self::format_type_hint_for_method(t))
+                                .collect::<Vec<_>>()
+                                .join("&")
+                        )
+                    }
+                })
+                .collect::<Vec<_>>()
+                .join("|"),
             TypeHint::Class(name) => name.clone(),
             TypeHint::Void => "void".to_string(),
             TypeHint::Never => "never".to_string(),
@@ -730,7 +748,8 @@ impl<W: Write> Interpreter<W> {
                 return Err("never-returning method must not return".to_string());
             }
             _ => {
-                if !value.matches_type(return_type) {
+                // Use interpreter's method for proper inheritance chain checking
+                if !self.value_matches_type(value, return_type) {
                     return Err(format!(
                         "Return value must be of type {}, {} returned",
                         Self::format_type_hint_for_method(return_type),

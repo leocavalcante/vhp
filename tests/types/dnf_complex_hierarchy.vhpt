@@ -1,0 +1,35 @@
+--TEST--
+DNF with complex mixed inheritance scenario
+--FILE--
+<?php
+interface I1 {
+    function method1();
+}
+interface I2 extends I1 {
+    function method2();
+}
+interface I3 {
+    function method3();
+}
+
+class Base implements I2 {
+    public function method1() {}
+    public function method2() {}
+}
+class Middle extends Base implements I3 {
+    public function method3() {}
+}
+class Leaf extends Middle {}
+
+function test((I1&I3)|string $obj): void {
+    echo "ok";
+}
+
+// Leaf should match (I1&I3) because:
+// - Leaf inherits I3 from Middle
+// - Leaf inherits I2 from Base
+// - I2 extends I1, so Leaf also implements I1
+$leaf = new Leaf();
+test($leaf);
+--EXPECT--
+ok

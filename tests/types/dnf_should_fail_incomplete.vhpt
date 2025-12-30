@@ -1,0 +1,27 @@
+--TEST--
+DNF should fail when object doesn't satisfy full intersection
+--FILE--
+<?php
+interface A {
+    function methodA();
+}
+interface B {
+    function methodB();
+}
+interface C {
+    function methodC();
+}
+
+class OnlyA implements A {
+    public function methodA() {}
+}
+
+function test((A&B)|C $obj): void {
+    echo "ok";
+}
+
+// Should fail: OnlyA implements A but not B, and doesn't implement C
+$obj = new OnlyA();
+test($obj);
+--EXPECT_ERROR--
+must be of type (A&B)|C

@@ -1,0 +1,29 @@
+--TEST--
+DNF type error when neither branch matches
+--FILE--
+<?php
+declare(strict_types=1);
+
+interface A {
+    public function a();
+}
+
+interface B {
+    public function b();
+}
+
+interface C {
+    public function c();
+}
+
+class OnlyA implements A {
+    public function a() {}
+}
+
+function process((A&B)|C $obj): void {
+    echo "OK";
+}
+
+process(new OnlyA());
+--EXPECT_ERROR--
+must be of type (A&B)|C

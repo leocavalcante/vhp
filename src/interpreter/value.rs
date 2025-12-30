@@ -185,15 +185,31 @@ pub struct ObjectInstance {
     pub properties: HashMap<String, Value>,
     pub readonly_properties: std::collections::HashSet<String>, // Track readonly property names (PHP 8.1)
     pub initialized_readonly: std::collections::HashSet<String>, // Track which readonly props are initialized
+    pub parent_class: Option<String>,    // Parent class name (for inheritance checking)
+    pub interfaces: Vec<String>,         // Implemented interfaces (for DNF type checking)
 }
 
 impl ObjectInstance {
+    #[allow(dead_code)] // Kept for backwards compatibility
     pub fn new(class_name: String) -> Self {
         Self {
             class_name,
             properties: HashMap::new(),
             readonly_properties: std::collections::HashSet::new(),
             initialized_readonly: std::collections::HashSet::new(),
+            parent_class: None,
+            interfaces: Vec::new(),
+        }
+    }
+
+    pub fn with_hierarchy(class_name: String, parent: Option<String>, interfaces: Vec<String>) -> Self {
+        Self {
+            class_name,
+            properties: HashMap::new(),
+            readonly_properties: std::collections::HashSet::new(),
+            initialized_readonly: std::collections::HashSet::new(),
+            parent_class: parent,
+            interfaces,
         }
     }
 }
@@ -542,7 +558,9 @@ impl Value {
         }
     }
 
-    /// Check if value matches a type hint
+    /// Check if value matches a type hint (basic version without interpreter access)
+    /// NOTE: This method has limitations for inheritance checking.
+    /// For full inheritance chain validation, use Interpreter::value_matches_type instead.
     pub fn matches_type(&self, type_hint: &crate::ast::TypeHint) -> bool {
         use crate::ast::TypeHint;
         match type_hint {
@@ -550,6 +568,15 @@ impl Value {
             TypeHint::Nullable(inner) => matches!(self, Value::Null) || self.matches_type(inner),
             TypeHint::Union(types) => types.iter().any(|t| self.matches_type(t)),
             TypeHint::Intersection(types) => types.iter().all(|t| self.matches_type(t)),
+            TypeHint::DNF(intersections) => {
+                // DNF: (A&B)|(C&D)|E
+                // Value must match at least one intersection group
+                // WARNING: This only checks direct parent/interfaces, not full hierarchy
+                intersections.iter().any(|group| {
+                    // All types in the group must match
+                    group.iter().all(|t| self.matches_type(t))
+                })
+            }
             TypeHint::Class(class_name) => {
                 if let Value::Object(obj) = self {
                     obj.is_instance_of(class_name)
@@ -594,6 +621,14 @@ impl Value {
             }
             TypeHint::Union(types) => types.iter().any(|t| self.matches_type_strict(t)),
             TypeHint::Intersection(types) => types.iter().all(|t| self.matches_type_strict(t)),
+            TypeHint::DNF(intersections) => {
+                // DNF: (A&B)|(C&D)|E
+                // Value must match at least one intersection group
+                intersections.iter().any(|group| {
+                    // All types in the group must match
+                    group.iter().all(|t| self.matches_type_strict(t))
+                })
+            }
             TypeHint::Class(class_name) => {
                 if let Value::Object(obj) = self {
                     obj.is_instance_of(class_name)
@@ -635,10 +670,24 @@ impl Value {
 }
 
 impl ObjectInstance {
-    /// Check if this object is an instance of a given class
+    /// Check if this object is an instance of a given class or interface
+    /// Checks: exact match, parent class, and implemented interfaces
     pub fn is_instance_of(&self, class_name: &str) -> bool {
-        // For now, just check exact class name match
-        // TODO: Add inheritance and interface support
-        self.class_name == class_name
+        // Check exact class name match (case-insensitive)
+        if self.class_name.eq_ignore_ascii_case(class_name) {
+            return true;
+        }
+
+        // Check parent class (case-insensitive)
+        if let Some(ref parent) = self.parent_class {
+            if parent.eq_ignore_ascii_case(class_name) {
+                return true;
+            }
+        }
+
+        // Check implemented interfaces (case-insensitive)
+        self.interfaces
+            .iter()
+            .any(|iface| iface.eq_ignore_ascii_case(class_name))
     }
 }

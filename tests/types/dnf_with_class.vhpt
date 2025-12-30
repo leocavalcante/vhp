@@ -1,0 +1,35 @@
+--TEST--
+DNF with class types: (Stringable&Countable)|ArrayAccess
+--FILE--
+<?php
+interface Stringable {
+    public function __toString();
+}
+
+interface Countable {
+    public function count();
+}
+
+interface ArrayAccess {
+    public function offsetGet($offset);
+}
+
+class Both implements Stringable, Countable {
+    public function __toString() { return "Both"; }
+    public function count() { return 1; }
+}
+
+class ArrayImpl implements ArrayAccess {
+    public function offsetGet($offset) { return null; }
+}
+
+function handle((Stringable&Countable)|ArrayAccess $obj): void {
+    echo "valid";
+}
+
+handle(new Both());
+echo "\n";
+handle(new ArrayImpl());
+--EXPECT--
+valid
+valid

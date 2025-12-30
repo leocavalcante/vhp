@@ -399,6 +399,24 @@ impl<W: Write> Interpreter<W> {
                 .map(|t| Self::format_type_hint(t))
                 .collect::<Vec<_>>()
                 .join("&"),
+            TypeHint::DNF(intersections) => intersections
+                .iter()
+                .map(|group| {
+                    if group.len() == 1 {
+                        Self::format_type_hint(&group[0])
+                    } else {
+                        format!(
+                            "({})",
+                            group
+                                .iter()
+                                .map(|t| Self::format_type_hint(t))
+                                .collect::<Vec<_>>()
+                                .join("&")
+                        )
+                    }
+                })
+                .collect::<Vec<_>>()
+                .join("|"),
             TypeHint::Class(name) => name.clone(),
             TypeHint::Void => "void".to_string(),
             TypeHint::Never => "never".to_string(),
@@ -428,7 +446,8 @@ impl<W: Write> Interpreter<W> {
                 return Err("never-returning function must not return".to_string());
             }
             _ => {
-                if !value.matches_type(return_type) {
+                // Use interpreter's method for proper inheritance chain checking
+                if !self.value_matches_type(value, return_type) {
                     return Err(format!(
                         "Return value must be of type {}, {} returned",
                         Self::format_type_hint(return_type),
@@ -694,8 +713,8 @@ impl<W: Write> Interpreter<W> {
                     _ => Err("Cannot coerce to array".to_string()),
                 },
                 _ => {
-                    // For other types, check if matches
-                    if value.matches_type(type_hint) {
+                    // For other types, check if matches (use interpreter's method for proper hierarchy checking)
+                    if self.value_matches_type(value, type_hint) {
                         Ok(value.clone())
                     } else {
                         Err(format!("Cannot coerce to {}", name))
@@ -710,9 +729,9 @@ impl<W: Write> Interpreter<W> {
                 }
             }
             TypeHint::Union(types) => {
-                // First, check for exact matches without coercion
+                // First, check for exact matches without coercion (use interpreter's method for proper hierarchy checking)
                 for t in types {
-                    if value.matches_type(t) {
+                    if self.value_matches_type(value, t) {
                         return Ok(value.clone());
                     }
                 }
@@ -724,9 +743,21 @@ impl<W: Write> Interpreter<W> {
                 }
                 Err("Cannot coerce to any type in union".to_string())
             }
+            TypeHint::DNF(intersections) => {
+                // DNF: (A&B)|(C&D)|E
+                // First, check for exact match in any intersection group
+                // Use interpreter's method for proper inheritance chain checking
+                for group in intersections {
+                    if group.iter().all(|t| self.value_matches_type(value, t)) {
+                        return Ok(value.clone());
+                    }
+                }
+                // No exact match, DNF types don't support coercion
+                Err("Cannot coerce to DNF type".to_string())
+            }
             _ => {
-                // For other complex types, just check if matches
-                if value.matches_type(type_hint) {
+                // For other complex types, just check if matches (use interpreter's method for proper hierarchy checking)
+                if self.value_matches_type(value, type_hint) {
                     Ok(value.clone())
                 } else {
                     Err("Cannot coerce to this type".to_string())

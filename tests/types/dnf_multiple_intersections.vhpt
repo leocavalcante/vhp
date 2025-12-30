@@ -1,0 +1,20 @@
+--TEST--
+DNF with multiple intersections: (A&B)|(C&D)
+--FILE--
+<?php
+interface A {}
+interface B {}
+interface C {}
+interface D {}
+
+class AB implements A, B {}
+class CD implements C, D {}
+
+function test((A&B)|(C&D) $obj): int {
+    return 1;
+}
+
+echo test(new AB());
+echo test(new CD());
+--EXPECT--
+11

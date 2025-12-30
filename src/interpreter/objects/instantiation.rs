@@ -65,8 +65,15 @@ impl<W: Write> Interpreter<W> {
         // Collect properties from hierarchy
         let properties = self.collect_properties(&resolved_class_name)?;
 
-        // Create new object instance
-        let mut instance = ObjectInstance::new(resolved_class_name.clone());
+        // Get class hierarchy information for DNF type checking
+        let (parent, interfaces) = if let Some(class_def) = self.classes.get(&resolved_class_name.to_lowercase()) {
+            (class_def.parent.clone(), class_def.interfaces.clone())
+        } else {
+            (None, Vec::new())
+        };
+
+        // Create new object instance with hierarchy information
+        let mut instance = ObjectInstance::with_hierarchy(resolved_class_name.clone(), parent, interfaces);
 
         // Initialize properties with default values and track readonly
         for prop in properties {

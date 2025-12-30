@@ -1,0 +1,20 @@
+--TEST--
+DNF with single type in union: (A&B)|C (C is not an intersection)
+--FILE--
+<?php
+interface A {}
+interface B {}
+interface C {}
+
+class AB implements A, B {}
+class JustC implements C {}
+
+function test((A&B)|C $obj): string {
+    return "ok";
+}
+
+echo test(new AB()) . "\n";
+echo test(new JustC());
+--EXPECT--
+ok
+ok
