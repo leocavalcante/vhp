@@ -171,10 +171,11 @@ This phase focuses on implementing core PHP language features that are essential
 
 - [x] **Anonymous classes** (PHP 7.0) - `new class { ... }`
 - [x] **Property hooks** (PHP 8.4) - `get`/`set` accessors on properties
+- [x] **Static properties** (PHP 5.0) - `static $property` with visibility modifiers
+- [x] **Late static binding** (PHP 5.3) - `static::`, `self::`, `parent::`
+- [x] **Readonly static properties** (PHP 8.3) - Immutable class-level properties
 - [ ] **Asymmetric visibility** (PHP 8.4) - `public private(set)` property visibility
-- [ ] **Static properties** - `static $property`
 - [ ] **Static property visibility** (PHP 8.5) - Asymmetric visibility for static properties
-- [ ] **Late static binding** - `static::`, `get_called_class()`
 - [ ] **Object comparison** - `==` vs `===` for objects
 - [ ] **Covariance & Contravariance** (PHP 7.4) - LSP-compatible type widening/narrowing
 - [ ] **Constants in traits** (PHP 8.2)

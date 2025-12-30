@@ -62,11 +62,11 @@ src/
         ├── output.rs    # Output functions (4)
         └── reflection.rs # Reflection functions (8)
 
-tests/                   # Test suite organized by feature (433 tests)
+tests/                   # Test suite organized by feature (443 tests)
 ├── arrays/              # Array tests (18)
 ├── attributes/          # Attribute syntax and reflection tests (29)
 ├── builtins/            # Built-in function tests (26)
-├── classes/             # Class and object tests (86 including anonymous classes, property hooks, and magic methods)
+├── classes/             # Class and object tests (97 including anonymous classes, property hooks, magic methods, and static properties)
 ├── comments/            # Comment syntax tests (4)
 ├── control_flow/        # Control flow tests (40 including alternative syntax)
 ├── echo/                # Echo statement tests (6)
@@ -216,6 +216,13 @@ Source Code → Lexer → Tokens → Parser → AST → Interpreter → Output
 - [x] Abstract classes and methods
 - [x] Final classes and methods
 - [x] Anonymous classes (PHP 7.0)
+- [x] Static properties with visibility modifiers (PHP 5.0+)
+- [x] Static property access via ClassName::$property, self::$property, parent::$property
+- [x] Late static binding with static::$property (PHP 5.3+)
+- [x] Static property inheritance and overriding
+- [x] Readonly static properties (PHP 8.3+)
+- [x] Array operations on static properties
+- [x] Increment/decrement operators on static properties
 
 ### Magic Methods
 - [x] `__construct` - Constructor (already implemented)
@@ -771,8 +778,8 @@ Essential PHP features for compatibility with standard PHP code.
 **Additional OOP:**
 - [x] Anonymous classes (PHP 7.0)
 - [x] Property hooks (PHP 8.4)
+- [x] Static properties and late static binding (PHP 5.0/5.3)
 - [ ] Asymmetric visibility (PHP 8.4)
-- [ ] Static properties and late static binding
 - [ ] #[\Override] attribute (PHP 8.3)
 
 **Control Flow:**

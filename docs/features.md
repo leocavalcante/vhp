@@ -491,6 +491,159 @@ class Math {
 echo Math::square(5);  // 25
 ```
 
+### Static Properties (PHP 5.0+)
+
+Static properties are class-level variables shared across all instances of a class. They are accessed using the class name or special keywords like `self::`, `parent::`, or `static::`.
+
+#### Basic Static Property
+
+```php
+<?php
+class Counter {
+    public static $count = 0;
+}
+
+Counter::$count = 5;
+echo Counter::$count;  // 5
+```
+
+#### Static Property with Visibility
+
+```php
+<?php
+class Config {
+    private static $debug = false;
+    protected static $token = "abc";
+    public static $api_key = "xyz";
+}
+
+echo Config::$api_key;  // xyz
+```
+
+#### Accessing Static Properties within Class Methods
+
+Use `self::$property` to access static properties from within class methods:
+
+```php
+<?php
+class Counter {
+    public static $count = 0;
+
+    public function increment() {
+        self::$count++;
+    }
+
+    public static function getCount() {
+        return self::$count;
+    }
+}
+
+$a = new Counter();
+$b = new Counter();
+$a->increment();
+$b->increment();
+echo Counter::getCount();  // 2
+```
+
+#### Static Property Inheritance
+
+Child classes inherit parent static properties but have separate storage:
+
+```php
+<?php
+class Base {
+    protected static $value = "base";
+
+    public static function getValue() {
+        return self::$value;
+    }
+}
+
+class Child extends Base {
+    protected static $value = "child";
+}
+
+echo Base::getValue();   // base
+echo Child::getValue();  // child
+```
+
+#### Late Static Binding (PHP 5.3+)
+
+Use `static::$property` for late static binding, which refers to the called class rather than the defined class:
+
+```php
+<?php
+class Animal {
+    protected static $type = "Animal";
+
+    public static function getType() {
+        return static::$type;  // LSB: refers to called class
+    }
+}
+
+class Dog extends Animal {
+    protected static $type = "Dog";
+}
+
+echo Animal::getType();  // Animal
+echo Dog::getType();     // Dog
+```
+
+#### Difference Between self:: and static::
+
+`self::` refers to the class where the method is defined, while `static::` refers to the class that was called (late static binding):
+
+```php
+<?php
+class Base {
+    protected static $name = "Base";
+
+    public static function withSelf() {
+        return self::$name;    // Always "Base"
+    }
+
+    public static function withStatic() {
+        return static::$name;  // Called class's value
+    }
+}
+
+class Child extends Base {
+    protected static $name = "Child";
+}
+
+echo Child::withSelf();    // Base
+echo Child::withStatic();  // Child
+```
+
+#### Readonly Static Properties (PHP 8.3+)
+
+Static properties can be declared as readonly:
+
+```php
+<?php
+class Config {
+    public static readonly $version = "1.0.0";
+}
+
+echo Config::$version;       // 1.0.0
+Config::$version = "2.0.0";  // Error: Cannot modify readonly property
+```
+
+#### Array Operations on Static Properties
+
+Static properties can hold arrays and support array operations:
+
+```php
+<?php
+class Collection {
+    public static $items = [];
+}
+
+Collection::$items[] = "a";
+Collection::$items[] = "b";
+echo count(Collection::$items);  // 2
+```
+
 ### Multiple Objects
 
 ```php

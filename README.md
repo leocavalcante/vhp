@@ -43,7 +43,7 @@ Every. Single. Line. Written through prompts to AI agents. Zero manual coding.
 - **🎯 Zero Dependencies** — Pure standard library, no external crates, no bloat
 - **✨ PHP 8.x Compatible** — Run your WordPress, Laravel, Drupal — *unchanged*
 - **🔮 Modern Features** — Arrow functions, match expressions, fibers, attributes, pipe operator
-- **📈 Battle-Tested** — 433 comprehensive tests and counting
+- **📈 Battle-Tested** — 443 comprehensive tests and counting
 
 ## ⚡ Get Started in 60 Seconds
 
@@ -205,7 +205,8 @@ That's the difference between a tool and an ecosystem.
 
 **Object-Oriented Programming:**
 - ✅ Classes & Objects (properties, methods, constructors, $this)
-- ✅ Static properties and methods
+- ✅ Static properties with late static binding (PHP 5.0/5.3)
+- ✅ Static methods
 - ✅ Inheritance
 - ✅ Anonymous classes (PHP 7.0)
 - ✅ Interfaces and Traits
@@ -253,7 +254,7 @@ That's the difference between a tool and an ecosystem.
 We're just getting started. Check out the [roadmap](https://leocavalcante.github.io/vhp/roadmap) to see what's coming:
 
 - More built-in functions (file I/O, JSON, date/time)
-- Advanced OOP features (static properties, late static binding)
+- Advanced OOP features (asymmetric visibility)
 - Generators (yield/yield from)
 - Composer compatibility
 - Performance optimizations

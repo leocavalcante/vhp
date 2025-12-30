@@ -368,3 +368,141 @@ $logger = new EventLogger();
 $logger->event = "User logged in";   // Logged event: User logged in
 $logger->event = "Data processed";   // Logged event: Data processed
 ```
+
+## Static Properties and Late Static Binding (PHP 5.0/5.3)
+
+Static properties are class-level variables shared across all instances. Late static binding allows proper inheritance behavior with the `static::` keyword.
+
+```php
+<?php
+// Example 1: Basic static property counter
+class PageView {
+    public static $count = 0;
+
+    public static function recordView() {
+        self::$count++;
+        echo "Total views: " . self::$count . "\n";
+    }
+}
+
+PageView::recordView();  // Total views: 1
+PageView::recordView();  // Total views: 2
+PageView::recordView();  // Total views: 3
+
+// Example 2: Configuration management with static properties
+class Config {
+    private static $settings = [
+        "debug" => false,
+        "cache" => true
+    ];
+
+    public static function get($key) {
+        return self::$settings[$key] ?? null;
+    }
+
+    public static function set($key, $value) {
+        self::$settings[$key] = $value;
+    }
+}
+
+echo "Debug mode: " . (Config::get("debug") ? "on" : "off") . "\n";  // off
+Config::set("debug", true);
+echo "Debug mode: " . (Config::get("debug") ? "on" : "off") . "\n";  // on
+
+// Example 3: Late static binding with static::
+class Animal {
+    protected static $species = "Unknown";
+
+    public static function getSpecies() {
+        // static:: refers to the called class (late binding)
+        return static::$species;
+    }
+
+    public static function identify() {
+        echo "I am a " . static::getSpecies() . "\n";
+    }
+}
+
+class Dog extends Animal {
+    protected static $species = "Canine";
+}
+
+class Cat extends Animal {
+    protected static $species = "Feline";
+}
+
+Animal::identify();  // I am a Unknown
+Dog::identify();     // I am a Canine
+Cat::identify();     // I am a Feline
+
+// Example 4: Difference between self:: and static::
+class Counter {
+    protected static $name = "Base Counter";
+
+    public static function showWithSelf() {
+        return "self:: -> " . self::$name;
+    }
+
+    public static function showWithStatic() {
+        return "static:: -> " . static::$name;
+    }
+}
+
+class SpecialCounter extends Counter {
+    protected static $name = "Special Counter";
+}
+
+echo Counter::showWithSelf() . "\n";         // self:: -> Base Counter
+echo Counter::showWithStatic() . "\n";       // static:: -> Base Counter
+
+echo SpecialCounter::showWithSelf() . "\n";  // self:: -> Base Counter (wrong!)
+echo SpecialCounter::showWithStatic() . "\n"; // static:: -> Special Counter (correct!)
+
+// Example 5: Singleton pattern with static properties
+class Database {
+    private static $instance = null;
+    private $connectionString;
+
+    private function __construct($connStr) {
+        $this->connectionString = $connStr;
+        echo "Database connected to: " . $connStr . "\n";
+    }
+
+    public static function getInstance($connStr = "localhost:5432") {
+        if (self::$instance === null) {
+            self::$instance = new Database($connStr);
+        }
+        return self::$instance;
+    }
+
+    public function query($sql) {
+        echo "Executing: " . $sql . "\n";
+    }
+}
+
+$db1 = Database::getInstance("production.db");
+$db1->query("SELECT * FROM users");
+
+$db2 = Database::getInstance("another.db");  // Reuses existing instance
+$db2->query("SELECT * FROM posts");
+
+// Example 6: Static property with array operations
+class Registry {
+    public static $data = [];
+
+    public static function register($key, $value) {
+        self::$data[$key] = $value;
+    }
+
+    public static function get($key) {
+        return self::$data[$key] ?? null;
+    }
+}
+
+Registry::register("app_name", "VHP Framework");
+Registry::register("version", "1.0.0");
+
+echo "App: " . Registry::get("app_name") . "\n";  // App: VHP Framework
+echo "Version: " . Registry::get("version") . "\n";  // Version: 1.0.0
+```
+
