@@ -2082,4 +2082,291 @@ VHP's Fiber implementation provides the core API and basic functionality:
 
 The current implementation covers the essential Fiber API and enables basic cooperative multitasking patterns. Advanced suspend/resume scenarios may require additional development.
 
+## Exception Handling (PHP 8.0)
+
+VHP provides comprehensive exception handling with try/catch/finally blocks, throw statements and expressions, and support for exception inheritance.
+
+### Basic Try/Catch
+
+The simplest form of exception handling uses `try` to wrap potentially failing code and `catch` to handle exceptions.
+
+**Syntax:**
+```php
+<?php
+try {
+    // Code that may throw an exception
+} catch (ExceptionType $variable) {
+    // Handle the exception
+}
+```
+
+**Example:**
+```php
+<?php
+try {
+    throw new Exception("Something went wrong");
+} catch (Exception $e) {
+    echo "Caught: " . $e->getMessage();
+}
+// Output: Caught: Something went wrong
+```
+
+### Exception Class
+
+The base `Exception` class provides methods to retrieve information about the exception.
+
+**Available Methods:**
+- `getMessage()` - Returns the exception message string
+- `getCode()` - Returns the exception code (integer)
+
+**Example:**
+```php
+<?php
+try {
+    throw new Exception("Error message", 500);
+} catch (Exception $e) {
+    echo $e->getMessage();  // Error message
+    echo $e->getCode();     // 500
+}
+```
+
+### Multiple Catch Blocks
+
+Handle different exception types with separate catch blocks. Catch blocks are evaluated in order, and the first matching type is executed.
+
+**Syntax:**
+```php
+<?php
+try {
+    // Code
+} catch (SpecificException $e) {
+    // Handle specific exception
+} catch (Exception $e) {
+    // Handle general exception
+}
+```
+
+**Example:**
+```php
+<?php
+class ValidationException extends Exception {}
+class DatabaseException extends Exception {}
+
+function process($data) {
+    if (empty($data)) {
+        throw new ValidationException("Data is empty");
+    }
+    throw new DatabaseException("Connection failed");
+}
+
+try {
+    process("");
+} catch (ValidationException $e) {
+    echo "Validation error: " . $e->getMessage();
+} catch (DatabaseException $e) {
+    echo "Database error: " . $e->getMessage();
+} catch (Exception $e) {
+    echo "Unknown error: " . $e->getMessage();
+}
+// Output: Validation error: Data is empty
+```
+
+### Multi-Catch (PHP 7.1)
+
+Catch multiple exception types in a single block using the pipe operator (`|`). This is useful when the same handling logic applies to different exception types.
+
+**Syntax:**
+```php
+<?php
+catch (TypeA | TypeB | TypeC $e) {
+    // Handle any of these types
+}
+```
+
+**Example:**
+```php
+<?php
+class NetworkException extends Exception {}
+class TimeoutException extends Exception {}
+
+try {
+    throw new NetworkException("Connection lost");
+} catch (NetworkException | TimeoutException $e) {
+    echo "Communication error: " . $e->getMessage();
+}
+// Output: Communication error: Connection lost
+```
+
+### Try/Catch/Finally
+
+The `finally` block always executes, regardless of whether an exception was thrown or caught. Use it for cleanup operations.
+
+**Syntax:**
+```php
+<?php
+try {
+    // Code that may throw
+} catch (Exception $e) {
+    // Handle exception
+} finally {
+    // Always executes
+}
+```
+
+**Example:**
+```php
+<?php
+try {
+    echo "try\n";
+    throw new Exception("error");
+} catch (Exception $e) {
+    echo "catch\n";
+} finally {
+    echo "finally\n";
+}
+// Output:
+// try
+// catch
+// finally
+```
+
+### Finally Without Catch
+
+A `finally` block can exist without a `catch` block. The exception will propagate after the finally block executes.
+
+**Example:**
+```php
+<?php
+function cleanup() {
+    try {
+        echo "Opening resource\n";
+        throw new Exception("Failed");
+    } finally {
+        echo "Cleanup\n";
+    }
+}
+
+try {
+    cleanup();
+} catch (Exception $e) {
+    echo "Caught: " . $e->getMessage();
+}
+// Output:
+// Opening resource
+// Cleanup
+// Caught: Failed
+```
+
+### Throw as Expression (PHP 8.0)
+
+In PHP 8.0+, `throw` can be used as an expression in contexts that previously only allowed values, such as arrow functions, null coalescing operators, and ternary expressions.
+
+**With Null Coalescing:**
+```php
+<?php
+function getValue($value) {
+    return $value ?? throw new Exception("Value required");
+}
+
+try {
+    $result = getValue(null);
+} catch (Exception $e) {
+    echo "Error: " . $e->getMessage();
+}
+// Output: Error: Value required
+```
+
+**With Ternary:**
+```php
+<?php
+$age = -5;
+$result = $age >= 0 
+    ? "Age is $age" 
+    : throw new Exception("Invalid age");
+```
+
+**In Arrow Functions:**
+```php
+<?php
+$validate = fn($x) => $x > 0 ? $x : throw new Exception("Must be positive");
+
+try {
+    echo $validate(-1);
+} catch (Exception $e) {
+    echo $e->getMessage();  // Must be positive
+}
+```
+
+### Exception Inheritance
+
+Custom exception classes can extend `Exception` or other exception classes, enabling hierarchical exception handling.
+
+**Example:**
+```php
+<?php
+class CustomException extends Exception {}
+class ChildException extends CustomException {}
+
+// Catching parent catches children
+try {
+    throw new ChildException("child error");
+} catch (CustomException $e) {
+    echo "Caught via parent: " . $e->getMessage();
+}
+// Output: Caught via parent: child error
+```
+
+### Nested Try/Catch
+
+Try/catch blocks can be nested to handle exceptions at different levels.
+
+**Example:**
+```php
+<?php
+try {
+    echo "outer try\n";
+    try {
+        echo "inner try\n";
+        throw new Exception("inner exception");
+    } catch (Exception $e) {
+        echo "inner catch: " . $e->getMessage() . "\n";
+        throw new Exception("re-thrown");
+    }
+} catch (Exception $e) {
+    echo "outer catch: " . $e->getMessage();
+}
+// Output:
+// outer try
+// inner try
+// inner catch: inner exception
+// outer catch: re-thrown
+```
+
+### Uncaught Exceptions
+
+If an exception is not caught, VHP will terminate execution and display an error message.
+
+**Example:**
+```php
+<?php
+throw new Exception("This will crash");
+// Fatal error: Uncaught Exception: This will crash
+```
+
+### Best Practices
+
+- **Specific Before General**: Order catch blocks from most specific to most general exception types
+- **Use Finally for Cleanup**: Place resource cleanup (file handles, connections) in finally blocks
+- **Informative Messages**: Provide clear, actionable error messages
+- **Appropriate Exception Types**: Create custom exception classes for different error categories
+- **Don't Catch Everything**: Only catch exceptions you can handle appropriately
+- **Preserve Context**: When re-throwing, consider preserving the original exception context
+
+### Notes
+
+- **Case-insensitive**: Exception class names follow PHP's case-insensitive class naming
+- **Exception Hierarchy**: All exceptions must extend the base `Exception` class
+- **Finally Always Runs**: The finally block executes even if there's a return statement in try or catch
+- **Multi-catch Order**: In multi-catch, types are checked left to right
+- **Expression Context**: Throw expressions have higher precedence than most operators
 

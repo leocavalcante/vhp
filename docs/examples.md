@@ -192,3 +192,81 @@ echo "Final result: $result\n";
 // Check final state
 echo "Terminated: " . ($fiber->isTerminated() ? "Yes" : "No") . "\n";
 ```
+
+## Exception Handling
+
+```php
+<?php
+class ValidationException extends Exception {}
+class DatabaseException extends Exception {}
+
+function processUser($username, $age) {
+    // Validate input
+    if (empty($username)) {
+        throw new ValidationException("Username cannot be empty");
+    }
+    
+    if ($age < 0 || $age > 150) {
+        throw new ValidationException("Invalid age: " . $age);
+    }
+    
+    // Simulate database operation
+    if ($username === "admin") {
+        throw new DatabaseException("Cannot modify admin user");
+    }
+    
+    return "User $username (age $age) processed successfully";
+}
+
+// Example 1: Catch specific exception
+try {
+    echo processUser("", 25);
+} catch (ValidationException $e) {
+    echo "Validation Error: " . $e->getMessage() . "\n";
+} catch (DatabaseException $e) {
+    echo "Database Error: " . $e->getMessage() . "\n";
+}
+// Output: Validation Error: Username cannot be empty
+
+// Example 2: Multi-catch (PHP 7.1+)
+try {
+    echo processUser("admin", 30);
+} catch (ValidationException | DatabaseException $e) {
+    echo "Error: " . $e->getMessage() . "\n";
+}
+// Output: Error: Cannot modify admin user
+
+// Example 3: Finally block always executes
+function attemptOperation() {
+    try {
+        echo "Opening connection\n";
+        throw new Exception("Connection failed");
+    } catch (Exception $e) {
+        echo "Error: " . $e->getMessage() . "\n";
+    } finally {
+        echo "Closing connection\n";
+    }
+}
+
+attemptOperation();
+// Output:
+// Opening connection
+// Error: Connection failed
+// Closing connection
+
+// Example 4: Throw as expression (PHP 8.0+)
+function getConfig($key) {
+    $config = ["timeout" => 30, "retries" => 3];
+    return $config[$key] ?? throw new Exception("Config key '$key' not found");
+}
+
+try {
+    echo "Timeout: " . getConfig("timeout") . "\n";
+    echo getConfig("invalid");
+} catch (Exception $e) {
+    echo "Error: " . $e->getMessage();
+}
+// Output:
+// Timeout: 30
+// Error: Config key 'invalid' not found
+```

@@ -18,7 +18,7 @@ VHP is being developed incrementally, with each phase adding new capabilities wh
 | **4. Arrays** | ✅ Complete | Literals, access, modification, `foreach`, 15 array functions |
 | **5. Classes & Objects** | ✅ Complete | Classes, properties, methods, constructors, inheritance, interfaces, traits, readonly, cloning |
 | **6. Modern PHP 8.x Features** | ✅ Complete | Match Expressions ✅, Named Arguments ✅, Attributes ✅, Enums ✅, Pipe Operator ✅, Fibers ✅ |
-| **7. PHP Core Language** | 📋 Planned | Exceptions, Type System, Namespaces, Generators, Abstract/Final, Magic Methods |
+| **7. PHP Core Language** | � In Progress | Exceptions ✅, Type System, Namespaces, Generators, Abstract/Final, Magic Methods |
 | **8. PHP 8.5 Features** | 🔄 In Progress | URI Extension, Clone with syntax, #[\NoDiscard], array_first/last ✅, Closures in constants |
 | **9. Standard Library** | 📋 Planned | PCRE regex, sorting, array_map/filter/reduce, JSON, DateTime, file system functions |
 
@@ -105,15 +105,15 @@ This phase focuses on catching up with major features introduced in PHP 8.0 and 
 
 This phase focuses on implementing core PHP language features that are essential for PHP compatibility. These features have been part of PHP for many versions and are fundamental to running most PHP code.
 
-#### Exception Handling
+#### Exception Handling ✅
 
-- [ ] **try/catch statements** - Basic exception handling with catch blocks
-- [ ] **throw keyword** - Throwing exceptions
-- [ ] **finally blocks** - Code that always executes regardless of exceptions
-- [ ] **Exception class** - The base exception class
-- [ ] **Multiple catch blocks** - Catching different exception types
-- [ ] **Multi-catch** (PHP 7.1) - Catching multiple exception types in one block `catch (TypeA | TypeB $e)`
-- [ ] **Throw expression** (PHP 8.0) - Using throw in expressions (arrow functions, null coalesce, ternary)
+- [x] **try/catch statements** - Basic exception handling with catch blocks
+- [x] **throw keyword** - Throwing exceptions
+- [x] **finally blocks** - Code that always executes regardless of exceptions
+- [x] **Exception class** - The base exception class with getMessage() and getCode() methods
+- [x] **Multiple catch blocks** - Catching different exception types
+- [x] **Multi-catch** (PHP 7.1) - Catching multiple exception types in one block `catch (TypeA | TypeB $e)`
+- [x] **Throw expression** (PHP 8.0) - Using throw in expressions (arrow functions, null coalesce, ternary)
 
 #### Type System
 

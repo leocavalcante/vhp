@@ -62,7 +62,7 @@ src/
         ├── output.rs    # Output functions (4)
         └── reflection.rs # Reflection functions (8)
 
-tests/                   # Test suite organized by feature (356 tests)
+tests/                   # Test suite organized by feature (367 tests)
 ├── arrays/              # Array tests (18)
 ├── attributes/          # Attribute syntax and reflection tests (29)
 ├── builtins/            # Built-in function tests (26)
@@ -72,6 +72,7 @@ tests/                   # Test suite organized by feature (356 tests)
 ├── echo/                # Echo statement tests (6)
 ├── enums/               # Enum tests (16)
 ├── errors/              # Error handling tests (8)
+├── exceptions/          # Exception handling tests (11)
 ├── expressions/         # Expression evaluation tests (17)
 ├── functions/           # User-defined function tests (42 including arrow functions and first-class callables)
 ├── html/                # HTML passthrough tests (5)
@@ -365,6 +366,58 @@ $obj = new class(42) extends Base {
 echo $obj->getValue(); // 42
 ```
 
+### Exception Handling (PHP 8.0)
+- [x] try/catch/finally statements
+- [x] throw keyword (statement and expression form)
+- [x] Base Exception class with getMessage() and getCode() methods
+- [x] Multiple catch blocks for different exception types
+- [x] Multi-catch syntax (PHP 7.1) - `catch (TypeA | TypeB $e)`
+- [x] Exception inheritance support
+- [x] Throw as expression (PHP 8.0) - in arrow functions, null coalesce, ternary
+- [x] Finally blocks execute regardless of exception
+
+**Example:**
+```php
+<?php
+// Basic try/catch
+try {
+    throw new Exception("Error occurred");
+} catch (Exception $e) {
+    echo "Caught: " . $e->getMessage();
+}
+
+// Multiple catch blocks
+class CustomException extends Exception {}
+
+try {
+    throw new CustomException("custom error");
+} catch (CustomException $e) {
+    echo "Custom: " . $e->getMessage();
+} catch (Exception $e) {
+    echo "Generic: " . $e->getMessage();
+}
+
+// Multi-catch (PHP 7.1)
+try {
+    throw new CustomException("error");
+} catch (InvalidArgumentException | CustomException $e) {
+    echo "Caught multiple types";
+}
+
+// Try/catch/finally
+try {
+    echo "try\n";
+    throw new Exception("error");
+} catch (Exception $e) {
+    echo "catch\n";
+} finally {
+    echo "finally\n";  // Always executes
+}
+
+// Throw as expression (PHP 8.0)
+$value = $input ?? throw new Exception("Missing input");
+```
+
 ## Adding New Features
 
 ### 1. Update Token Types (`token.rs`)
@@ -572,14 +625,14 @@ partial error message to match
 - [x] First-Class Callables (PHP 8.1) - `strlen(...)` syntax for function closures
 - [x] Anonymous Classes (PHP 7.0) - Inline class definitions
 
-### Phase 7: PHP Core Language Compatibility (Planned)
+### Phase 7: PHP Core Language Compatibility (In Progress)
 Essential PHP features for compatibility with standard PHP code.
 
 **Exception Handling:**
-- [ ] try/catch/finally statements
-- [ ] throw keyword and expressions (PHP 8.0)
-- [ ] Exception class and multiple catch blocks
-- [ ] Multi-catch (PHP 7.1) - `catch (TypeA | TypeB $e)`
+- [x] try/catch/finally statements
+- [x] throw keyword and expressions (PHP 8.0)
+- [x] Exception class and multiple catch blocks
+- [x] Multi-catch (PHP 7.1) - `catch (TypeA | TypeB $e)`
 
 **Type System:**
 - [ ] Type declarations (int, string, float, bool, array, callable, object)
