@@ -8,9 +8,98 @@
 
 use crate::interpreter::Interpreter;
 use crate::interpreter::Value;
+use crate::ast::Visibility;
 use std::io::Write;
 
 impl<W: Write> Interpreter<W> {
+    /// Check if class is a subclass of another class
+    fn is_subclass(&self, child: &str, parent: &str) -> bool {
+        let mut current = child.to_lowercase();
+        while let Some(class_def) = self.classes.get(&current) {
+            if let Some(class_parent) = &class_def.parent {
+                if class_parent.eq_ignore_ascii_case(parent) {
+                    return true;
+                }
+                current = class_parent.to_lowercase();
+            } else {
+                break;
+            }
+        }
+        false
+    }
+
+    /// Check if write access is allowed for a property based on asymmetric visibility
+    fn can_write_property(
+        &self,
+        class_name: &str,
+        property: &str,
+    ) -> Result<(), String> {
+        // Search for property definition in class hierarchy
+        let mut current_search = class_name.to_lowercase();
+        let mut property_class = None;
+        let mut prop_def = None;
+
+        while let Some(class_def) = self.classes.get(&current_search) {
+            if let Some(found_prop) = class_def.properties.iter().find(|p| p.name == property) {
+                property_class = Some(current_search.clone());
+                prop_def = Some(found_prop.clone());
+                break;
+            }
+            // Search parent class
+            if let Some(parent) = &class_def.parent {
+                current_search = parent.to_lowercase();
+            } else {
+                break;
+            }
+        }
+
+        // If property found, check write visibility
+        if let (Some(prop_class), Some(prop)) = (property_class, prop_def) {
+            // Get write visibility (use write_visibility if set, otherwise use read visibility)
+            let write_vis = prop.write_visibility.unwrap_or(prop.visibility);
+
+            // Determine if current context can write
+            let can_write = match write_vis {
+                Visibility::Public => true,
+                Visibility::Protected => {
+                    // Can write if we're in the same class hierarchy (parent, child, or same)
+                    if let Some(current) = &self.current_class {
+                        let current_lower = current.to_lowercase();
+                        // Same class
+                        current_lower == prop_class
+                            // Current is a subclass of where it's defined
+                            || self.is_subclass(&current_lower, &prop_class)
+                            // Current is a parent of where it's "found" (property inherited from current)
+                            || self.is_subclass(&prop_class, &current_lower)
+                    } else {
+                        false
+                    }
+                }
+                Visibility::Private => {
+                    // Can write only if we're in the exact class where it's defined
+                    self.current_class
+                        .as_ref()
+                        .map(|current| current.to_lowercase() == prop_class)
+                        .unwrap_or(false)
+                }
+            };
+
+            if !can_write {
+                return Err(format!(
+                    "Cannot modify {} property {}::${}",
+                    match write_vis {
+                        Visibility::Public => "public",
+                        Visibility::Protected => "protected",
+                        Visibility::Private => "private",
+                    },
+                    class_name,
+                    property
+                ));
+            }
+        }
+
+        Ok(())
+    }
     /// Evaluate property access ($obj->property)
     ///
     /// Reads a property from an object or enum case. For enum cases,
@@ -116,12 +205,32 @@ impl<W: Write> Interpreter<W> {
             crate::ast::Expr::This => {
                 // Evaluate value first to avoid borrow conflicts
                 let val = self.eval_expr(value)?;
-                if let Some(ref mut obj) = self.current_object {
-                    // Check for property hooks (PHP 8.4)
-                    let class_name = obj.class_name.clone();
-                    let class = self.classes.get(&class_name.to_lowercase()).cloned();
 
-                    // Check for set hook before borrowing obj mutably
+                // Get class name and check for hooks before visibility check
+                let class_name = if let Some(ref obj) = self.current_object {
+                    obj.class_name.clone()
+                } else {
+                    return Err("Cannot use $this outside of object context".to_string());
+                };
+
+                // Check for property hooks first (hooks bypass visibility checks)
+                let class = self.classes.get(&class_name.to_lowercase()).cloned();
+                let has_hooks = if let Some(ref class) = class {
+                    class.properties.iter()
+                        .find(|p| p.name == property)
+                        .map(|p| !p.hooks.is_empty())
+                        .unwrap_or(false)
+                } else {
+                    false
+                };
+
+                // Check write visibility only if no hooks (hooks handle their own access control)
+                if !has_hooks {
+                    self.can_write_property(&class_name, property)?;
+                }
+
+                if let Some(ref mut obj) = self.current_object {
+                    // Check for set hook
                     let set_hook_info = if let Some(ref class) = class {
                         if let Some(prop_def) = class.properties.iter().find(|p| p.name == property)
                         {
@@ -217,12 +326,35 @@ impl<W: Write> Interpreter<W> {
             crate::ast::Expr::Variable(var_name) => {
                 // Evaluate value first
                 let val = self.eval_expr(value)?;
+
+                // Get class name for visibility check
+                let class_name = if let Some(Value::Object(ref instance)) = self.variables.get(var_name) {
+                    instance.class_name.clone()
+                } else {
+                    return Err(format!(
+                        "Cannot access property on non-object variable ${}",
+                        var_name
+                    ));
+                };
+
+                // Check for property hooks first (hooks bypass visibility checks)
+                let class = self.classes.get(&class_name.to_lowercase()).cloned();
+                let has_hooks = if let Some(ref class) = class {
+                    class.properties.iter()
+                        .find(|p| p.name == property)
+                        .map(|p| !p.hooks.is_empty())
+                        .unwrap_or(false)
+                } else {
+                    false
+                };
+
+                // Check write visibility only if no hooks
+                if !has_hooks {
+                    self.can_write_property(&class_name, property)?;
+                }
+
                 // Get the object from variable
                 if let Some(Value::Object(mut instance)) = self.variables.get(var_name).cloned() {
-                    // Check for property hooks (PHP 8.4)
-                    let class_name = instance.class_name.clone();
-                    let class = self.classes.get(&class_name.to_lowercase()).cloned();
-
                     // Check for set hook
                     let set_hook_info = if let Some(ref class) = class {
                         if let Some(prop_def) = class.properties.iter().find(|p| p.name == property)
@@ -351,9 +483,13 @@ impl<W: Write> Interpreter<W> {
         instance: &crate::interpreter::ObjectInstance,
         hook: &crate::ast::PropertyHook,
     ) -> Result<Value, String> {
-        // Save current $this context
+        // Save current context
         let prev_this = self.current_object.clone();
+        let prev_class = self.current_class.clone();
+
+        // Set context for hook execution
         self.current_object = Some(instance.clone());
+        self.current_class = Some(instance.class_name.clone());
 
         let result = match &hook.body {
             crate::ast::PropertyHookBody::Expression(expr) => {
@@ -382,8 +518,9 @@ impl<W: Write> Interpreter<W> {
             }
         };
 
-        // Restore $this context
+        // Restore context
         self.current_object = prev_this;
+        self.current_class = prev_class;
 
         result
     }
@@ -395,9 +532,13 @@ impl<W: Write> Interpreter<W> {
         hook: &crate::ast::PropertyHook,
         value: Value,
     ) -> Result<(), String> {
-        // Save current $this context
+        // Save current context
         let prev_this = self.current_object.clone();
+        let prev_class = self.current_class.clone();
+
+        // Set context for hook execution
         self.current_object = Some(instance.clone());
+        self.current_class = Some(instance.class_name.clone());
 
         // Store the incoming value in a special variable $value
         let prev_value = self.variables.get("value").cloned();
@@ -425,6 +566,7 @@ impl<W: Write> Interpreter<W> {
 
         // Restore context
         self.current_object = prev_this;
+        self.current_class = prev_class;
         if let Some(v) = prev_value {
             self.variables.insert("value".to_string(), v);
         } else {
@@ -490,6 +632,9 @@ impl<W: Write> Interpreter<W> {
         let resolved_class = self.resolve_static_class_name(class)?;
 
         let class_key = resolved_class.to_lowercase();
+
+        // Check write visibility (asymmetric visibility)
+        self.can_write_property(&resolved_class, property)?;
 
         // Check if property is readonly in this class
         if let Some(readonly_props) = self.static_readonly_properties.get(&class_key) {
