@@ -19,8 +19,8 @@ pub mod trait_;
 use super::expr::ExprParser;
 use super::precedence::Precedence;
 use crate::ast::{
-    Attribute, AttributeArgument, Expr, Method, Property, PropertyHook, PropertyHookBody,
-    PropertyHookType, Stmt, Visibility,
+    Attribute, AttributeArgument, DeclareDirective, Expr, Method, Property, PropertyHook,
+    PropertyHookBody, PropertyHookType, Stmt, Visibility,
 };
 use crate::token::{Token, TokenKind};
 
@@ -974,6 +974,7 @@ impl<'a> StmtParser<'a> {
                 // This is a top-level use statement (namespace import)
                 Ok(Some(self.parse_use_statement()?))
             }
+            TokenKind::Declare => Ok(Some(self.parse_declare()?)),
             TokenKind::Html(html) => {
                 self.advance();
                 Ok(Some(Stmt::Html(html)))
@@ -1090,6 +1091,131 @@ impl<'a> StmtParser<'a> {
         }
 
         Ok(QualifiedName::new(parts, is_fully_qualified))
+    }
+
+    /// Parse declare statement
+    /// declare(strict_types=1); or declare(strict_types=1) { ... }
+    pub fn parse_declare(&mut self) -> Result<Stmt, String> {
+        self.advance(); // consume 'declare'
+        self.consume(TokenKind::LeftParen, "Expected '(' after 'declare'")?;
+
+        let mut directives = vec![];
+
+        loop {
+            let name = if let TokenKind::Identifier(name) = &self.current().kind {
+                let name = name.clone();
+                self.advance();
+                name
+            } else {
+                return Err(format!(
+                    "Expected directive name at line {}, column {}",
+                    self.current().line,
+                    self.current().column
+                ));
+            };
+
+            self.consume(TokenKind::Assign, "Expected '=' after directive name")?;
+
+            let directive = match name.to_lowercase().as_str() {
+                "strict_types" => {
+                    let value = self.parse_expression(Precedence::None)?;
+                    match value {
+                        Expr::Integer(0) => DeclareDirective::StrictTypes(false),
+                        Expr::Integer(1) => DeclareDirective::StrictTypes(true),
+                        _ => {
+                            return Err(format!(
+                                "strict_types value must be 0 or 1 at line {}, column {}",
+                                self.current().line,
+                                self.current().column
+                            ))
+                        }
+                    }
+                }
+                "encoding" => {
+                    let value = self.parse_expression(Precedence::None)?;
+                    match value {
+                        Expr::String(s) => DeclareDirective::Encoding(s),
+                        _ => {
+                            return Err(format!(
+                                "encoding value must be a string at line {}, column {}",
+                                self.current().line,
+                                self.current().column
+                            ))
+                        }
+                    }
+                }
+                "ticks" => {
+                    let value = self.parse_expression(Precedence::None)?;
+                    match value {
+                        Expr::Integer(n) => DeclareDirective::Ticks(n),
+                        _ => {
+                            return Err(format!(
+                                "ticks value must be an integer at line {}, column {}",
+                                self.current().line,
+                                self.current().column
+                            ))
+                        }
+                    }
+                }
+                _ => {
+                    return Err(format!(
+                        "Unknown declare directive: {} at line {}, column {}",
+                        name,
+                        self.current().line,
+                        self.current().column
+                    ))
+                }
+            };
+
+            directives.push(directive);
+
+            if !self.check(&TokenKind::Comma) {
+                break;
+            }
+            self.advance();
+        }
+
+        self.consume(TokenKind::RightParen, "Expected ')' after declare directives")?;
+
+        // Check for block syntax: declare(...) { ... }
+        let body = if self.check(&TokenKind::LeftBrace) {
+            self.advance();
+            let mut stmts = Vec::new();
+            while !self.check(&TokenKind::RightBrace) && !self.check(&TokenKind::Eof) {
+                if let Some(stmt) = self.parse_statement()? {
+                    stmts.push(stmt);
+                }
+            }
+            self.consume(TokenKind::RightBrace, "Expected '}' after declare block")?;
+            Some(stmts)
+        } else if self.check(&TokenKind::Colon) {
+            // Alternative syntax: declare(...): ... enddeclare;
+            self.advance();
+            let mut stmts = Vec::new();
+            loop {
+                // Check for enddeclare
+                if let TokenKind::Identifier(id) = &self.current().kind {
+                    if id.to_lowercase() == "enddeclare" {
+                        self.advance();
+                        break;
+                    }
+                }
+                if self.check(&TokenKind::Eof) {
+                    return Err("Expected 'enddeclare' to close declare statement".to_string());
+                }
+                if let Some(stmt) = self.parse_statement()? {
+                    stmts.push(stmt);
+                }
+            }
+            self.consume(TokenKind::Semicolon, "Expected ';' after 'enddeclare'")?;
+            Some(stmts)
+        } else {
+            // File-scope: declare(...);
+            self.consume(TokenKind::Semicolon, "Expected ';' after declare")?;
+            None
+        };
+
+        Ok(Stmt::Declare { directives, body })
     }
 
     /// Parse use statement
