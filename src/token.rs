@@ -23,6 +23,13 @@ pub enum TokenKind {
     Break,    // break
     Continue, // continue
     Do,       // do
+
+    // Alternative syntax end keywords
+    Endif,      // endif
+    Endwhile,   // endwhile
+    Endfor,     // endfor
+    Endforeach, // endforeach
+    Endswitch,  // endswitch
     Function, // function
     Fn,       // fn (arrow function, PHP 7.4)
     Return,   // return
