@@ -118,6 +118,29 @@ pub struct Attribute {
     pub arguments: Vec<AttributeArgument>,
 }
 
+/// Property hook type (PHP 8.4)
+#[derive(Debug, Clone)]
+pub enum PropertyHookType {
+    Get,
+    Set,
+}
+
+/// Property hook body can be expression or statements
+#[derive(Debug, Clone)]
+pub enum PropertyHookBody {
+    /// Short syntax: get => expr
+    Expression(Box<Expr>),
+    /// Block syntax: get { statements }
+    Block(Vec<Stmt>),
+}
+
+/// Property hook definition (PHP 8.4)
+#[derive(Debug, Clone)]
+pub struct PropertyHook {
+    pub hook_type: PropertyHookType,
+    pub body: PropertyHookBody,
+}
+
 /// Class property definition
 #[derive(Debug, Clone)]
 pub struct Property {
@@ -128,6 +151,7 @@ pub struct Property {
     pub readonly: bool,             // PHP 8.1+
     pub is_static: bool,            // PHP 5.0+
     pub attributes: Vec<Attribute>, // PHP 8.0+
+    pub hooks: Vec<PropertyHook>,   // PHP 8.4+
 }
 
 /// Class method definition
