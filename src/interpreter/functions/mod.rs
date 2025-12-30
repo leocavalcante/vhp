@@ -16,6 +16,17 @@ use std::io::Write;
 impl<W: Write> Interpreter<W> {
     /// Call a function with Argument nodes (handles both built-in and user-defined)
     pub(super) fn call_function(&mut self, name: &str, args: &[Argument]) -> Result<Value, String> {
+        // Special handling for isset() - needs unevaluated expressions for __isset support
+        let lower_name = name.to_lowercase();
+        if lower_name == "isset" {
+            return self.call_isset(args);
+        }
+
+        // Special handling for unset() - needs unevaluated expressions for __unset support
+        if lower_name == "unset" {
+            return self.call_unset(args);
+        }
+
         // Evaluate arguments, handling spread expressions
         let mut arg_values = Vec::new();
         for arg in args {
@@ -428,5 +439,118 @@ impl<W: Write> Interpreter<W> {
             }
         }
         Ok(())
+    }
+
+    /// Handle isset() with support for __isset magic method
+    fn call_isset(&mut self, args: &[Argument]) -> Result<Value, String> {
+        if args.is_empty() {
+            return Err("isset() expects at least 1 parameter".to_string());
+        }
+
+        // Check all arguments - all must be set for isset to return true
+        for arg in args {
+            match arg.value.as_ref() {
+                crate::ast::Expr::PropertyAccess { object, property } => {
+                    let obj_val = self.eval_expr(object)?;
+                    if let Value::Object(instance) = obj_val {
+                        // Check if property exists
+                        if let Some(value) = instance.properties.get(property) {
+                            if matches!(value, Value::Null) {
+                                return Ok(Value::Bool(false));
+                            }
+                        } else {
+                            // Property doesn't exist, check for __isset
+                            let class = self.classes.get(&instance.class_name).cloned();
+                            if let Some(class) = class {
+                                if let Some(method) = class.get_magic_method("__isset") {
+                                    let class_name = instance.class_name.clone();
+                                    let mut inst_mut = instance.clone();
+                                    let result = self.call_method_on_object(
+                                        &mut inst_mut,
+                                        method,
+                                        &[Value::String(property.to_string())],
+                                        class_name,
+                                    )?;
+                                    if !result.to_bool() {
+                                        return Ok(Value::Bool(false));
+                                    }
+                                    continue;
+                                }
+                            }
+                            // No __isset, property doesn't exist
+                            return Ok(Value::Bool(false));
+                        }
+                    } else {
+                        return Ok(Value::Bool(false));
+                    }
+                }
+                crate::ast::Expr::Variable(name) => {
+                    if !self.variables.contains_key(name) {
+                        return Ok(Value::Bool(false));
+                    }
+                    if matches!(self.variables.get(name), Some(Value::Null)) {
+                        return Ok(Value::Bool(false));
+                    }
+                }
+                _ => {
+                    // For other expressions, evaluate and check if null
+                    let value = self.eval_expr(&arg.value)?;
+                    if matches!(value, Value::Null) {
+                        return Ok(Value::Bool(false));
+                    }
+                }
+            }
+        }
+        Ok(Value::Bool(true))
+    }
+
+    /// Handle unset() with support for __unset magic method
+    fn call_unset(&mut self, args: &[Argument]) -> Result<Value, String> {
+        if args.is_empty() {
+            return Err("unset() expects at least 1 parameter".to_string());
+        }
+
+        for arg in args {
+            match arg.value.as_ref() {
+                crate::ast::Expr::PropertyAccess { object, property } => {
+                    // For property unset, need to handle Variable specially
+                    if let crate::ast::Expr::Variable(var_name) = object.as_ref() {
+                        if let Some(Value::Object(mut instance)) =
+                            self.variables.get(var_name).cloned()
+                        {
+                            // Check if property exists
+                            if instance.properties.contains_key(property) {
+                                instance.properties.remove(property);
+                                self.variables
+                                    .insert(var_name.clone(), Value::Object(instance));
+                            } else {
+                                // Property doesn't exist, check for __unset
+                                let class = self.classes.get(&instance.class_name).cloned();
+                                if let Some(class) = class {
+                                    if let Some(method) = class.get_magic_method("__unset") {
+                                        let class_name = instance.class_name.clone();
+                                        self.call_method_on_object(
+                                            &mut instance,
+                                            method,
+                                            &[Value::String(property.to_string())],
+                                            class_name,
+                                        )?;
+                                        self.variables
+                                            .insert(var_name.clone(), Value::Object(instance));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                crate::ast::Expr::Variable(name) => {
+                    self.variables.remove(name);
+                }
+                _ => {
+                    return Err("unset() can only be called on variables or properties".to_string());
+                }
+            }
+        }
+        Ok(Value::Null)
     }
 }
