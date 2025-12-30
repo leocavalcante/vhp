@@ -62,7 +62,7 @@ src/
         ├── output.rs    # Output functions (4)
         └── reflection.rs # Reflection functions (8)
 
-tests/                   # Test suite organized by feature (337 tests)
+tests/                   # Test suite organized by feature (346 tests)
 ├── arrays/              # Array tests (18)
 ├── attributes/          # Attribute syntax and reflection tests (29)
 ├── builtins/            # Built-in function tests (26)
@@ -73,7 +73,7 @@ tests/                   # Test suite organized by feature (337 tests)
 ├── enums/               # Enum tests (16)
 ├── errors/              # Error handling tests (8)
 ├── expressions/         # Expression evaluation tests (17)
-├── functions/           # User-defined function tests (28)
+├── functions/           # User-defined function tests (37 including arrow functions)
 ├── html/                # HTML passthrough tests (5)
 ├── interfaces/          # Interface tests (7)
 ├── numbers/             # Numeric literal tests (5)
@@ -254,6 +254,36 @@ $result = $text
     |> strtoupper(...)
     |> substr(..., 0, 5);
 echo $result; // "HELLO"
+```
+
+### Arrow Functions (PHP 7.4)
+- [x] Basic arrow function syntax: `fn($param) => expression`
+- [x] Automatic variable capture by value from outer scope
+- [x] Single expression body (not statement block)
+- [x] Implicit return of expression result
+- [x] Support for default parameters
+- [x] Support for variadic parameters (`...$args`)
+- [x] Nested arrow functions
+- [x] Variable function calls: `$func()` syntax
+- [x] Callable type (closure values)
+
+**Example:**
+```php
+<?php
+// Basic arrow function
+$double = fn($n) => $n * 2;
+echo $double(5); // 10
+
+// Auto-captures from outer scope by value
+$multiplier = 3;
+$multiply = fn($n) => $n * $multiplier;
+echo $multiply(4); // 12
+
+// Nested arrow functions
+$outer = 5;
+$f = fn($x) => fn($y) => $x + $y + $outer;
+$g = $f(10);
+echo $g(3); // 18
 ```
 
 ## Adding New Features
@@ -459,6 +489,7 @@ partial error message to match
 - [x] Enums (PHP 8.1) - Pure and backed enums with built-in methods
 - [x] Pipe Operator (PHP 8.5) - Functional-style function chaining
 - [x] Fibers (PHP 8.1)
+- [x] Arrow Functions (PHP 7.4) - Short closures with automatic variable capture
 
 ### Phase 7: PHP Core Language Compatibility (Planned)
 Essential PHP features for compatibility with standard PHP code.
@@ -511,7 +542,7 @@ Essential PHP features for compatibility with standard PHP code.
 - [ ] declare directive (`strict_types`)
 
 **Functions:**
-- [ ] Arrow functions (PHP 7.4) - `fn($x) => $x * 2`
+- [x] Arrow functions (PHP 7.4) - `fn($x) => $x * 2`
 - [x] Variadic functions and argument unpacking
 - [ ] First-class callables (PHP 8.1) - `strlen(...)`
 
