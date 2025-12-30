@@ -4,13 +4,13 @@ Execute the complete development workflow for the next roadmap item:
 
 ## Workflow Stages
 
-1. **Planning Phase** - Use the architect agent to:
+1. **Planning Phase** - Use the @Architect agent to:
    - Analyze the roadmap and identify the next uncompleted item
    - Research existing codebase patterns
    - Design a detailed implementation plan
    - Create plan file in `docs/plans/planned/`
 
-2. **Implementation Phase** - Use the coder agent to:
+2. **Implementation Phase** - Use the @Coder agent to:
    - Follow the architect's plan step-by-step
    - Implement lexer, parser, AST, and interpreter changes
    - Add comprehensive test coverage
@@ -20,14 +20,14 @@ Execute the complete development workflow for the next roadmap item:
    - Run `make release` to compile the code
    - Verify the build succeeds before proceeding to QA
 
-4. **Quality Assurance Phase** - Use the qa agent to:
+4. **Quality Assurance Phase** - Use the @QA agent to:
    - Run `make lint` to ensure code quality
    - Run `make test` to verify all tests pass
    - Check test coverage for the new feature
    - Validate PHP/VHP compatibility
    - Report any issues found
 
-5. **Documentation Phase** - Use the tech-writer agent to:
+5. **Documentation Phase** - Use the @Tech Writer agent to:
    - Update AGENTS.md with new features
    - Update README.md with feature documentation
    - Update docs/ folder (features.md, roadmap.md, etc.)
