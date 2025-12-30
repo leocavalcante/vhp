@@ -162,13 +162,28 @@ impl<W: Write> Interpreter<W> {
         for method in methods {
             let method_name_lower = method.name.to_lowercase();
 
-            // Check if we're trying to override a final method
+            // Check if we're trying to override a final method from traits
             if let Some(existing_method) = methods_map.get(&method_name_lower) {
                 if existing_method.is_final {
                     return Err(std::io::Error::other(format!(
                         "Cannot override final method {}",
                         method.name
                     )));
+                }
+            }
+
+            // Also check if we're overriding a final method from parent class
+            if let Some(parent_name) = &resolved_parent {
+                let parent_name_lower = parent_name.to_lowercase();
+                if let Some(parent_class) = self.classes.get(&parent_name_lower).cloned() {
+                    if let Some(parent_method) = parent_class.methods.get(&method_name_lower) {
+                        if parent_method.is_final {
+                            return Err(std::io::Error::other(format!(
+                                "Cannot override final method {}",
+                                method.name
+                            )));
+                        }
+                    }
                 }
             }
 
@@ -268,18 +283,9 @@ impl<W: Write> Interpreter<W> {
 
         // Initialize static properties for this class
         let mut static_props = HashMap::new();
+        let mut readonly_props = std::collections::HashSet::new();
 
-        // First, copy parent's static properties if there's inheritance
-        // (these are shared/inherited from the parent)
-        if let Some(parent_name) = &resolved_parent_clone {
-            let parent_key = parent_name.to_lowercase();
-            if let Some(parent_statics) = self.static_properties.get(&parent_key) {
-                static_props.extend(parent_statics.clone());
-            }
-        }
-
-        // Then add/override with this class's static properties
-        // Only process properties declared directly in this class, not inherited ones
+        // Add this class's static properties
         for prop in properties.iter() {
             if prop.is_static {
                 let value = if let Some(default_expr) = &prop.default {
@@ -289,12 +295,22 @@ impl<W: Write> Interpreter<W> {
                     Value::Null
                 };
                 static_props.insert(prop.name.clone(), value);
+
+                // Track readonly static properties
+                if prop.readonly {
+                    readonly_props.insert(prop.name.clone());
+                }
             }
         }
 
-        // Store static properties if any exist
+        // Store this class's static properties if any exist
         if !static_props.is_empty() {
-            self.static_properties.insert(fqn, static_props);
+            self.static_properties.insert(fqn.clone(), static_props);
+        }
+
+        // Store readonly static properties if any exist
+        if !readonly_props.is_empty() {
+            self.static_readonly_properties.insert(fqn, readonly_props);
         }
 
         Ok(ControlFlow::None)
