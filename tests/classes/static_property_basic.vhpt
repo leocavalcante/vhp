@@ -1,0 +1,12 @@
+--TEST--
+Basic static property access
+--FILE--
+<?php
+class Counter {
+    public static $count = 0;
+}
+
+Counter::$count = 5;
+echo Counter::$count;
+--EXPECT--
+5
