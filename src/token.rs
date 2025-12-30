@@ -30,10 +30,10 @@ pub enum TokenKind {
     Endfor,     // endfor
     Endforeach, // endforeach
     Endswitch,  // endswitch
-    Function, // function
-    Fn,       // fn (arrow function, PHP 7.4)
-    Return,   // return
-    Match,    // match (PHP 8.0)
+    Function,   // function
+    Fn,         // fn (arrow function, PHP 7.4)
+    Return,     // return
+    Match,      // match (PHP 8.0)
 
     // OOP Keywords
     Class,      // class
@@ -60,8 +60,8 @@ pub enum TokenKind {
     Set,        // set (PHP 8.4) - property hooks
 
     // Namespace Keywords
-    Namespace,  // namespace
-    Const,      // const (for use const and class constants)
+    Namespace, // namespace
+    Const,     // const (for use const and class constants)
 
     // Exception Keywords
     Try,     // try

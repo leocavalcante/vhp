@@ -149,7 +149,7 @@ impl<'a> StmtParser<'a> {
                 } else {
                     false
                 };
-            
+
             // Check for static modifier
             let is_static = if self.check(&TokenKind::Static) {
                 self.advance();
@@ -169,7 +169,8 @@ impl<'a> StmtParser<'a> {
             };
 
             if self.check(&TokenKind::Function) {
-                let mut method = self.parse_method(visibility, member_is_abstract, member_is_final)?;
+                let mut method =
+                    self.parse_method(visibility, member_is_abstract, member_is_final)?;
                 method.is_static = is_static;
                 method.attributes = attributes;
                 methods.push(method);

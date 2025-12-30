@@ -16,7 +16,7 @@ pub struct Closure {
 #[derive(Debug, Clone)]
 pub enum ClosureBody {
     Expression(Box<crate::ast::Expr>), // For arrow functions: fn($x) => $x * 2
-    FunctionRef(String),                // For first-class callables: strlen(...)
+    FunctionRef(String),               // For first-class callables: strlen(...)
     MethodRef {
         // For first-class method callables: $obj->method(...)
         #[allow(dead_code)]
@@ -40,11 +40,11 @@ pub struct FiberInstance {
     pub id: usize,
     pub state: FiberState,
     pub callback: Option<crate::interpreter::UserFunction>, // The callback function to execute
-    pub call_stack: Vec<CallFrame>,     // Fiber's own call stack
-    pub variables: HashMap<String, Value>, // Fiber's local variables
-    pub suspended_value: Option<Box<Value>>, // Value passed to Fiber::suspend()
-    pub return_value: Option<Box<Value>>,    // Final return value
-    pub error: Option<String>,          // Error if fiber failed
+    pub call_stack: Vec<CallFrame>,                         // Fiber's own call stack
+    pub variables: HashMap<String, Value>,                  // Fiber's local variables
+    pub suspended_value: Option<Box<Value>>,                // Value passed to Fiber::suspend()
+    pub return_value: Option<Box<Value>>,                   // Final return value
+    pub error: Option<String>,                              // Error if fiber failed
 }
 
 /// Fiber execution state
@@ -481,10 +481,8 @@ impl Value {
             (Value::Object(a), Value::Object(b)) => {
                 a.class_name == b.class_name && a.properties == b.properties
             }
-            // Fiber comparisons  
-            (Value::Fiber(a), Value::Fiber(b)) => {
-                a.id == b.id
-            }
+            // Fiber comparisons
+            (Value::Fiber(a), Value::Fiber(b)) => a.id == b.id,
             // Closure comparisons
             (Value::Closure(_), Value::Closure(_)) => {
                 false // Closures are never loosely equal
@@ -520,10 +518,10 @@ impl Value {
             Value::String(_) => "string",
             Value::Array(_) => "array",
             Value::Object(_) => "object",
-            Value::Fiber(_) => "object",        // Fibers are treated as objects for type purposes
-            Value::Closure(_) => "object",      // Closures are treated as objects for type purposes
+            Value::Fiber(_) => "object", // Fibers are treated as objects for type purposes
+            Value::Closure(_) => "object", // Closures are treated as objects for type purposes
             Value::EnumCase { .. } => "object", // Enum cases are treated as objects for type purposes
-            Value::Exception(_) => "object",    // Exceptions are treated as objects for type purposes
+            Value::Exception(_) => "object", // Exceptions are treated as objects for type purposes
         }
     }
 
@@ -549,15 +547,9 @@ impl Value {
         use crate::ast::TypeHint;
         match type_hint {
             TypeHint::Simple(name) => self.matches_simple_type(name),
-            TypeHint::Nullable(inner) => {
-                matches!(self, Value::Null) || self.matches_type(inner)
-            }
-            TypeHint::Union(types) => {
-                types.iter().any(|t| self.matches_type(t))
-            }
-            TypeHint::Intersection(types) => {
-                types.iter().all(|t| self.matches_type(t))
-            }
+            TypeHint::Nullable(inner) => matches!(self, Value::Null) || self.matches_type(inner),
+            TypeHint::Union(types) => types.iter().any(|t| self.matches_type(t)),
+            TypeHint::Intersection(types) => types.iter().all(|t| self.matches_type(t)),
             TypeHint::Class(class_name) => {
                 if let Value::Object(obj) = self {
                     obj.is_instance_of(class_name)
@@ -565,10 +557,10 @@ impl Value {
                     false
                 }
             }
-            TypeHint::Void => false, // void is for return types only
-            TypeHint::Never => false, // never is for return types only
-            TypeHint::Static => false, // Requires class context
-            TypeHint::SelfType => false, // Requires class context
+            TypeHint::Void => false,       // void is for return types only
+            TypeHint::Never => false,      // never is for return types only
+            TypeHint::Static => false,     // Requires class context
+            TypeHint::SelfType => false,   // Requires class context
             TypeHint::ParentType => false, // Requires class context
         }
     }

@@ -51,13 +51,13 @@ pub fn parse_postfix(parser: &mut ExprParser, mut expr: Expr) -> Result<Expr, St
                 // Check if it's a method call or property access
                 if parser.check(&TokenKind::LeftParen) {
                     parser.advance(); // consume '('
-                    
+
                     // Check for first-class callable: $obj->method(...)
                     // Must be ONLY ... with no other arguments
                     if parser.check(&TokenKind::Ellipsis) {
                         let start_pos = *parser.pos;
                         parser.advance(); // consume '...'
-                        
+
                         if parser.check(&TokenKind::RightParen) {
                             parser.advance(); // consume ')'
                             expr = Expr::CallableFromMethod {
@@ -69,7 +69,10 @@ pub fn parse_postfix(parser: &mut ExprParser, mut expr: Expr) -> Result<Expr, St
                             *parser.pos = start_pos;
                             // Regular method call
                             let args = parser.parse_arguments()?;
-                            parser.consume(TokenKind::RightParen, "Expected ')' after method arguments")?;
+                            parser.consume(
+                                TokenKind::RightParen,
+                                "Expected ')' after method arguments",
+                            )?;
                             expr = Expr::MethodCall {
                                 object: Box::new(expr),
                                 method: member,
@@ -79,7 +82,10 @@ pub fn parse_postfix(parser: &mut ExprParser, mut expr: Expr) -> Result<Expr, St
                     } else {
                         // Regular method call
                         let args = parser.parse_arguments()?;
-                        parser.consume(TokenKind::RightParen, "Expected ')' after method arguments")?;
+                        parser.consume(
+                            TokenKind::RightParen,
+                            "Expected ')' after method arguments",
+                        )?;
                         expr = Expr::MethodCall {
                             object: Box::new(expr),
                             method: member,

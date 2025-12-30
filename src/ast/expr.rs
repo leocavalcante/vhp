@@ -110,7 +110,7 @@ pub enum Expr {
         properties: Vec<crate::ast::Property>,
         methods: Vec<crate::ast::Method>,
     },
-    
+
     // Fiber instantiation: new Fiber(callback) - Special case
     NewFiber {
         callback: Box<Expr>, // Function name or closure
@@ -163,7 +163,7 @@ pub enum Expr {
     FiberSuspend {
         value: Option<Box<Expr>>, // Optional value to suspend with
     },
-    
+
     FiberGetCurrent,
 
     // Match expression (PHP 8.0)

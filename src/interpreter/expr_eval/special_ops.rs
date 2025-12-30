@@ -174,7 +174,7 @@ pub(crate) fn eval_pipe<W: Write>(
             // Call the function with the piped value as the only argument
             interpreter.call_function_with_values(name, &[piped_value])
         }
-        
+
         Expr::FunctionCall { name, args } => {
             // Find placeholder position
             let placeholder_pos = args

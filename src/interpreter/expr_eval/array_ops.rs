@@ -86,6 +86,71 @@ pub(crate) fn eval_array_assign<W: Write>(
 ) -> Result<Value, String> {
     let new_value = interpreter.eval_expr(value_expr)?;
 
+    // Handle property access specially (e.g., $this->array[] = value)
+    if let Expr::PropertyAccess { object, property } = array_expr {
+        // Get the array from the property
+        let mut arr = match interpreter.eval_property_access(object, property)? {
+            Value::Array(a) => a,
+            Value::Null => Vec::new(),
+            _ => return Err("Cannot use array assignment on non-array property".to_string()),
+        };
+
+        // Calculate the key
+        let key = if let Some(idx_expr) = index {
+            ArrayKey::from_value(&interpreter.eval_expr(idx_expr)?)
+        } else {
+            // Append: find max integer key + 1
+            let max_key = arr
+                .iter()
+                .filter_map(|(k, _)| {
+                    if let ArrayKey::Integer(n) = k {
+                        Some(*n)
+                    } else {
+                        None
+                    }
+                })
+                .max()
+                .unwrap_or(-1);
+            ArrayKey::Integer(max_key + 1)
+        };
+
+        // Apply the operation using existing helper
+        let value_to_store = if let Some(idx) = arr.iter().position(|(k, _)| k == &key) {
+            match op {
+                AssignOp::Assign => new_value.clone(),
+                _ => {
+                    let current = &arr[idx].1;
+                    interpreter.apply_compound_assign_op(current, op, &new_value)?
+                }
+            }
+        } else {
+            new_value.clone()
+        };
+
+        // Update or insert
+        if let Some(idx) = arr.iter().position(|(k, _)| k == &key) {
+            arr[idx].1 = value_to_store.clone();
+        } else {
+            arr.push((key, value_to_store.clone()));
+        }
+
+        // Write the array back to the property
+        let array_value = Expr::Array(
+            arr.iter()
+                .map(|(k, v)| crate::ast::ArrayElement {
+                    key: Some(Box::new(match k {
+                        ArrayKey::Integer(n) => Expr::Integer(*n),
+                        ArrayKey::String(s) => Expr::String(s.clone()),
+                    })),
+                    value: Box::new(value_to_expr(v)),
+                })
+                .collect(),
+        );
+
+        interpreter.eval_property_assign(object, property, &array_value)?;
+        return Ok(value_to_store);
+    }
+
     // Get the variable name from the array expression
     let var_name = match array_expr {
         Expr::Variable(name) => name.clone(),
@@ -228,5 +293,30 @@ fn apply_array_assign_op<W: Write>(
 
             interpreter.apply_compound_assign_op(&current, op, &new_value)
         }
+    }
+}
+
+/// Helper function to convert a Value back to an Expr for property assignment
+fn value_to_expr(value: &Value) -> Expr {
+    match value {
+        Value::Null => Expr::Null,
+        Value::Bool(b) => Expr::Bool(*b),
+        Value::Integer(n) => Expr::Integer(*n),
+        Value::Float(f) => Expr::Float(*f),
+        Value::String(s) => Expr::String(s.clone()),
+        Value::Array(arr) => Expr::Array(
+            arr.iter()
+                .map(|(k, v)| ArrayElement {
+                    key: Some(Box::new(match k {
+                        ArrayKey::Integer(n) => Expr::Integer(*n),
+                        ArrayKey::String(s) => Expr::String(s.clone()),
+                    })),
+                    value: Box::new(value_to_expr(v)),
+                })
+                .collect(),
+        ),
+        // For complex types, we can't easily convert back to Expr
+        // This is a limitation, but for array operations it should work
+        _ => Expr::Null,
     }
 }

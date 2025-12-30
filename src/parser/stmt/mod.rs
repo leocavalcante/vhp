@@ -18,7 +18,10 @@ pub mod trait_;
 
 use super::expr::ExprParser;
 use super::precedence::Precedence;
-use crate::ast::{Attribute, AttributeArgument, Expr, Method, Property, PropertyHook, PropertyHookBody, PropertyHookType, Stmt, Visibility};
+use crate::ast::{
+    Attribute, AttributeArgument, Expr, Method, Property, PropertyHook, PropertyHookBody,
+    PropertyHookType, Stmt, Visibility,
+};
 use crate::token::{Token, TokenKind};
 
 pub struct StmtParser<'a> {
@@ -174,10 +177,10 @@ impl<'a> StmtParser<'a> {
         } else {
             false
         };
-        
+
         // Parse the base type
         let base_type = self.parse_single_type()?;
-        
+
         // Check for union | or intersection &
         if self.check(&TokenKind::BitwiseOr) {
             let mut types = vec![base_type.clone()];
@@ -187,15 +190,22 @@ impl<'a> StmtParser<'a> {
             }
             if nullable {
                 // ?int|string is not valid syntax, but int|string|null is
-                return Err("Cannot use nullable syntax with union types, use |null instead".to_string());
+                return Err(
+                    "Cannot use nullable syntax with union types, use |null instead".to_string(),
+                );
             }
             return Ok(TypeHint::Union(types));
         }
-        
+
         // Check for intersection & (we need to distinguish from reference &)
         // In type hints, & is used for intersection types
         // We check if the next token looks like a type name
-        if let TokenKind::Identifier(next_id) = &self.tokens.get(*self.pos).map(|t| &t.kind).unwrap_or(&TokenKind::Eof) {
+        if let TokenKind::Identifier(next_id) = &self
+            .tokens
+            .get(*self.pos)
+            .map(|t| &t.kind)
+            .unwrap_or(&TokenKind::Eof)
+        {
             if next_id == "&" {
                 // This looks like it could be an intersection type
                 // But we need to be more careful - check if what follows is a type name
@@ -212,7 +222,8 @@ impl<'a> StmtParser<'a> {
                         }
                         if types.len() > 1 {
                             if nullable {
-                                return Err("Cannot use nullable syntax with intersection types".to_string());
+                                return Err("Cannot use nullable syntax with intersection types"
+                                    .to_string());
                             }
                             return Ok(TypeHint::Intersection(types));
                         }
@@ -220,7 +231,7 @@ impl<'a> StmtParser<'a> {
                 }
             }
         }
-        
+
         // Apply nullable wrapper if needed
         if nullable {
             Ok(TypeHint::Nullable(Box::new(base_type)))
@@ -237,7 +248,7 @@ impl<'a> StmtParser<'a> {
             let type_name = name.to_lowercase();
             let original_name = name.clone();
             self.advance();
-            
+
             match type_name.as_str() {
                 "int" | "integer" => Ok(TypeHint::Simple("int".to_string())),
                 "string" => Ok(TypeHint::Simple("string".to_string())),
@@ -514,7 +525,12 @@ impl<'a> StmtParser<'a> {
     }
 
     /// Parse class method (shared between class and trait)
-    pub fn parse_method(&mut self, visibility: Visibility, is_abstract_method: bool, is_final_method: bool) -> Result<Method, String> {
+    pub fn parse_method(
+        &mut self,
+        visibility: Visibility,
+        is_abstract_method: bool,
+        is_final_method: bool,
+    ) -> Result<Method, String> {
         self.advance(); // consume 'function'
 
         let name = if let TokenKind::Identifier(name) = &self.current().kind {
@@ -671,7 +687,7 @@ impl<'a> StmtParser<'a> {
         }
 
         self.consume(TokenKind::RightParen, "Expected ')' after parameters")?;
-        
+
         // Parse return type hint if present (: type)
         let return_type = if self.check(&TokenKind::Colon) {
             self.advance();
@@ -682,7 +698,10 @@ impl<'a> StmtParser<'a> {
 
         // Abstract methods end with semicolon, concrete methods have body
         let body = if is_abstract_method {
-            self.consume(TokenKind::Semicolon, "Expected ';' after abstract method declaration")?;
+            self.consume(
+                TokenKind::Semicolon,
+                "Expected ';' after abstract method declaration",
+            )?;
             Vec::new()
         } else {
             self.consume(TokenKind::LeftBrace, "Expected '{' before method body")?;
@@ -1222,10 +1241,7 @@ impl<'a> StmtParser<'a> {
             self.advance();
         }
 
-        self.consume(
-            TokenKind::RightBrace,
-            "Expected '}' after group use items",
-        )?;
+        self.consume(TokenKind::RightBrace, "Expected '}' after group use items")?;
         self.consume(TokenKind::Semicolon, "Expected ';' after use statement")?;
 
         Ok(Stmt::GroupUse(GroupUse { prefix, items }))

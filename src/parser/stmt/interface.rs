@@ -55,28 +55,28 @@ impl<'a> StmtParser<'a> {
                 // Parse const with the attributes we already parsed
                 self.advance(); // consume 'const'
 
-                    let name = if let TokenKind::Identifier(name) = &self.current().kind {
-                        let name = name.clone();
-                        self.advance();
-                        name
-                    } else {
-                        return Err(format!(
-                            "Expected constant name at line {}, column {}",
-                            self.current().line,
-                            self.current().column
-                        ));
-                    };
+                let name = if let TokenKind::Identifier(name) = &self.current().kind {
+                    let name = name.clone();
+                    self.advance();
+                    name
+                } else {
+                    return Err(format!(
+                        "Expected constant name at line {}, column {}",
+                        self.current().line,
+                        self.current().column
+                    ));
+                };
 
-                    self.consume(TokenKind::Assign, "Expected '=' after constant name")?;
-                    let value = self.parse_expression(Precedence::None)?;
-                    self.consume(TokenKind::Semicolon, "Expected ';' after constant value")?;
+                self.consume(TokenKind::Assign, "Expected '=' after constant name")?;
+                let value = self.parse_expression(Precedence::None)?;
+                self.consume(TokenKind::Semicolon, "Expected ';' after constant value")?;
 
-                    constants.push(InterfaceConstant {
-                        name,
-                        value,
-                        attributes,
-                    });
-                    continue;
+                constants.push(InterfaceConstant {
+                    name,
+                    value,
+                    attributes,
+                });
+                continue;
             }
 
             if self.check(&TokenKind::Function) {

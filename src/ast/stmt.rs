@@ -85,7 +85,9 @@ impl TypeHint {
     pub fn is_nullable(&self) -> bool {
         match self {
             TypeHint::Nullable(_) => true,
-            TypeHint::Union(types) => types.iter().any(|t| matches!(t, TypeHint::Simple(s) if s == "null")),
+            TypeHint::Union(types) => types
+                .iter()
+                .any(|t| matches!(t, TypeHint::Simple(s) if s == "null")),
             TypeHint::Simple(s) => s == "mixed" || s == "null",
             _ => false,
         }
@@ -307,7 +309,7 @@ pub enum Stmt {
         name: String,
         is_abstract: bool, // abstract class modifier
         is_final: bool,    // final class modifier
-        readonly: bool, // PHP 8.2+: all properties are implicitly readonly
+        readonly: bool,    // PHP 8.2+: all properties are implicitly readonly
         parent: Option<QualifiedName>,
         interfaces: Vec<QualifiedName>,
         trait_uses: Vec<TraitUse>,

@@ -54,7 +54,7 @@ impl<'a> ExprParser<'a> {
                     // Check for ellipsis ... (spread or placeholder)
                     if self.check(&TokenKind::Ellipsis) {
                         self.advance(); // consume ...
-                        
+
                         // Check if there's an expression after (spread) or not (placeholder)
                         if self.check(&TokenKind::RightParen) || self.check(&TokenKind::Comma) {
                             // This is a placeholder (...)
@@ -64,7 +64,8 @@ impl<'a> ExprParser<'a> {
                             });
                         } else {
                             // This is a spread expression ...$array
-                            let expr = self.parse_expression(super::super::precedence::Precedence::None)?;
+                            let expr =
+                                self.parse_expression(super::super::precedence::Precedence::None)?;
                             args.push(Argument {
                                 name: None,
                                 value: Box::new(Expr::Spread(Box::new(expr))),
@@ -273,7 +274,7 @@ impl<'a> ExprParser<'a> {
                     // Check if this is a method call (with parentheses) or enum case access
                     if self.check(&TokenKind::LeftParen) {
                         self.advance(); // consume '('
-                        
+
                         // Special case for Fiber static methods
                         if name.to_lowercase() == "fiber" {
                             match method_or_case.to_lowercase().as_str() {
@@ -281,27 +282,35 @@ impl<'a> ExprParser<'a> {
                                     let value = if self.check(&TokenKind::RightParen) {
                                         None
                                     } else {
-                                        Some(Box::new(self.parse_expression(super::super::precedence::Precedence::None)?))
+                                        Some(Box::new(self.parse_expression(
+                                            super::super::precedence::Precedence::None,
+                                        )?))
                                     };
-                                    self.consume(TokenKind::RightParen, "Expected ')' after Fiber::suspend arguments")?;
+                                    self.consume(
+                                        TokenKind::RightParen,
+                                        "Expected ')' after Fiber::suspend arguments",
+                                    )?;
                                     let expr = Expr::FiberSuspend { value };
                                     return parse_postfix(self, expr);
                                 }
                                 "getcurrent" => {
-                                    self.consume(TokenKind::RightParen, "Expected ')' after Fiber::getCurrent")?;
+                                    self.consume(
+                                        TokenKind::RightParen,
+                                        "Expected ')' after Fiber::getCurrent",
+                                    )?;
                                     let expr = Expr::FiberGetCurrent;
                                     return parse_postfix(self, expr);
                                 }
                                 _ => {} // Fall through to regular static call
                             }
                         }
-                        
+
                         // Check for first-class callable: Class::method(...)
                         // Must be ONLY ... with no other arguments
                         if self.check(&TokenKind::Ellipsis) {
                             let start_pos = *self.pos;
                             self.advance(); // consume '...'
-                            
+
                             if self.check(&TokenKind::RightParen) {
                                 self.advance(); // consume ')'
                                 let callable = Expr::CallableFromStaticMethod {
@@ -314,7 +323,7 @@ impl<'a> ExprParser<'a> {
                                 *self.pos = start_pos;
                             }
                         }
-                        
+
                         // Regular static method call
                         let args = self.parse_arguments()?;
                         self.consume(
@@ -338,13 +347,13 @@ impl<'a> ExprParser<'a> {
                 } else if self.check(&TokenKind::LeftParen) {
                     // Function call or first-class callable
                     self.advance(); // consume '('
-                    
+
                     // Check for first-class callable: func(...)
                     // Must be ONLY ... with no other arguments
                     if self.check(&TokenKind::Ellipsis) {
                         let start_pos = *self.pos;
                         self.advance(); // consume '...'
-                        
+
                         // Check if this is the only thing in the parentheses
                         if self.check(&TokenKind::RightParen) {
                             self.advance(); // consume ')'
@@ -355,7 +364,7 @@ impl<'a> ExprParser<'a> {
                             *self.pos = start_pos;
                         }
                     }
-                    
+
                     // Regular function call with arguments
                     let args = self.parse_arguments()?;
                     self.consume(
@@ -392,20 +401,28 @@ impl<'a> ExprParser<'a> {
 
                     if self.check(&TokenKind::LeftParen) {
                         self.advance(); // consume '('
-                        
+
                         match method_name.to_lowercase().as_str() {
                             "suspend" => {
                                 let value = if self.check(&TokenKind::RightParen) {
                                     None
                                 } else {
-                                    Some(Box::new(self.parse_expression(super::super::precedence::Precedence::None)?))
+                                    Some(Box::new(self.parse_expression(
+                                        super::super::precedence::Precedence::None,
+                                    )?))
                                 };
-                                self.consume(TokenKind::RightParen, "Expected ')' after Fiber::suspend arguments")?;
+                                self.consume(
+                                    TokenKind::RightParen,
+                                    "Expected ')' after Fiber::suspend arguments",
+                                )?;
                                 let expr = Expr::FiberSuspend { value };
                                 parse_postfix(self, expr)
                             }
                             "getcurrent" => {
-                                self.consume(TokenKind::RightParen, "Expected ')' after Fiber::getCurrent")?;
+                                self.consume(
+                                    TokenKind::RightParen,
+                                    "Expected ')' after Fiber::getCurrent",
+                                )?;
                                 let expr = Expr::FiberGetCurrent;
                                 parse_postfix(self, expr)
                             }
@@ -426,7 +443,9 @@ impl<'a> ExprParser<'a> {
                     } else {
                         Err(format!(
                             "Expected '(' after 'Fiber::{}' at line {}, column {}",
-                            method_name, self.current().line, self.current().column
+                            method_name,
+                            self.current().line,
+                            self.current().column
                         ))
                     }
                 } else {
@@ -542,13 +561,13 @@ impl<'a> ExprParser<'a> {
             }
             TokenKind::New => {
                 self.advance(); // consume 'new'
-                
+
                 // Check for anonymous class: new class ...
                 if self.check(&TokenKind::Class) {
                     let anon_class = self.parse_anonymous_class()?;
                     return parse_postfix(self, anon_class);
                 }
-                
+
                 // Parse qualified class name (e.g., \Foo\Bar or Foo\Bar\Baz)
                 let mut class_name_parts = Vec::new();
                 let is_fully_qualified = if self.check(&TokenKind::Backslash) {
@@ -557,12 +576,12 @@ impl<'a> ExprParser<'a> {
                 } else {
                     false
                 };
-                
+
                 let class_name = match &self.current().kind {
                     TokenKind::Identifier(name) => {
                         class_name_parts.push(name.clone());
                         self.advance();
-                        
+
                         // Continue parsing backslash-separated parts
                         while self.check(&TokenKind::Backslash) {
                             self.advance();
@@ -577,7 +596,7 @@ impl<'a> ExprParser<'a> {
                                 ));
                             }
                         }
-                        
+
                         // Construct the full class name
                         if is_fully_qualified {
                             format!("\\{}", class_name_parts.join("\\"))
@@ -601,7 +620,8 @@ impl<'a> ExprParser<'a> {
                 // Special case for Fiber constructor
                 if class_name.to_lowercase() == "fiber" {
                     self.consume(TokenKind::LeftParen, "Expected '(' after 'new Fiber'")?;
-                    let callback = self.parse_expression(super::super::precedence::Precedence::None)?;
+                    let callback =
+                        self.parse_expression(super::super::precedence::Precedence::None)?;
                     self.consume(TokenKind::RightParen, "Expected ')' after fiber callback")?;
                     let fiber_expr = Expr::NewFiber {
                         callback: Box::new(callback),
@@ -653,12 +673,12 @@ impl<'a> ExprParser<'a> {
     /// PHP 7.4+ feature for short closures
     pub fn parse_arrow_function(&mut self) -> Result<Expr, String> {
         // 'fn' already consumed
-        
+
         self.consume(TokenKind::LeftParen, "Expected '(' after 'fn'")?;
-        
+
         // Parse parameters (simplified version without type hints)
         let mut params = Vec::new();
-        
+
         if !self.check(&TokenKind::RightParen) {
             loop {
                 // Parse by-reference &
@@ -668,7 +688,7 @@ impl<'a> ExprParser<'a> {
                 } else {
                     false
                 };
-                
+
                 // Parse ellipsis for variadic
                 let is_variadic = if self.check(&TokenKind::Ellipsis) {
                     self.advance();
@@ -676,7 +696,7 @@ impl<'a> ExprParser<'a> {
                 } else {
                     false
                 };
-                
+
                 // Parse parameter name
                 let param_name = if let TokenKind::Variable(name) = &self.current().kind {
                     let n = name.clone();
@@ -689,7 +709,7 @@ impl<'a> ExprParser<'a> {
                         self.current().column
                     ));
                 };
-                
+
                 // Parse default value
                 let default = if self.check(&TokenKind::Assign) {
                     self.advance();
@@ -697,7 +717,7 @@ impl<'a> ExprParser<'a> {
                 } else {
                     None
                 };
-                
+
                 params.push(crate::ast::FunctionParam {
                     name: param_name,
                     type_hint: None,
@@ -708,22 +728,25 @@ impl<'a> ExprParser<'a> {
                     readonly: false,
                     attributes: Vec::new(),
                 });
-                
+
                 if !self.check(&TokenKind::Comma) {
                     break;
                 }
                 self.advance();
             }
         }
-        
+
         self.consume(TokenKind::RightParen, "Expected ')' after parameters")?;
-        
+
         // Expect => (fat arrow / double arrow)
-        self.consume(TokenKind::DoubleArrow, "Expected '=>' after arrow function parameters")?;
-        
+        self.consume(
+            TokenKind::DoubleArrow,
+            "Expected '=>' after arrow function parameters",
+        )?;
+
         // Parse the expression body (NOT a statement block)
         let body = self.parse_expression(super::super::precedence::Precedence::None)?;
-        
+
         Ok(Expr::ArrowFunction {
             params,
             body: Box::new(body),
@@ -733,17 +756,20 @@ impl<'a> ExprParser<'a> {
     /// Parse anonymous class: new class(...) extends X implements Y { ... }
     pub fn parse_anonymous_class(&mut self) -> Result<Expr, String> {
         self.consume(TokenKind::Class, "Expected 'class'")?;
-        
+
         // Parse optional constructor arguments: new class(arg1, arg2)
         let constructor_args = if self.check(&TokenKind::LeftParen) {
             self.advance();
             let args = self.parse_arguments()?;
-            self.consume(TokenKind::RightParen, "Expected ')' after constructor arguments")?;
+            self.consume(
+                TokenKind::RightParen,
+                "Expected ')' after constructor arguments",
+            )?;
             args
         } else {
             vec![]
         };
-        
+
         // Parse optional extends
         let parent = if self.check(&TokenKind::Extends) {
             self.advance();
@@ -761,7 +787,7 @@ impl<'a> ExprParser<'a> {
         } else {
             None
         };
-        
+
         // Parse optional implements
         let mut interfaces = vec![];
         if self.check(&TokenKind::Implements) {
@@ -777,24 +803,27 @@ impl<'a> ExprParser<'a> {
                         self.current().column
                     ));
                 }
-                
+
                 if !self.check(&TokenKind::Comma) {
                     break;
                 }
                 self.advance();
             }
         }
-        
+
         // Parse class body using StmtParser
-        self.consume(TokenKind::LeftBrace, "Expected '{' for anonymous class body")?;
-        
+        self.consume(
+            TokenKind::LeftBrace,
+            "Expected '{' for anonymous class body",
+        )?;
+
         // Create a StmtParser to parse class members
         let mut stmt_parser = crate::parser::stmt::StmtParser::new(self.tokens, self.pos);
-        
+
         let mut traits = vec![];
         let mut properties = vec![];
         let mut methods = vec![];
-        
+
         while !stmt_parser.check(&TokenKind::RightBrace) && !stmt_parser.check(&TokenKind::Eof) {
             // Parse class member
             if stmt_parser.check(&TokenKind::Use) {
@@ -812,7 +841,7 @@ impl<'a> ExprParser<'a> {
                             stmt_parser.current().column
                         ));
                     }
-                    
+
                     if !stmt_parser.check(&TokenKind::Comma) {
                         break;
                     }
@@ -828,7 +857,7 @@ impl<'a> ExprParser<'a> {
                 let mut visibility = crate::ast::Visibility::Public;
                 let mut is_abstract = false;
                 let mut is_final = false;
-                
+
                 loop {
                     if stmt_parser.check(&TokenKind::Public) {
                         visibility = crate::ast::Visibility::Public;
@@ -849,7 +878,7 @@ impl<'a> ExprParser<'a> {
                         break;
                     }
                 }
-                
+
                 if stmt_parser.check(&TokenKind::Function) {
                     // It's a method
                     let method = stmt_parser.parse_method(visibility, is_abstract, is_final)?;
@@ -861,9 +890,12 @@ impl<'a> ExprParser<'a> {
                 }
             }
         }
-        
-        stmt_parser.consume(TokenKind::RightBrace, "Expected '}' after anonymous class body")?;
-        
+
+        stmt_parser.consume(
+            TokenKind::RightBrace,
+            "Expected '}' after anonymous class body",
+        )?;
+
         Ok(Expr::NewAnonymousClass {
             constructor_args,
             parent,

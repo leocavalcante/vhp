@@ -31,8 +31,7 @@ impl<W: Write> Interpreter<W> {
                         }
                     };
                     // Use value_to_string to support __toString magic method
-                    let str_val = self.value_to_string(&value)
-                        .map_err(io::Error::other)?;
+                    let str_val = self.value_to_string(&value).map_err(io::Error::other)?;
                     write!(self.output, "{}", str_val)?;
                 }
                 Ok(ControlFlow::None)
@@ -123,7 +122,16 @@ impl<W: Write> Interpreter<W> {
                 methods,
                 attributes,
             } => self.handle_class_decl(
-                name, *is_abstract, *is_final, *readonly, parent, interfaces, trait_uses, properties, methods, attributes,
+                name,
+                *is_abstract,
+                *is_final,
+                *readonly,
+                parent,
+                interfaces,
+                trait_uses,
+                properties,
+                methods,
+                attributes,
             ),
 
             Stmt::Interface {
@@ -184,7 +192,10 @@ impl<W: Write> Interpreter<W> {
     }
 
     /// Safely evaluate expression, converting throw expressions to ControlFlow::Exception
-    pub(super) fn eval_expr_safe(&mut self, expr: &crate::ast::Expr) -> std::io::Result<Result<Value, ControlFlow>> {
+    pub(super) fn eval_expr_safe(
+        &mut self,
+        expr: &crate::ast::Expr,
+    ) -> std::io::Result<Result<Value, ControlFlow>> {
         match self.eval_expr(expr) {
             Ok(v) => Ok(Ok(v)),
             Err(e) => {
@@ -228,7 +239,8 @@ impl<W: Write> Interpreter<W> {
                 if matches {
                     // Bind exception to variable as an Exception object
                     let exc_obj = Value::Exception(exception.clone());
-                    self.variables.insert(catch_clause.variable.clone(), exc_obj);
+                    self.variables
+                        .insert(catch_clause.variable.clone(), exc_obj);
 
                     // Execute catch body
                     result = ControlFlow::None;

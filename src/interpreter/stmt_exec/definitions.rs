@@ -83,15 +83,15 @@ impl<W: Write> Interpreter<W> {
                         name, parent_name
                     )));
                 }
-                
+
                 // If this class is not abstract, it must implement all abstract methods from parent
                 if !is_abstract && parent_class.is_abstract {
                     for (method_name, method_func) in parent_class.methods.iter() {
                         if method_func.is_abstract {
                             // Check if this method is implemented
-                            let implemented = methods.iter().any(|m| {
-                                m.name.to_lowercase() == method_name.to_lowercase()
-                            });
+                            let implemented = methods
+                                .iter()
+                                .any(|m| m.name.to_lowercase() == method_name.to_lowercase());
                             if !implemented {
                                 return Err(std::io::Error::other(format!(
                                     "Class {} must implement abstract method {}::{}",
@@ -164,7 +164,7 @@ impl<W: Write> Interpreter<W> {
         // Add current class methods (can override parent/trait methods)
         for method in methods {
             let method_name_lower = method.name.to_lowercase();
-            
+
             // Check if we're trying to override a final method
             if let Some(existing_method) = methods_map.get(&method_name_lower) {
                 if existing_method.is_final {
@@ -174,7 +174,7 @@ impl<W: Write> Interpreter<W> {
                     )));
                 }
             }
-            
+
             let mut method_body = method.body.clone();
 
             // Handle constructor property promotion (PHP 8.0)
@@ -192,7 +192,7 @@ impl<W: Write> Interpreter<W> {
                             readonly: param.readonly,
                             is_static: false, // Promoted properties cannot be static
                             attributes: param.attributes.clone(),
-                            hooks: vec![],     // Promoted properties cannot have hooks
+                            hooks: vec![], // Promoted properties cannot have hooks
                         });
 
                         // Prepend assignment: $this->param_name = $param_name
@@ -266,12 +266,7 @@ impl<W: Write> Interpreter<W> {
         let fqn = if self.namespace_context.current.is_empty() {
             name.to_lowercase()
         } else {
-            format!(
-                "{}\\{}",
-                self.namespace_context.current.join("\\"),
-                name
-            )
-            .to_lowercase()
+            format!("{}\\{}", self.namespace_context.current.join("\\"), name).to_lowercase()
         };
         self.classes.insert(fqn.clone(), class_def);
 
@@ -290,7 +285,8 @@ impl<W: Write> Interpreter<W> {
         for prop in &all_properties_clone {
             if prop.is_static {
                 let value = if let Some(default_expr) = &prop.default {
-                    self.eval_expr(default_expr).map_err(std::io::Error::other)?
+                    self.eval_expr(default_expr)
+                        .map_err(std::io::Error::other)?
                 } else {
                     Value::Null
                 };
@@ -365,12 +361,7 @@ impl<W: Write> Interpreter<W> {
         let fqn = if self.namespace_context.current.is_empty() {
             name.to_lowercase()
         } else {
-            format!(
-                "{}\\{}",
-                self.namespace_context.current.join("\\"),
-                name
-            )
-            .to_lowercase()
+            format!("{}\\{}", self.namespace_context.current.join("\\"), name).to_lowercase()
         };
         self.interfaces.insert(fqn, iface_def);
         Ok(ControlFlow::None)

@@ -40,19 +40,25 @@ impl<W: Write> Interpreter<W> {
             let qn = crate::ast::QualifiedName::new(parts, false);
             self.namespace_context.resolve_class(&qn)
         };
-        
+
         let class_name_lower = resolved_class_name.to_lowercase();
 
         // Check if class exists
         if !self.classes.contains_key(&class_name_lower) {
-            return Err(format!("Class '{}' not found (resolved to '{}')", class_name, resolved_class_name));
+            return Err(format!(
+                "Class '{}' not found (resolved to '{}')",
+                class_name, resolved_class_name
+            ));
         }
-        
+
         // Check if class is abstract
         {
             let class_def = self.classes.get(&class_name_lower).unwrap();
             if class_def.is_abstract {
-                return Err(format!("Cannot instantiate abstract class {}", resolved_class_name));
+                return Err(format!(
+                    "Cannot instantiate abstract class {}",
+                    resolved_class_name
+                ));
             }
         }
 

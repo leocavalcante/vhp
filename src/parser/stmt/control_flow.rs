@@ -58,7 +58,10 @@ impl<'a> StmtParser<'a> {
 
         // Handle endif for alternative syntax (but not for nested else-if)
         if using_alt_syntax && !is_nested_else_if {
-            self.consume(TokenKind::Endif, "Expected 'endif' to close alternative if syntax")?;
+            self.consume(
+                TokenKind::Endif,
+                "Expected 'endif' to close alternative if syntax",
+            )?;
             self.consume(TokenKind::Semicolon, "Expected ';' after 'endif'")?;
         }
 
@@ -81,7 +84,10 @@ impl<'a> StmtParser<'a> {
         let body = self.parse_block()?;
 
         if using_alt_syntax {
-            self.consume(TokenKind::Endwhile, "Expected 'endwhile' to close alternative while syntax")?;
+            self.consume(
+                TokenKind::Endwhile,
+                "Expected 'endwhile' to close alternative while syntax",
+            )?;
             self.consume(TokenKind::Semicolon, "Expected ';' after 'endwhile'")?;
         }
 
@@ -134,7 +140,10 @@ impl<'a> StmtParser<'a> {
         let body = self.parse_block()?;
 
         if using_alt_syntax {
-            self.consume(TokenKind::Endfor, "Expected 'endfor' to close alternative for syntax")?;
+            self.consume(
+                TokenKind::Endfor,
+                "Expected 'endfor' to close alternative for syntax",
+            )?;
             self.consume(TokenKind::Semicolon, "Expected ';' after 'endfor'")?;
         }
 
@@ -190,7 +199,10 @@ impl<'a> StmtParser<'a> {
         let body = self.parse_block()?;
 
         if using_alt_syntax {
-            self.consume(TokenKind::Endforeach, "Expected 'endforeach' to close alternative foreach syntax")?;
+            self.consume(
+                TokenKind::Endforeach,
+                "Expected 'endforeach' to close alternative foreach syntax",
+            )?;
             self.consume(TokenKind::Semicolon, "Expected ';' after 'endforeach'")?;
         }
 
@@ -274,7 +286,10 @@ impl<'a> StmtParser<'a> {
         }
 
         if using_alt_syntax {
-            self.consume(TokenKind::Endswitch, "Expected 'endswitch' to close alternative switch syntax")?;
+            self.consume(
+                TokenKind::Endswitch,
+                "Expected 'endswitch' to close alternative switch syntax",
+            )?;
             self.consume(TokenKind::Semicolon, "Expected ';' after 'endswitch'")?;
         } else {
             self.consume(TokenKind::RightBrace, "Expected '}' after switch")?;

@@ -77,11 +77,11 @@ pub(crate) fn eval_new_anonymous_class<W: Write>(
     // Generate unique class name
     interpreter.anonymous_class_counter += 1;
     let class_name = format!("class@anonymous${}", interpreter.anonymous_class_counter);
-    
+
     // Create class definition
     let mut class_methods = std::collections::HashMap::new();
     let mut method_visibility = std::collections::HashMap::new();
-    
+
     for method in methods {
         let user_func = crate::interpreter::UserFunction {
             params: method.params.clone(),
@@ -94,7 +94,7 @@ pub(crate) fn eval_new_anonymous_class<W: Write>(
         class_methods.insert(method.name.to_lowercase(), user_func);
         method_visibility.insert(method.name.to_lowercase(), method.visibility);
     }
-    
+
     let class_def = crate::interpreter::ClassDefinition {
         name: class_name.clone(),
         is_abstract: false,
@@ -106,10 +106,12 @@ pub(crate) fn eval_new_anonymous_class<W: Write>(
         method_visibility,
         attributes: vec![],
     };
-    
+
     // Register class
-    interpreter.classes.insert(class_name.to_lowercase(), class_def);
-    
+    interpreter
+        .classes
+        .insert(class_name.to_lowercase(), class_def);
+
     // TODO: Handle traits and validate interface implementation
     // For now, just log warnings if they're used
     if !traits.is_empty() {
@@ -118,7 +120,7 @@ pub(crate) fn eval_new_anonymous_class<W: Write>(
     if !interfaces.is_empty() {
         eprintln!("Warning: Interface validation in anonymous classes not yet fully supported");
     }
-    
+
     // Now instantiate the class with constructor arguments
     interpreter.eval_new(&class_name, constructor_args)
 }

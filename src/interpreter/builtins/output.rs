@@ -70,13 +70,8 @@ fn var_dump_value<W: Write>(output: &mut W, value: &Value, indent: usize) -> Res
             writeln!(output, "{}}}", prefix).map_err(|e| e.to_string())?;
         }
         Value::Fiber(fiber) => {
-            writeln!(
-                output,
-                "{}object(Fiber#{:06}) {{",
-                prefix,
-                fiber.id
-            )
-            .map_err(|e| e.to_string())?;
+            writeln!(output, "{}object(Fiber#{:06}) {{", prefix, fiber.id)
+                .map_err(|e| e.to_string())?;
             writeln!(output, "{}  state: {:?}", prefix, fiber.state).map_err(|e| e.to_string())?;
             writeln!(output, "{}}}", prefix).map_err(|e| e.to_string())?;
         }
@@ -99,19 +94,23 @@ fn var_dump_value<W: Write>(output: &mut W, value: &Value, indent: usize) -> Res
             }
         }
         Value::Exception(exc) => {
+            writeln!(output, "{}object({})#1 (2) {{", prefix, exc.class_name)
+                .map_err(|e| e.to_string())?;
             writeln!(
                 output,
-                "{}object({})#1 (2) {{",
+                "{}  [\"message\"]=>\n{}  string({}) \"{}\"",
                 prefix,
-                exc.class_name
+                prefix,
+                exc.message.len(),
+                exc.message
             )
             .map_err(|e| e.to_string())?;
-            writeln!(output, "{}  [\"message\"]=>\n{}  string({}) \"{}\"",
-                prefix, prefix, exc.message.len(), exc.message)
-                .map_err(|e| e.to_string())?;
-            writeln!(output, "{}  [\"code\"]=>\n{}  int({})",
-                prefix, prefix, exc.code)
-                .map_err(|e| e.to_string())?;
+            writeln!(
+                output,
+                "{}  [\"code\"]=>\n{}  int({})",
+                prefix, prefix, exc.code
+            )
+            .map_err(|e| e.to_string())?;
             writeln!(output, "{}}}", prefix).map_err(|e| e.to_string())?;
         }
     }
