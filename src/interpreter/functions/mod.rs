@@ -102,6 +102,20 @@ impl<W: Write> Interpreter<W> {
                     param.name
                 ));
             };
+
+            // Validate type hint if present
+            if let Some(ref type_hint) = param.type_hint {
+                if !value.matches_type(type_hint) {
+                    return Err(format!(
+                        "Argument {} for parameter ${} must be of type {}, {} given",
+                        arg_idx + 1,
+                        param.name,
+                        Self::format_type_hint(type_hint),
+                        value.type_name()
+                    ));
+                }
+            }
+
             self.variables.insert(param.name.clone(), value);
         }
 
@@ -122,6 +136,11 @@ impl<W: Write> Interpreter<W> {
                 }
                 _ => {} // Continue for ControlFlow::None
             }
+        }
+
+        // Validate return type if present
+        if let Some(ref return_type) = func.return_type {
+            self.validate_return_value(return_type, &return_value)?;
         }
 
         // Restore variables and class context
@@ -200,6 +219,18 @@ impl<W: Write> Interpreter<W> {
                 ));
             };
 
+            // Validate type hint if present
+            if let Some(ref type_hint) = param.type_hint {
+                if !value.matches_type(type_hint) {
+                    return Err(format!(
+                        "Argument for parameter ${} must be of type {}, {} given",
+                        param.name,
+                        Self::format_type_hint(type_hint),
+                        value.type_name()
+                    ));
+                }
+            }
+
             self.variables.insert(param.name.clone(), value);
         }
 
@@ -227,6 +258,11 @@ impl<W: Write> Interpreter<W> {
                 }
                 _ => {} // Continue for ControlFlow::None
             }
+        }
+
+        // Validate return type if present
+        if let Some(ref return_type) = func.return_type {
+            self.validate_return_value(return_type, &return_value)?;
         }
 
         // Restore variables and class context
@@ -335,5 +371,62 @@ impl<W: Write> Interpreter<W> {
         self.variables = saved_vars;
 
         Ok(result)
+    }
+
+    /// Format a type hint for error messages
+    fn format_type_hint(hint: &crate::ast::TypeHint) -> String {
+        use crate::ast::TypeHint;
+        match hint {
+            TypeHint::Simple(s) => s.clone(),
+            TypeHint::Nullable(inner) => format!("?{}", Self::format_type_hint(inner)),
+            TypeHint::Union(types) => types
+                .iter()
+                .map(|t| Self::format_type_hint(t))
+                .collect::<Vec<_>>()
+                .join("|"),
+            TypeHint::Intersection(types) => types
+                .iter()
+                .map(|t| Self::format_type_hint(t))
+                .collect::<Vec<_>>()
+                .join("&"),
+            TypeHint::Class(name) => name.clone(),
+            TypeHint::Void => "void".to_string(),
+            TypeHint::Never => "never".to_string(),
+            TypeHint::Static => "static".to_string(),
+            TypeHint::SelfType => "self".to_string(),
+            TypeHint::ParentType => "parent".to_string(),
+        }
+    }
+
+    /// Validate return value against type hint
+    fn validate_return_value(
+        &self,
+        return_type: &crate::ast::TypeHint,
+        value: &Value,
+    ) -> Result<(), String> {
+        use crate::ast::TypeHint;
+        match return_type {
+            TypeHint::Void => {
+                if !matches!(value, Value::Null) {
+                    return Err(format!(
+                        "Return value must be of type void, {} returned",
+                        value.type_name()
+                    ));
+                }
+            }
+            TypeHint::Never => {
+                return Err("never-returning function must not return".to_string());
+            }
+            _ => {
+                if !value.matches_type(return_type) {
+                    return Err(format!(
+                        "Return value must be of type {}, {} returned",
+                        Self::format_type_hint(return_type),
+                        value.type_name()
+                    ));
+                }
+            }
+        }
+        Ok(())
     }
 }

@@ -359,6 +359,20 @@ impl<W: Write> Interpreter<W> {
             } else {
                 Value::Null
             };
+
+            // Validate type hint if present
+            if let Some(ref type_hint) = param.type_hint {
+                if !value.matches_type(type_hint) {
+                    return Err(format!(
+                        "Argument {} for parameter ${} must be of type {}, {} given",
+                        i + 1,
+                        param.name,
+                        Self::format_type_hint_for_method(type_hint),
+                        value.type_name()
+                    ));
+                }
+            }
+
             self.variables.insert(param.name.clone(), value);
         }
 
@@ -378,6 +392,11 @@ impl<W: Write> Interpreter<W> {
                 }
                 crate::interpreter::ControlFlow::None => {}
             }
+        }
+
+        // Validate return type if present
+        if let Some(ref return_type) = method.return_type {
+            self.validate_return_value_for_method(return_type, &return_value)?;
         }
 
         // Copy back any property changes from $this
@@ -452,6 +471,18 @@ impl<W: Write> Interpreter<W> {
                 positional_arg_idx += 1;
             }
 
+            // Validate type hint if present
+            if let Some(ref type_hint) = param.type_hint {
+                if !value.matches_type(type_hint) {
+                    return Err(format!(
+                        "Argument for parameter ${} must be of type {}, {} given",
+                        param.name,
+                        Self::format_type_hint_for_method(type_hint),
+                        value.type_name()
+                    ));
+                }
+            }
+
             self.variables.insert(param.name.clone(), value);
         }
 
@@ -480,6 +511,11 @@ impl<W: Write> Interpreter<W> {
                 }
                 crate::interpreter::ControlFlow::None => {}
             }
+        }
+
+        // Validate return type if present
+        if let Some(ref return_type) = method.return_type {
+            self.validate_return_value_for_method(return_type, &return_value)?;
         }
 
         // Copy back any property changes from $this
@@ -548,5 +584,62 @@ impl<W: Write> Interpreter<W> {
             }
             _ => Err(format!("Unknown Fiber method: {}", method))
         }
+    }
+
+    /// Format a type hint for error messages (method version)
+    fn format_type_hint_for_method(hint: &crate::ast::TypeHint) -> String {
+        use crate::ast::TypeHint;
+        match hint {
+            TypeHint::Simple(s) => s.clone(),
+            TypeHint::Nullable(inner) => format!("?{}", Self::format_type_hint_for_method(inner)),
+            TypeHint::Union(types) => types
+                .iter()
+                .map(|t| Self::format_type_hint_for_method(t))
+                .collect::<Vec<_>>()
+                .join("|"),
+            TypeHint::Intersection(types) => types
+                .iter()
+                .map(|t| Self::format_type_hint_for_method(t))
+                .collect::<Vec<_>>()
+                .join("&"),
+            TypeHint::Class(name) => name.clone(),
+            TypeHint::Void => "void".to_string(),
+            TypeHint::Never => "never".to_string(),
+            TypeHint::Static => "static".to_string(),
+            TypeHint::SelfType => "self".to_string(),
+            TypeHint::ParentType => "parent".to_string(),
+        }
+    }
+
+    /// Validate return value against type hint (method version)
+    fn validate_return_value_for_method(
+        &self,
+        return_type: &crate::ast::TypeHint,
+        value: &Value,
+    ) -> Result<(), String> {
+        use crate::ast::TypeHint;
+        match return_type {
+            TypeHint::Void => {
+                if !matches!(value, Value::Null) {
+                    return Err(format!(
+                        "Return value must be of type void, {} returned",
+                        value.type_name()
+                    ));
+                }
+            }
+            TypeHint::Never => {
+                return Err("never-returning method must not return".to_string());
+            }
+            _ => {
+                if !value.matches_type(return_type) {
+                    return Err(format!(
+                        "Return value must be of type {}, {} returned",
+                        Self::format_type_hint_for_method(return_type),
+                        value.type_name()
+                    ));
+                }
+            }
+        }
+        Ok(())
     }
 }
