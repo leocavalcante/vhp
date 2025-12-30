@@ -62,11 +62,11 @@ src/
         ├── output.rs    # Output functions (4)
         └── reflection.rs # Reflection functions (8)
 
-tests/                   # Test suite organized by feature (423 tests)
+tests/                   # Test suite organized by feature (433 tests)
 ├── arrays/              # Array tests (18)
 ├── attributes/          # Attribute syntax and reflection tests (29)
 ├── builtins/            # Built-in function tests (26)
-├── classes/             # Class and object tests (76 including anonymous classes and property hooks)
+├── classes/             # Class and object tests (86 including anonymous classes, property hooks, and magic methods)
 ├── comments/            # Comment syntax tests (4)
 ├── control_flow/        # Control flow tests (40 including alternative syntax)
 ├── echo/                # Echo statement tests (6)
@@ -216,6 +216,15 @@ Source Code → Lexer → Tokens → Parser → AST → Interpreter → Output
 - [x] Abstract classes and methods
 - [x] Final classes and methods
 - [x] Anonymous classes (PHP 7.0)
+
+### Magic Methods
+- [x] `__construct` - Constructor (already implemented)
+- [x] `__toString` - String conversion of objects
+- [x] `__invoke` - Callable objects
+- [x] `__get`/`__set` - Property overloading for undefined properties
+- [x] `__isset`/`__unset` - Property checking for isset() and unset()
+- [x] `__call`/`__callStatic` - Method overloading for undefined methods
+- [x] `__clone` - Object cloning (already implemented)
 
 ### Match Expressions (PHP 8.0)
 - [x] Basic match syntax: `match($expr) { value => result }`
@@ -750,9 +759,13 @@ Essential PHP features for compatibility with standard PHP code.
 - [ ] final constants (PHP 8.1)
 
 **Magic Methods:**
-- [ ] __toString(), __invoke(), __get()/__set()
-- [ ] __isset()/__unset(), __call()/__callStatic()
-- [ ] __clone(), __debugInfo()
+- [x] __toString() - String conversion of objects
+- [x] __invoke() - Callable objects
+- [x] __get()/__set() - Property overloading for undefined properties
+- [x] __isset()/__unset() - Property checking for isset() and unset()
+- [x] __call()/__callStatic() - Method overloading for undefined methods
+- [x] __clone() - Already implemented (PHP 5.0)
+- [ ] __debugInfo() - var_dump() output customization
 - [ ] __serialize()/__unserialize() (PHP 7.4)
 
 **Additional OOP:**

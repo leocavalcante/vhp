@@ -1,0 +1,14 @@
+--TEST--
+__call magic method
+--FILE--
+<?php
+class Wrapper {
+    public function __call($method, $args) {
+        return "Called " . $method . " with " . count($args) . " args";
+    }
+}
+
+$w = new Wrapper();
+echo $w->unknownMethod(1, 2, 3);
+--EXPECT--
+Called unknownMethod with 3 args

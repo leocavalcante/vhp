@@ -1,0 +1,14 @@
+--TEST--
+__toString used in concatenation
+--FILE--
+<?php
+class Version {
+    public function __toString(): string {
+        return "1.0.0";
+    }
+}
+
+$v = new Version();
+echo "Version: " . $v;
+--EXPECT--
+Version: 1.0.0

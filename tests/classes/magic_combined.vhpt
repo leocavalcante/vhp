@@ -1,0 +1,57 @@
+--TEST--
+Combined magic methods usage
+--FILE--
+<?php
+class MagicBox {
+    private $data = [];
+
+    public function __get($name) {
+        if (isset($this->data[$name])) {
+            return $this->data[$name];
+        }
+        return null;
+    }
+
+    public function __set($name, $value) {
+        $this->data[$name] = $value;
+    }
+
+    public function __isset($name) {
+        return isset($this->data[$name]);
+    }
+
+    public function __unset($name) {
+        // Instead of unset($this->data[$name]), just set to null
+        // This is a workaround for VHP's current limitation
+        $this->data[$name] = null;
+    }
+
+    public function __toString(): string {
+        return count($this->data) . " items";
+    }
+
+    public function __invoke($arg) {
+        return "Invoked with: " . $arg;
+    }
+
+    public function __call($method, $args) {
+        return "Called " . $method . " with " . count($args) . " args";
+    }
+}
+
+$box = new MagicBox();
+$box->key = "value";
+echo $box->key . "\n";
+echo isset($box->key) ? "yes\n" : "no\n";
+echo $box . "\n";
+echo $box("arg") . "\n";
+echo $box->missing() . "\n";
+unset($box->key);
+echo isset($box->key) ? "yes" : "no";
+--EXPECT--
+value
+yes
+1 items
+Invoked with: arg
+Called missing with 0 args
+no

@@ -516,41 +516,53 @@ impl<W: Write> Interpreter<W> {
         for arg in args {
             match arg.value.as_ref() {
                 crate::ast::Expr::PropertyAccess { object, property } => {
-                    // For property unset, need to handle Variable specially
-                    if let crate::ast::Expr::Variable(var_name) = object.as_ref() {
-                        if let Some(Value::Object(mut instance)) =
-                            self.variables.get(var_name).cloned()
-                        {
-                            // Check if property exists
-                            if instance.properties.contains_key(property) {
-                                instance.properties.remove(property);
+                    // Evaluate the object expression
+                    let obj_val = self.eval_expr(object)?;
+
+                    if let Value::Object(mut instance) = obj_val {
+                        // Check if property exists
+                        if instance.properties.contains_key(property) {
+                            instance.properties.remove(property);
+
+                            // Update the variable if object came from a variable
+                            if let crate::ast::Expr::Variable(var_name) = object.as_ref() {
                                 self.variables
                                     .insert(var_name.clone(), Value::Object(instance));
-                            } else {
-                                // Property doesn't exist, check for __unset
-                                let class = self
-                                    .classes
-                                    .get(&instance.class_name.to_lowercase())
-                                    .cloned();
-                                if let Some(class) = class {
-                                    if let Some(method) = class.get_magic_method("__unset") {
-                                        let class_name = instance.class_name.clone();
-                                        self.call_method_on_object(
-                                            &mut instance,
-                                            method,
-                                            &[Value::String(property.to_string())],
-                                            class_name,
-                                        )?;
+                            }
+                        } else {
+                            // Property doesn't exist, check for __unset
+                            let class = self
+                                .classes
+                                .get(&instance.class_name.to_lowercase())
+                                .cloned();
+                            if let Some(class) = class {
+                                if let Some(method) = class.get_magic_method("__unset") {
+                                    let class_name = instance.class_name.clone();
+                                    self.call_method_on_object(
+                                        &mut instance,
+                                        method,
+                                        &[Value::String(property.to_string())],
+                                        class_name,
+                                    )?;
+
+                                    // Update the variable if object came from a variable
+                                    if let crate::ast::Expr::Variable(var_name) = object.as_ref() {
                                         self.variables
                                             .insert(var_name.clone(), Value::Object(instance));
                                     }
                                 }
                             }
                         }
+                    } else {
+                        return Err(format!("Cannot unset property on non-object"));
                     }
                 }
                 crate::ast::Expr::Variable(name) => {
                     self.variables.remove(name);
+                }
+                crate::ast::Expr::ArrayAccess { .. } => {
+                    // Array element unset is handled elsewhere
+                    return Err("Array element unset not yet supported".to_string());
                 }
                 _ => {
                     return Err("unset() can only be called on variables or properties".to_string());

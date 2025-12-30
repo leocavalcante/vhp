@@ -1,0 +1,22 @@
+--TEST--
+__toString magic method
+--FILE--
+<?php
+class Name {
+    private $first;
+    private $last;
+
+    public function __construct($first, $last) {
+        $this->first = $first;
+        $this->last = $last;
+    }
+
+    public function __toString(): string {
+        return $this->first . " " . $this->last;
+    }
+}
+
+$name = new Name("John", "Doe");
+echo $name;
+--EXPECT--
+John Doe

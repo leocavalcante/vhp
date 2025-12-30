@@ -1,0 +1,20 @@
+--TEST--
+__invoke magic method
+--FILE--
+<?php
+class Multiplier {
+    private $factor;
+
+    public function __construct($factor) {
+        $this->factor = $factor;
+    }
+
+    public function __invoke($n) {
+        return $this->factor * $n;
+    }
+}
+
+$times3 = new Multiplier(3);
+echo $times3(5);
+--EXPECT--
+15

@@ -1,0 +1,13 @@
+--TEST--
+__toString must return string
+--FILE--
+<?php
+class Bad {
+    public function __toString(): string {
+        return 42;
+    }
+}
+
+echo new Bad();
+--EXPECT_ERROR--
+Return value must be of type string

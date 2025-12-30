@@ -1,0 +1,8 @@
+--TEST--
+Object without __toString cannot be converted to string
+--FILE--
+<?php
+class NoString {}
+echo new NoString();
+--EXPECT_ERROR--
+could not be converted to string

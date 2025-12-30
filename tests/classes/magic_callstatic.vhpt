@@ -1,0 +1,13 @@
+--TEST--
+__callStatic magic method
+--FILE--
+<?php
+class Factory {
+    public static function __callStatic($method, $args) {
+        return "Static: " . $method;
+    }
+}
+
+echo Factory::anything();
+--EXPECT--
+Static: anything

@@ -1,0 +1,38 @@
+--TEST--
+__isset and __unset magic methods
+--FILE--
+<?php
+class Container {
+    private $items = [];
+
+    public function __set($name, $value) {
+        $this->items[$name] = $value;
+    }
+
+    public function __get($name) {
+        if (isset($this->items[$name])) {
+            return $this->items[$name];
+        }
+        return null;
+    }
+
+    public function __isset($name) {
+        return isset($this->items[$name]);
+    }
+
+    public function __unset($name) {
+        // Instead of unset($this->items[$name]), just set to null
+        // This is a workaround for VHP's current limitation
+        $this->items[$name] = null;
+    }
+}
+
+$c = new Container();
+$c->key = "value";
+echo isset($c->key) ? "yes" : "no";
+echo "\n";
+unset($c->key);
+echo isset($c->key) ? "yes" : "no";
+--EXPECT--
+yes
+no

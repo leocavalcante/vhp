@@ -1,0 +1,23 @@
+--TEST--
+__get and __set magic methods
+--FILE--
+<?php
+class MagicProps {
+    private $data = [];
+
+    public function __get($name) {
+        return $this->data[$name] ?? "undefined";
+    }
+
+    public function __set($name, $value) {
+        $this->data[$name] = $value;
+    }
+}
+
+$obj = new MagicProps();
+$obj->foo = "bar";
+echo $obj->foo . "\n";
+echo $obj->missing;
+--EXPECT--
+bar
+undefined
