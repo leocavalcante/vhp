@@ -14,7 +14,7 @@ mod stmt_exec;
 
 pub use value::{ExceptionValue, ObjectInstance, Value};
 
-use crate::ast::{FunctionParam, Expr};
+use crate::ast::{Expr, FunctionParam};
 use std::collections::HashMap;
 use std::io::{self, Write};
 
@@ -114,7 +114,7 @@ pub struct ClassDefinition {
     pub name: String,
     pub is_abstract: bool, // abstract class modifier
     pub is_final: bool,    // final class modifier
-    pub readonly: bool, // PHP 8.2+: if true, all properties are implicitly readonly
+    pub readonly: bool,    // PHP 8.2+: if true, all properties are implicitly readonly
     #[allow(dead_code)] // Will be used for inheritance support
     pub parent: Option<String>,
     pub properties: Vec<crate::ast::Property>,
@@ -209,7 +209,7 @@ pub struct Interpreter<W: Write> {
     fiber_counter: usize,                         // For generating unique IDs
 
     // Anonymous class support
-    anonymous_class_counter: usize,               // For generating unique class names
+    anonymous_class_counter: usize, // For generating unique class names
 }
 
 impl<W: Write> Interpreter<W> {
@@ -352,11 +352,12 @@ impl<W: Write> Interpreter<W> {
             attributes: vec![],
         };
 
-        self.classes.insert("exception".to_string(), exception_class);
+        self.classes
+            .insert("exception".to_string(), exception_class);
     }
 
     // Fiber management methods
-    
+
     /// Create a new Fiber instance
     fn eval_new_fiber(&mut self, callback_expr: &Expr) -> Result<Value, String> {
         // Evaluate callback expression to get function
@@ -368,23 +369,25 @@ impl<W: Write> Interpreter<W> {
                 } else {
                     name
                 };
-                self.functions.get(func_name)
+                self.functions
+                    .get(func_name)
                     .cloned()
                     .ok_or_else(|| format!("Function '{}' not found", func_name))?
             }
             Expr::String(name) => {
                 // Direct function name as string literal
-                self.functions.get(name)
+                self.functions
+                    .get(name)
                     .cloned()
                     .ok_or_else(|| format!("Function '{}' not found", name))?
             }
             _ => return Err("Fiber callback must be a function name".to_string()),
         };
-        
+
         // Generate unique fiber ID
         self.fiber_counter += 1;
         let fiber_id = self.fiber_counter;
-        
+
         // Create fiber instance
         let fiber = value::FiberInstance {
             id: fiber_id,
@@ -396,31 +399,33 @@ impl<W: Write> Interpreter<W> {
             return_value: None,
             error: None,
         };
-        
+
         // Store fiber
         self.fibers.insert(fiber_id, fiber.clone());
-        
+
         Ok(Value::Fiber(Box::new(fiber)))
     }
 
     /// Suspend current fiber with optional value
     fn eval_fiber_suspend(&mut self, value_expr: Option<&Expr>) -> Result<Value, String> {
         // Get current fiber ID
-        let fiber_id = self.current_fiber.ok_or("Fiber::suspend() called outside of fiber")?;
-        
+        let fiber_id = self
+            .current_fiber
+            .ok_or("Fiber::suspend() called outside of fiber")?;
+
         // Evaluate suspend value
         let suspend_value = if let Some(expr) = value_expr {
             self.eval_expr(expr)?
         } else {
             Value::Null
         };
-        
+
         // Update fiber state
         if let Some(fiber) = self.fibers.get_mut(&fiber_id) {
             fiber.state = value::FiberState::Suspended;
             fiber.suspended_value = Some(Box::new(suspend_value.clone()));
         }
-        
+
         // Return the suspend value (this is what start()/resume() will return)
         Ok(suspend_value)
     }
@@ -442,88 +447,99 @@ impl<W: Write> Interpreter<W> {
     /// Start fiber execution
     pub fn fiber_start(&mut self, fiber_id: usize, args: Vec<Value>) -> Result<Value, String> {
         // Get fiber and validate state
-        let fiber = self.fibers.get(&fiber_id)
-            .ok_or("Invalid fiber ID")?;
-        
+        let fiber = self.fibers.get(&fiber_id).ok_or("Invalid fiber ID")?;
+
         if fiber.state != value::FiberState::NotStarted {
             return Err("Fiber has already been started".to_string());
         }
-        
+
         // Set current fiber context
         let previous_fiber = self.current_fiber;
         self.current_fiber = Some(fiber_id);
-        
+
         // Execute fiber function
         let result = self.execute_fiber_function(fiber_id, args);
-        
+
         // Restore previous fiber context
         self.current_fiber = previous_fiber;
-        
+
         result
     }
 
     /// Resume fiber execution
     pub fn fiber_resume(&mut self, fiber_id: usize, value: Value) -> Result<Value, String> {
         // Get fiber and validate state
-        let fiber = self.fibers.get(&fiber_id)
-            .ok_or("Invalid fiber ID")?;
-        
+        let fiber = self.fibers.get(&fiber_id).ok_or("Invalid fiber ID")?;
+
         if fiber.state != value::FiberState::Suspended {
             return Err("Fiber is not suspended".to_string());
         }
-        
+
         // Set current fiber context
         let previous_fiber = self.current_fiber;
         self.current_fiber = Some(fiber_id);
-        
+
         // Resume from suspension point with provided value
         let result = self.resume_fiber_from_suspension(fiber_id, value);
-        
+
         // Restore previous fiber context
         self.current_fiber = previous_fiber;
-        
+
         result
     }
 
     /// Execute fiber function from beginning
-    fn execute_fiber_function(&mut self, fiber_id: usize, args: Vec<Value>) -> Result<Value, String> {
+    fn execute_fiber_function(
+        &mut self,
+        fiber_id: usize,
+        args: Vec<Value>,
+    ) -> Result<Value, String> {
         let callback = {
             let fiber = self.fibers.get(&fiber_id).unwrap();
             fiber.callback.as_ref().unwrap().clone()
         };
-        
+
         // Update fiber state to running
         if let Some(fiber) = self.fibers.get_mut(&fiber_id) {
             fiber.state = value::FiberState::Running;
         }
-        
+
         // Execute function body with fiber context
         self.execute_function_in_fiber(fiber_id, &callback, args)
     }
 
     /// Resume fiber from suspension
-    fn resume_fiber_from_suspension(&mut self, fiber_id: usize, resume_value: Value) -> Result<Value, String> {
+    fn resume_fiber_from_suspension(
+        &mut self,
+        fiber_id: usize,
+        resume_value: Value,
+    ) -> Result<Value, String> {
         // Update fiber state to running
         if let Some(fiber) = self.fibers.get_mut(&fiber_id) {
             fiber.state = value::FiberState::Running;
         }
-        
+
         // Continue execution where it left off
         // This is simplified - in a real implementation, we'd need to save/restore call stack
         self.continue_fiber_execution(fiber_id, resume_value)
     }
-    
+
     /// Execute function within fiber context
-    fn execute_function_in_fiber(&mut self, fiber_id: usize, function: &UserFunction, args: Vec<Value>) -> Result<Value, String> {
+    fn execute_function_in_fiber(
+        &mut self,
+        fiber_id: usize,
+        function: &UserFunction,
+        args: Vec<Value>,
+    ) -> Result<Value, String> {
         // Save current variables
         let saved_vars = self.variables.clone();
-        
+
         // Set up function parameters
         for (i, param) in function.params.iter().enumerate() {
             let value = args.get(i).cloned().unwrap_or(Value::Null);
             self.variables.insert(param.name.clone(), value);
         }
-        
+
         // Execute function body
         let mut return_value = Value::Null;
         for stmt in &function.body {
@@ -541,21 +557,25 @@ impl<W: Write> Interpreter<W> {
                 ControlFlow::None => {}
             }
         }
-        
+
         // Mark fiber as terminated
         if let Some(fiber) = self.fibers.get_mut(&fiber_id) {
             fiber.state = value::FiberState::Terminated;
             fiber.return_value = Some(Box::new(return_value.clone()));
         }
-        
+
         // Restore variables
         self.variables = saved_vars;
-        
+
         Ok(return_value)
     }
 
     /// Continue fiber execution after suspension
-    fn continue_fiber_execution(&mut self, _fiber_id: usize, resume_value: Value) -> Result<Value, String> {
+    fn continue_fiber_execution(
+        &mut self,
+        _fiber_id: usize,
+        resume_value: Value,
+    ) -> Result<Value, String> {
         // Simplified implementation - return the resume value
         // In a full implementation, we'd restore the exact execution context
         Ok(resume_value)
@@ -579,12 +599,13 @@ impl<W: Write> Interpreter<W> {
             Value::Array(_) => Err("Array to string conversion".to_string()),
             Value::Object(obj) => {
                 // Check for __toString magic method
-                let class = self.classes.get(&obj.class_name).cloned();
+                let class = self.classes.get(&obj.class_name.to_lowercase()).cloned();
                 if let Some(class) = class {
                     if let Some(method) = class.get_magic_method("__toString") {
                         let class_name = obj.class_name.clone();
                         let mut obj_mut = obj.clone();
-                        let result = self.call_method_on_object(&mut obj_mut, method, &[], class_name)?;
+                        let result =
+                            self.call_method_on_object(&mut obj_mut, method, &[], class_name)?;
                         if let Value::String(s) = result {
                             Ok(s)
                         } else {
@@ -604,8 +625,12 @@ impl<W: Write> Interpreter<W> {
                 }
             }
             Value::Fiber(fiber) => Ok(format!("Object(Fiber#{:06})", fiber.id)),
-            Value::Closure(_) => Err("Object of class Closure could not be converted to string".to_string()),
-            Value::EnumCase { enum_name, case_name, .. } => Ok(format!("{}::{}", enum_name, case_name)),
+            Value::Closure(_) => Ok("Object(Closure)".to_string()),
+            Value::EnumCase {
+                enum_name,
+                case_name,
+                ..
+            } => Ok(format!("{}::{}", enum_name, case_name)),
             Value::Exception(exc) => Ok(format!("Object({})", exc.class_name)),
         }
     }
