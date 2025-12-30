@@ -55,6 +55,7 @@ pub enum TokenKind {
     With,       // with (PHP 8.4) - for clone with syntax
     Abstract,   // abstract (for abstract classes and methods)
     Final,      // final (for final classes, methods, and constants)
+    Static,     // static (for static methods and properties)
 
     // Namespace Keywords
     Namespace,  // namespace

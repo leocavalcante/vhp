@@ -145,7 +145,20 @@ pub enum Expr {
         method: String,
         args: Vec<Argument>,
     },
-    
+
+    // Static property access: ClassName::$property or static::$property
+    StaticPropertyAccess {
+        class: String, // Can be "self", "parent", or "static" for LSB
+        property: String,
+    },
+
+    // Static property assignment: ClassName::$property = value
+    StaticPropertyAssign {
+        class: String,
+        property: String,
+        value: Box<Expr>,
+    },
+
     // Fiber static calls - Special cases for suspend/getCurrent
     FiberSuspend {
         value: Option<Box<Expr>>, // Optional value to suspend with

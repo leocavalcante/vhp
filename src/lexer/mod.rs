@@ -202,6 +202,7 @@ impl Lexer {
             "with" => TokenKind::With,
             "abstract" => TokenKind::Abstract,
             "final" => TokenKind::Final,
+            "static" => TokenKind::Static,
             "namespace" => TokenKind::Namespace,
             "const" => TokenKind::Const,
             "try" => TokenKind::Try,

@@ -126,6 +126,7 @@ pub struct Property {
     pub visibility: Visibility,
     pub default: Option<Expr>,
     pub readonly: bool,             // PHP 8.1+
+    pub is_static: bool,            // PHP 5.0+
     pub attributes: Vec<Attribute>, // PHP 8.0+
 }
 
