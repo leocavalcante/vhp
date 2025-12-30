@@ -108,6 +108,18 @@ impl<W: Write> Interpreter<W> {
                 method,
                 args,
             } => object_ops::eval_static_method_call(self, class_name, method, args),
+            Expr::StaticPropertyAccess { class, property } => {
+                self.get_static_property(class, property)
+            }
+            Expr::StaticPropertyAssign {
+                class,
+                property,
+                value,
+            } => {
+                let val = self.eval_expr(value)?;
+                self.set_static_property(class, property, val.clone())?;
+                Ok(val)
+            }
             Expr::This => {
                 if let Some(ref obj) = self.current_object {
                     Ok(Value::Object(obj.clone()))

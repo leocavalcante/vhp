@@ -229,4 +229,102 @@ impl<W: Write> Interpreter<W> {
             }
         }
     }
+
+    /// Get static property value (ClassName::$property, self::$property, parent::$property, static::$property)
+    pub(crate) fn get_static_property(
+        &mut self,
+        class: &str,
+        property: &str,
+    ) -> Result<Value, String> {
+        // Resolve class name (handle self, parent, static)
+        let resolved_class = self.resolve_static_class_name(class)?;
+
+        let class_key = resolved_class.to_lowercase();
+
+        // Get static properties for this class
+        let static_props = self
+            .static_properties
+            .get(&class_key)
+            .ok_or_else(|| format!("Class '{}' not found", resolved_class))?;
+
+        // Get the property value
+        static_props
+            .get(property)
+            .cloned()
+            .ok_or_else(|| {
+                format!(
+                    "Access to undeclared static property {}::${}",
+                    resolved_class, property
+                )
+            })
+    }
+
+    /// Set static property value
+    pub(crate) fn set_static_property(
+        &mut self,
+        class: &str,
+        property: &str,
+        value: Value,
+    ) -> Result<(), String> {
+        // Resolve class name (handle self, parent, static)
+        let resolved_class = self.resolve_static_class_name(class)?;
+
+        let class_key = resolved_class.to_lowercase();
+
+        // Get mutable reference to static properties
+        let static_props = self
+            .static_properties
+            .get_mut(&class_key)
+            .ok_or_else(|| format!("Class '{}' not found", resolved_class))?;
+
+        // Check if property exists (PHP doesn't allow creating new static props at runtime)
+        if !static_props.contains_key(property) {
+            return Err(format!(
+                "Access to undeclared static property {}::${}",
+                resolved_class, property
+            ));
+        }
+
+        // Set the value
+        static_props.insert(property.to_string(), value);
+        Ok(())
+    }
+
+    /// Resolve class name for static context
+    /// Handles "self", "parent", and "static" (late static binding)
+    fn resolve_static_class_name(&self, class: &str) -> Result<String, String> {
+        match class.to_lowercase().as_str() {
+            "self" => {
+                // Return the current class context
+                self.current_class
+                    .clone()
+                    .ok_or_else(|| "Cannot use 'self' outside of class context".to_string())
+            }
+            "parent" => {
+                // Return the parent class
+                let current = self.current_class
+                    .as_ref()
+                    .ok_or_else(|| "Cannot use 'parent' outside of class context".to_string())?;
+
+                let class_def = self.classes
+                    .get(&current.to_lowercase())
+                    .ok_or_else(|| format!("Current class '{}' not found", current))?;
+
+                class_def.parent
+                    .clone()
+                    .ok_or_else(|| "Cannot use 'parent' in class with no parent".to_string())
+            }
+            "static" => {
+                // Late static binding: return the called class, not the defined class
+                // This requires tracking the "called class" in the call stack
+                self.called_class
+                    .clone()
+                    .ok_or_else(|| "Cannot use 'static' outside of class context".to_string())
+            }
+            _ => {
+                // Regular class name
+                Ok(class.to_string())
+            }
+        }
+    }
 }

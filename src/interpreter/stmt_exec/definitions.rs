@@ -190,6 +190,7 @@ impl<W: Write> Interpreter<W> {
                             visibility,
                             default: param.default.clone(),
                             readonly: param.readonly,
+                            is_static: false, // Promoted properties cannot be static
                             attributes: param.attributes.clone(),
                         });
 
@@ -244,6 +245,10 @@ impl<W: Write> Interpreter<W> {
             }
         }
 
+        // Clone values that will be used after moving to ClassDefinition
+        let resolved_parent_clone = resolved_parent.clone();
+        let all_properties_clone = all_properties.clone();
+
         let class_def = ClassDefinition {
             name: name.to_string(),
             is_abstract,
@@ -267,7 +272,36 @@ impl<W: Write> Interpreter<W> {
             )
             .to_lowercase()
         };
-        self.classes.insert(fqn, class_def);
+        self.classes.insert(fqn.clone(), class_def);
+
+        // Initialize static properties for this class
+        let mut static_props = HashMap::new();
+
+        // First, copy parent's static properties if there's inheritance
+        if let Some(parent_name) = &resolved_parent_clone {
+            let parent_key = parent_name.to_lowercase();
+            if let Some(parent_statics) = self.static_properties.get(&parent_key) {
+                static_props.extend(parent_statics.clone());
+            }
+        }
+
+        // Then add/override with this class's static properties
+        for prop in &all_properties_clone {
+            if prop.is_static {
+                let value = if let Some(default_expr) = &prop.default {
+                    self.eval_expr(default_expr).map_err(std::io::Error::other)?
+                } else {
+                    Value::Null
+                };
+                static_props.insert(prop.name.clone(), value);
+            }
+        }
+
+        // Store static properties if any exist
+        if !static_props.is_empty() {
+            self.static_properties.insert(fqn, static_props);
+        }
+
         Ok(ControlFlow::None)
     }
 

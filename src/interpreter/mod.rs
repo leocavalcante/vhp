@@ -191,15 +191,22 @@ pub struct Interpreter<W: Write> {
     enums: HashMap<String, EnumDefinition>,
     current_object: Option<ObjectInstance>,
     current_class: Option<String>,
-    
+
+    // Static properties: class_name_lowercase -> property_name -> value
+    // Initialized when class is defined, shared across all instances
+    static_properties: HashMap<String, HashMap<String, Value>>,
+
+    // Called class context (for 'static' - late static binding)
+    called_class: Option<String>,
+
     // Namespace support
     namespace_context: NamespaceContext,
-    
+
     // Fiber support
     fibers: HashMap<usize, value::FiberInstance>, // All fibers by ID
     current_fiber: Option<usize>,                 // Currently executing fiber ID
     fiber_counter: usize,                         // For generating unique IDs
-    
+
     // Anonymous class support
     anonymous_class_counter: usize,               // For generating unique class names
 }
@@ -216,6 +223,8 @@ impl<W: Write> Interpreter<W> {
             enums: HashMap::new(),
             current_object: None,
             current_class: None,
+            static_properties: HashMap::new(),
+            called_class: None,
             namespace_context: NamespaceContext::new(),
             fibers: HashMap::new(),
             current_fiber: None,
@@ -323,6 +332,7 @@ impl<W: Write> Interpreter<W> {
                     visibility: Visibility::Protected,
                     default: Some(Expr::String(String::new())),
                     readonly: false,
+                    is_static: false,
                     attributes: vec![],
                 },
                 Property {
@@ -330,6 +340,7 @@ impl<W: Write> Interpreter<W> {
                     visibility: Visibility::Protected,
                     default: Some(Expr::Integer(0)),
                     readonly: false,
+                    is_static: false,
                     attributes: vec![],
                 },
             ],
