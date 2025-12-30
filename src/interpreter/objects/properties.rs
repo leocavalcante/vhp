@@ -445,19 +445,38 @@ impl<W: Write> Interpreter<W> {
 
         let class_key = resolved_class.to_lowercase();
 
-        // Get static properties for this class
-        let static_props = self
-            .static_properties
-            .get(&class_key)
-            .ok_or_else(|| format!("Class '{}' not found", resolved_class))?;
+        // Try to get from the resolved class first
+        if let Some(static_props) = self.static_properties.get(&class_key) {
+            if let Some(value) = static_props.get(property) {
+                return Ok(value.clone());
+            }
+        }
 
-        // Get the property value
-        static_props.get(property).cloned().ok_or_else(|| {
-            format!(
-                "Access to undeclared static property {}::${}",
-                resolved_class, property
-            )
-        })
+        // If not found and this is a base class (self or parent resolution),
+        // search up the inheritance hierarchy for the property
+        if let Some(class_def) = self.classes.get(&class_key).cloned() {
+            let mut current_parent = class_def.parent;
+            while let Some(parent_name) = current_parent {
+                let parent_key = parent_name.to_lowercase();
+                if let Some(parent_statics) = self.static_properties.get(&parent_key) {
+                    if let Some(value) = parent_statics.get(property) {
+                        return Ok(value.clone());
+                    }
+                }
+                // Move up the hierarchy
+                if let Some(parent_class) = self.classes.get(&parent_key) {
+                    current_parent = parent_class.parent.clone();
+                } else {
+                    break;
+                }
+            }
+        }
+
+        // Property not found anywhere in the hierarchy
+        Err(format!(
+            "Access to undeclared static property {}::${}",
+            resolved_class, property
+        ))
     }
 
     /// Set static property value
@@ -472,23 +491,55 @@ impl<W: Write> Interpreter<W> {
 
         let class_key = resolved_class.to_lowercase();
 
-        // Get mutable reference to static properties
-        let static_props = self
-            .static_properties
-            .get_mut(&class_key)
-            .ok_or_else(|| format!("Class '{}' not found", resolved_class))?;
-
-        // Check if property exists (PHP doesn't allow creating new static props at runtime)
-        if !static_props.contains_key(property) {
-            return Err(format!(
-                "Access to undeclared static property {}::${}",
-                resolved_class, property
-            ));
+        // Check if property is readonly in this class
+        if let Some(readonly_props) = self.static_readonly_properties.get(&class_key) {
+            if readonly_props.contains(property) {
+                return Err("Cannot modify readonly property".to_string());
+            }
         }
 
-        // Set the value
-        static_props.insert(property.to_string(), value);
-        Ok(())
+        // Try to set in the resolved class first
+        if let Some(static_props) = self.static_properties.get_mut(&class_key) {
+            if static_props.contains_key(property) {
+                static_props.insert(property.to_string(), value);
+                return Ok(());
+            }
+        }
+
+        // If not found in the resolved class, search up the inheritance hierarchy
+        if let Some(class_def) = self.classes.get(&class_key).cloned() {
+            let mut current_parent = class_def.parent;
+            while let Some(parent_name) = current_parent {
+                let parent_key = parent_name.to_lowercase();
+
+                // Check readonly in parent
+                if let Some(readonly_props) = self.static_readonly_properties.get(&parent_key) {
+                    if readonly_props.contains(property) {
+                        return Err("Cannot modify readonly property".to_string());
+                    }
+                }
+
+                // Try to set in parent
+                if let Some(parent_statics) = self.static_properties.get_mut(&parent_key) {
+                    if parent_statics.contains_key(property) {
+                        parent_statics.insert(property.to_string(), value);
+                        return Ok(());
+                    }
+                }
+                // Move up the hierarchy
+                if let Some(parent_class) = self.classes.get(&parent_key) {
+                    current_parent = parent_class.parent.clone();
+                } else {
+                    break;
+                }
+            }
+        }
+
+        // Property not found anywhere in the hierarchy
+        Err(format!(
+            "Access to undeclared static property {}::${}",
+            resolved_class, property
+        ))
     }
 
     /// Resolve class name for static context
