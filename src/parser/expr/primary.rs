@@ -594,6 +594,7 @@ impl<'a> ExprParser<'a> {
                 
                 params.push(crate::ast::FunctionParam {
                     name: param_name,
+                    type_hint: None,
                     default,
                     by_ref,
                     is_variadic,

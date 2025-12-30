@@ -33,38 +33,16 @@ impl<'a> StmtParser<'a> {
                 // Parse attributes for this parameter
                 let param_attributes = self.parse_attributes()?;
 
-                // Skip type hints (not supported yet)
-                if let TokenKind::Identifier(type_name) = &self.current().kind {
-                    let type_lower = type_name.to_lowercase();
-                    if matches!(
-                        type_lower.as_str(),
-                        "string"
-                            | "int"
-                            | "float"
-                            | "bool"
-                            | "array"
-                            | "object"
-                            | "mixed"
-                            | "callable"
-                            | "iterable"
-                            | "void"
-                            | "never"
-                            | "true"
-                            | "false"
-                            | "null"
-                            | "self"
-                            | "parent"
-                            | "static"
-                    ) {
-                        // Skip the type
-                        self.advance();
-                        // Handle array type brackets if present
-                        if self.check(&TokenKind::LeftBracket) {
-                            self.advance();
-                            self.consume(TokenKind::RightBracket, "Expected ']' after array type")?;
-                        }
-                    }
-                }
+                // Parse type hint if present
+                let type_hint = if let TokenKind::Identifier(_) = &self.current().kind {
+                    // Check if this looks like a type (not preceded by $)
+                    Some(self.parse_type_hint()?)
+                } else if self.check(&TokenKind::QuestionMark) {
+                    // Nullable type
+                    Some(self.parse_type_hint()?)
+                } else {
+                    None
+                };
 
                 let by_ref = if let TokenKind::Identifier(s) = &self.current().kind {
                     if s == "&" {
@@ -125,6 +103,7 @@ impl<'a> StmtParser<'a> {
 
                 params.push(FunctionParam {
                     name: param_name,
+                    type_hint,
                     default,
                     by_ref,
                     is_variadic,
@@ -141,6 +120,15 @@ impl<'a> StmtParser<'a> {
         }
 
         self.consume(TokenKind::RightParen, "Expected ')' after parameters")?;
+
+        // Parse return type hint if present (after : )
+        let return_type = if self.check(&TokenKind::Colon) {
+            self.advance();
+            Some(self.parse_type_hint()?)
+        } else {
+            None
+        };
+
         self.consume(TokenKind::LeftBrace, "Expected '{' before function body")?;
 
         let mut body = Vec::new();
@@ -155,6 +143,7 @@ impl<'a> StmtParser<'a> {
         Ok(Stmt::Function {
             name,
             params,
+            return_type,
             body,
             attributes: Vec::new(),
         })

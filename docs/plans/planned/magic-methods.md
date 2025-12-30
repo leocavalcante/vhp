@@ -97,6 +97,7 @@ Note: No token or AST changes needed - magic methods are regular methods with sp
 
 Add utility to check if a class has a magic method:
 
+{% raw %}
 ```rust
 impl Class {
     /// Find a magic method by name (case-insensitive)
@@ -109,11 +110,13 @@ impl Class {
     }
 }
 ```
+{% endraw %}
 
 ### Step 2: Implement __toString (`src/interpreter/expr_eval/mod.rs`)
 
 Called when object is used in string context:
 
+{% raw %}
 ```rust
 /// Convert value to string, calling __toString if available
 fn value_to_string(&mut self, value: &Value) -> Result<String, String> {
@@ -148,9 +151,11 @@ fn value_to_string(&mut self, value: &Value) -> Result<String, String> {
     }
 }
 ```
+{% endraw %}
 
 Use in echo, concatenation, and other string contexts:
 
+{% raw %}
 ```rust
 // In echo statement execution
 Stmt::Echo(exprs) => {
@@ -168,11 +173,13 @@ Operator::Concat => {
     Value::String(format!("{}{}", left_str, right_str))
 }
 ```
+{% endraw %}
 
 ### Step 3: Implement __invoke (`src/interpreter/expr_eval/mod.rs`)
 
 Called when object is used as a function:
 
+{% raw %}
 ```rust
 fn call_expression(&mut self, callee: &Expr, args: &[Expr]) -> Result<Value, String> {
     let callee_value = self.evaluate(callee)?;
@@ -203,11 +210,13 @@ fn call_expression(&mut self, callee: &Expr, args: &[Expr]) -> Result<Value, Str
     }
 }
 ```
+{% endraw %}
 
 ### Step 4: Implement __get and __set (`src/interpreter/objects/mod.rs`)
 
 Called when accessing undefined properties:
 
+{% raw %}
 ```rust
 /// Get property value, using __get if property doesn't exist
 fn get_property(&mut self, obj: &Object, prop_name: &str) -> Result<Value, String> {
@@ -262,11 +271,13 @@ fn set_property(
     Ok(())
 }
 ```
+{% endraw %}
 
 ### Step 5: Implement __isset and __unset
 
 Called by `isset()` and `unset()` functions:
 
+{% raw %}
 ```rust
 /// Check if property is set, using __isset if property doesn't exist
 fn property_isset(&mut self, obj: &Object, prop_name: &str) -> Result<bool, String> {
@@ -310,9 +321,11 @@ fn property_unset(&mut self, obj: &mut Object, prop_name: &str) -> Result<(), St
     Ok(())
 }
 ```
+{% endraw %}
 
 Update `isset()` and `unset()` built-in functions:
 
+{% raw %}
 ```rust
 // In builtins
 fn builtin_isset(&mut self, args: &[Expr]) -> Result<Value, String> {
@@ -337,11 +350,13 @@ fn builtin_isset(&mut self, args: &[Expr]) -> Result<Value, String> {
     Ok(Value::Bool(true))
 }
 ```
+{% endraw %}
 
 ### Step 6: Implement __call and __callStatic
 
 Called for undefined method calls:
 
+{% raw %}
 ```rust
 /// Call instance method, using __call for undefined methods
 fn call_method(
@@ -421,11 +436,13 @@ fn call_static_method(
     ))
 }
 ```
+{% endraw %}
 
 ### Step 7: Implement __debugInfo
 
 Used by `var_dump()`:
 
+{% raw %}
 ```rust
 fn var_dump_object(&mut self, obj: &Object, indent: usize) -> Result<String, String> {
     let class = self.get_class(&obj.class_name)?;
@@ -461,6 +478,7 @@ fn var_dump_object(&mut self, obj: &Object, indent: usize) -> Result<String, Str
     Ok(output)
 }
 ```
+{% endraw %}
 
 ### Step 8: Add Tests
 

@@ -168,6 +168,7 @@ impl<'a> StmtParser<'a> {
 
                         params.push(FunctionParam {
                             name: param_name,
+                            type_hint: None,
                             default,
                             by_ref: false,
                             is_variadic: false,
@@ -195,6 +196,7 @@ impl<'a> StmtParser<'a> {
                     is_abstract: false,
                     is_final: false,
                     params,
+                    return_type: None,
                     body,
                     attributes: Vec::new(),
                 });

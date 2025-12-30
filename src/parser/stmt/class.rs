@@ -181,39 +181,15 @@ impl<'a> StmtParser<'a> {
                 false
             };
 
-            // Skip type hints (not supported yet, but we need to skip them)
-            // Common PHP types: string, int, float, bool, array, object, mixed, etc.
-            if let TokenKind::Identifier(type_name) = &self.current().kind {
-                let type_lower = type_name.to_lowercase();
-                if matches!(
-                    type_lower.as_str(),
-                    "string"
-                        | "int"
-                        | "float"
-                        | "bool"
-                        | "array"
-                        | "object"
-                        | "mixed"
-                        | "callable"
-                        | "iterable"
-                        | "void"
-                        | "never"
-                        | "true"
-                        | "false"
-                        | "null"
-                        | "self"
-                        | "parent"
-                        | "static"
-                ) {
-                    // Skip the type
-                    self.advance();
-                    // Handle array type brackets if present
-                    if self.check(&TokenKind::LeftBracket) {
-                        self.advance();
-                        self.consume(TokenKind::RightBracket, "Expected ']' after array type")?;
-                    }
-                }
-            }
+            // Parse type hints if present (for property types)
+            // Note: Currently type hints are parsed but not yet enforced for properties
+            let _property_type = if let TokenKind::Identifier(_) = &self.current().kind {
+                Some(self.parse_type_hint()?)
+            } else if self.check(&TokenKind::QuestionMark) {
+                Some(self.parse_type_hint()?)
+            } else {
+                None
+            };
 
             if self.check(&TokenKind::Function) {
                 let mut method = self.parse_method(visibility, member_is_abstract, member_is_final)?;

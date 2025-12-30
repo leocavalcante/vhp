@@ -162,6 +162,107 @@ impl<'a> StmtParser<'a> {
         Ok(attributes)
     }
 
+    /// Parse a type hint
+    /// Supports: int, string, ?int, int|string, array, callable, ClassName, Iterator&Countable
+    pub fn parse_type_hint(&mut self) -> Result<crate::ast::TypeHint, String> {
+        use crate::ast::TypeHint;
+
+        // Check for nullable prefix ?
+        let nullable = if self.check(&TokenKind::QuestionMark) {
+            self.advance();
+            true
+        } else {
+            false
+        };
+        
+        // Parse the base type
+        let base_type = self.parse_single_type()?;
+        
+        // Check for union | or intersection &
+        if self.check(&TokenKind::BitwiseOr) {
+            let mut types = vec![base_type.clone()];
+            while self.check(&TokenKind::BitwiseOr) {
+                self.advance();
+                types.push(self.parse_single_type()?);
+            }
+            if nullable {
+                // ?int|string is not valid syntax, but int|string|null is
+                return Err("Cannot use nullable syntax with union types, use |null instead".to_string());
+            }
+            return Ok(TypeHint::Union(types));
+        }
+        
+        // Check for intersection & (we need to distinguish from reference &)
+        // In type hints, & is used for intersection types
+        // We check if the next token looks like a type name
+        if let TokenKind::Identifier(next_id) = &self.tokens.get(*self.pos).map(|t| &t.kind).unwrap_or(&TokenKind::Eof) {
+            if next_id == "&" {
+                // This looks like it could be an intersection type
+                // But we need to be more careful - check if what follows is a type name
+                if let Some(after_amp) = self.tokens.get(*self.pos + 1) {
+                    if matches!(after_amp.kind, TokenKind::Identifier(_)) {
+                        let mut types = vec![base_type.clone()];
+                        while let TokenKind::Identifier(amp) = &self.current().kind {
+                            if amp == "&" {
+                                self.advance();
+                                types.push(self.parse_single_type()?);
+                            } else {
+                                break;
+                            }
+                        }
+                        if types.len() > 1 {
+                            if nullable {
+                                return Err("Cannot use nullable syntax with intersection types".to_string());
+                            }
+                            return Ok(TypeHint::Intersection(types));
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Apply nullable wrapper if needed
+        if nullable {
+            Ok(TypeHint::Nullable(Box::new(base_type)))
+        } else {
+            Ok(base_type)
+        }
+    }
+
+    /// Parse a single type (without union/intersection)
+    fn parse_single_type(&mut self) -> Result<crate::ast::TypeHint, String> {
+        use crate::ast::TypeHint;
+
+        if let TokenKind::Identifier(name) = &self.current().kind {
+            let type_name = name.to_lowercase();
+            let original_name = name.clone();
+            self.advance();
+            
+            match type_name.as_str() {
+                "int" | "integer" => Ok(TypeHint::Simple("int".to_string())),
+                "string" => Ok(TypeHint::Simple("string".to_string())),
+                "float" | "double" => Ok(TypeHint::Simple("float".to_string())),
+                "bool" | "boolean" => Ok(TypeHint::Simple("bool".to_string())),
+                "array" => Ok(TypeHint::Simple("array".to_string())),
+                "object" => Ok(TypeHint::Simple("object".to_string())),
+                "callable" => Ok(TypeHint::Simple("callable".to_string())),
+                "iterable" => Ok(TypeHint::Simple("iterable".to_string())),
+                "mixed" => Ok(TypeHint::Simple("mixed".to_string())),
+                "void" => Ok(TypeHint::Void),
+                "never" => Ok(TypeHint::Never),
+                "static" => Ok(TypeHint::Static),
+                "self" => Ok(TypeHint::SelfType),
+                "parent" => Ok(TypeHint::ParentType),
+                "null" => Ok(TypeHint::Simple("null".to_string())),
+                "false" => Ok(TypeHint::Simple("false".to_string())),
+                "true" => Ok(TypeHint::Simple("true".to_string())),
+                _ => Ok(TypeHint::Class(original_name)), // Class/interface name
+            }
+        } else {
+            Err(format!("Expected type name, got {:?}", self.current().kind))
+        }
+    }
+
     /// Parse echo statement
     pub fn parse_echo(&mut self) -> Result<Stmt, String> {
         self.advance(); // consume 'echo'
@@ -365,38 +466,16 @@ impl<'a> StmtParser<'a> {
                     false
                 };
 
-                // Skip type hints (not supported yet)
-                if let TokenKind::Identifier(type_name) = &self.current().kind {
-                    let type_lower = type_name.to_lowercase();
-                    if matches!(
-                        type_lower.as_str(),
-                        "string"
-                            | "int"
-                            | "float"
-                            | "bool"
-                            | "array"
-                            | "object"
-                            | "mixed"
-                            | "callable"
-                            | "iterable"
-                            | "void"
-                            | "never"
-                            | "true"
-                            | "false"
-                            | "null"
-                            | "self"
-                            | "parent"
-                            | "static"
-                    ) {
-                        // Skip the type
-                        self.advance();
-                        // Handle array type brackets if present
-                        if self.check(&TokenKind::LeftBracket) {
-                            self.advance();
-                            self.consume(TokenKind::RightBracket, "Expected ']' after array type")?;
-                        }
-                    }
-                }
+                // Parse type hint if present
+                let type_hint = if let TokenKind::Identifier(_) = &self.current().kind {
+                    // Check if this looks like a type (not preceded by $)
+                    Some(self.parse_type_hint()?)
+                } else if self.check(&TokenKind::QuestionMark) {
+                    // Nullable type
+                    Some(self.parse_type_hint()?)
+                } else {
+                    None
+                };
 
                 let by_ref = if let TokenKind::Identifier(s) = &self.current().kind {
                     if s == "&" {
@@ -457,6 +536,7 @@ impl<'a> StmtParser<'a> {
 
                 params.push(crate::ast::FunctionParam {
                     name: param_name,
+                    type_hint,
                     default,
                     by_ref,
                     is_variadic,
@@ -474,20 +554,13 @@ impl<'a> StmtParser<'a> {
 
         self.consume(TokenKind::RightParen, "Expected ')' after parameters")?;
         
-        // Skip return type hint if present (: type)
-        if self.check(&TokenKind::Colon) {
-            self.advance(); // consume ':'
-            // Skip the type identifier
-            if let TokenKind::Identifier(_) = &self.current().kind {
-                self.advance();
-            } else if self.check(&TokenKind::QuestionMark) {
-                // Nullable type ?Type
-                self.advance();
-                if let TokenKind::Identifier(_) = &self.current().kind {
-                    self.advance();
-                }
-            }
-        }
+        // Parse return type hint if present (: type)
+        let return_type = if self.check(&TokenKind::Colon) {
+            self.advance();
+            Some(self.parse_type_hint()?)
+        } else {
+            None
+        };
 
         // Abstract methods end with semicolon, concrete methods have body
         let body = if is_abstract_method {
@@ -514,6 +587,7 @@ impl<'a> StmtParser<'a> {
             is_abstract: is_abstract_method,
             is_final: is_final_method,
             params,
+            return_type,
             body,
             attributes: Vec::new(), // Will be set by caller
         })

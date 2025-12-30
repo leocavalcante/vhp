@@ -137,6 +137,15 @@ impl<'a> StmtParser<'a> {
                 // Parse attributes for this parameter
                 let param_attributes = self.parse_attributes()?;
 
+                // Parse type hint if present
+                let type_hint = if let TokenKind::Identifier(_) = &self.current().kind {
+                    Some(self.parse_type_hint()?)
+                } else if self.check(&TokenKind::QuestionMark) {
+                    Some(self.parse_type_hint()?)
+                } else {
+                    None
+                };
+
                 let param_name = if let TokenKind::Variable(name) = &self.current().kind {
                     let name = name.clone();
                     self.advance();
@@ -158,6 +167,7 @@ impl<'a> StmtParser<'a> {
 
                 params.push(FunctionParam {
                     name: param_name,
+                    type_hint,
                     default,
                     by_ref: false,
                     is_variadic: false,
@@ -174,11 +184,21 @@ impl<'a> StmtParser<'a> {
         }
 
         self.consume(TokenKind::RightParen, "Expected ')' after parameters")?;
+
+        // Parse return type hint if present (: type)
+        let return_type = if self.check(&TokenKind::Colon) {
+            self.advance();
+            Some(self.parse_type_hint()?)
+        } else {
+            None
+        };
+
         self.consume(TokenKind::Semicolon, "Expected ';' after method signature")?;
 
         Ok(InterfaceMethodSignature {
             name,
             params,
+            return_type,
             attributes: Vec::new(),
         })
     }
