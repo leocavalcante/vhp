@@ -2,6 +2,8 @@
 Type error on wrong parameter type
 --FILE--
 <?php
+declare(strict_types=1);
+
 function requireInt(int $n) {
     echo $n;
 }

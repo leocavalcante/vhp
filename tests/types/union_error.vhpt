@@ -2,6 +2,8 @@
 Union type error on wrong type
 --FILE--
 <?php
+declare(strict_types=1);
+
 function requireIntOrString(int|string $value) {
     echo $value;
 }
