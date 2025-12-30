@@ -50,7 +50,7 @@ cargo build --release
 
 ## Why "Vibe Coding"?
 
-VHP is an experiment in AI-assisted software development. Every line of code has been written through conversations with AI agents (Claude). The goal is to demonstrate that complex systems like programming language interpreters can be built entirely through natural language prompts.
+VHP is an experiment in AI-assisted software development. Every line of code has been written through conversations with AI agents (GitHub Copilot, Claude, and others). The goal is to demonstrate that complex systems like programming language interpreters can be built entirely through natural language prompts.
 
 ---
 
