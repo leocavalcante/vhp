@@ -259,7 +259,7 @@ impl<W: Write> Interpreter<W> {
         closure: &crate::interpreter::value::Closure,
         args: &[Argument],
     ) -> Result<Value, String> {
-        use crate::interpreter::value::{ArrayKey, ClosureBody};
+        use crate::interpreter::value::ClosureBody;
 
         // Evaluate arguments
         let mut arg_values = Vec::new();
