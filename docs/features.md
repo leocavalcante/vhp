@@ -1002,6 +1002,136 @@ echo $user->id;  // 123
 // Cannot modify $user->id or $user->email
 ```
 
+## Property Hooks (PHP 8.4)
+
+Property hooks allow you to define custom logic for getting and setting property values using `get` and `set` hooks. This enables computed properties, validation, and side effects without explicit getter/setter methods.
+
+### Get Hook (Expression Syntax)
+
+Use a get hook to compute property values dynamically.
+
+**Syntax:**
+```php
+<?php
+public type $property {
+    get => expression;
+}
+```
+
+**Example:**
+```php
+<?php
+class Circle {
+    public float $radius = 5.0;
+
+    public float $diameter {
+        get => $this->radius * 2;
+    }
+}
+
+$c = new Circle();
+echo $c->diameter;  // 10 (computed from radius)
+$c->radius = 10.0;
+echo $c->diameter;  // 20 (automatically updated)
+```
+
+### Set Hook (Block Syntax)
+
+Use a set hook to validate, transform, or trigger side effects when setting a property. The incoming value is available via the special `$value` variable.
+
+**Syntax:**
+```php
+<?php
+public type $property {
+    set {
+        // Custom logic here
+        // $value contains the incoming value
+    }
+}
+```
+
+**Example:**
+```php
+<?php
+class Temperature {
+    private float $celsius = 0;
+
+    public float $fahrenheit {
+        get => $this->celsius * 9/5 + 32;
+        set {
+            $this->celsius = ($value - 32) * 5/9;
+        }
+    }
+}
+
+$t = new Temperature();
+$t->fahrenheit = 212;
+echo $t->fahrenheit;  // 212
+```
+
+### Combined Get and Set Hooks
+
+Properties can have both get and set hooks to create a complete abstraction.
+
+**Example:**
+```php
+<?php
+class User {
+    private string $rawPassword = "";
+
+    public string $password {
+        get => "***REDACTED***";
+        set {
+            $this->rawPassword = hash('sha256', $value);
+            echo "Password updated securely";
+        }
+    }
+}
+
+$user = new User();
+$user->password = "secret123";  // Password updated securely
+echo $user->password;           // ***REDACTED***
+```
+
+### Side Effects with Set Hooks
+
+Set hooks can trigger logging, validation, or other side effects.
+
+**Example:**
+```php
+<?php
+class Logger {
+    private array $log = [];
+
+    public string $message {
+        set {
+            $this->log[] = $value;
+            echo "Logged: " . $value;
+        }
+    }
+}
+
+$logger = new Logger();
+$logger->message = "Hello";  // Logged: Hello
+```
+
+### Key Points
+
+- **Expression syntax** (`get => expr`) for simple computed properties
+- **Block syntax** (`set { ... }`) for complex set logic
+- **$value variable** available in set hooks with the incoming value
+- **Computed properties** don't need backing storage
+- **Validation** can be performed in set hooks
+- **Side effects** like logging can be triggered on property access
+- **Type hints** work with property hooks
+- **Visibility modifiers** (public, private, protected) apply to the hooks
+
+### Limitations
+
+- **No get-only writeable**: Get hooks make properties read-only by default
+- **Set hooks require explicit backing storage** if you want to store the value
+- **Hooks cannot be abstract** or in interfaces (PHP 8.4 limitation)
+
 ## Readonly Classes (PHP 8.2)
 
 Readonly classes make all properties implicitly readonly without needing to mark each property individually.

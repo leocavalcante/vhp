@@ -43,7 +43,7 @@ Every. Single. Line. Written through prompts to AI agents. Zero manual coding.
 - **🎯 Zero Dependencies** — Pure standard library, no external crates, no bloat
 - **✨ PHP 8.x Compatible** — Run your WordPress, Laravel, Drupal — *unchanged*
 - **🔮 Modern Features** — Arrow functions, match expressions, fibers, attributes, pipe operator
-- **📈 Battle-Tested** — 406 comprehensive tests and counting
+- **📈 Battle-Tested** — 423 comprehensive tests and counting
 
 ## ⚡ Get Started in 60 Seconds
 
@@ -214,6 +214,7 @@ That's the difference between a tool and an ecosystem.
 - ✅ Constructor Property Promotion (PHP 8.0)
 - ✅ Readonly properties (PHP 8.1)
 - ✅ Readonly classes (PHP 8.2)
+- ✅ Property hooks with get/set (PHP 8.4)
 - ✅ Object cloning with `clone` and `clone with`
 
 **Type System:**

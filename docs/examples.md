@@ -270,3 +270,101 @@ try {
 // Timeout: 30
 // Error: Config key 'invalid' not found
 ```
+
+## Property Hooks (PHP 8.4)
+
+Property hooks provide a clean way to add custom logic to property access without explicit getter/setter methods.
+
+```php
+<?php
+// Example 1: Computed property with get hook
+class Circle {
+    public float $radius = 5.0;
+
+    public float $diameter {
+        get => $this->radius * 2;
+    }
+
+    public float $area {
+        get => 3.14159 * $this->radius ** 2;
+    }
+}
+
+$c = new Circle();
+echo "Radius: " . $c->radius . "\n";      // 5
+echo "Diameter: " . $c->diameter . "\n";  // 10
+echo "Area: " . $c->area . "\n";          // 78.53975
+
+$c->radius = 10.0;
+echo "New diameter: " . $c->diameter . "\n";  // 20 (automatically updated)
+
+// Example 2: Temperature converter with get and set hooks
+class Temperature {
+    private float $celsius = 0;
+
+    public float $fahrenheit {
+        get => $this->celsius * 9/5 + 32;
+        set {
+            $this->celsius = ($value - 32) * 5/9;
+        }
+    }
+}
+
+$t = new Temperature();
+$t->fahrenheit = 212;
+echo "Fahrenheit: " . $t->fahrenheit . "\n";  // 212
+echo "Celsius: " . $t->celsius . "\n";        // 100
+
+// Example 3: Validation and logging with set hook
+class User {
+    private string $rawEmail = "";
+
+    public string $email {
+        get => $this->rawEmail;
+        set {
+            if (!str_contains($value, "@")) {
+                throw new Exception("Invalid email format");
+            }
+            $this->rawEmail = strtolower($value);
+            echo "Email set to: " . $this->rawEmail . "\n";
+        }
+    }
+}
+
+$user = new User();
+$user->email = "USER@EXAMPLE.COM";  // Email set to: user@example.com
+echo "Current: " . $user->email . "\n";     // user@example.com
+
+// Example 4: Read-only computed property
+class Rectangle {
+    public float $width = 10.0;
+    public float $height = 5.0;
+
+    public float $area {
+        get => $this->width * $this->height;
+    }
+}
+
+$rect = new Rectangle();
+echo "Area: " . $rect->area . "\n";  // 50
+// $rect->area = 100;  // Error: Cannot set property with only get hook
+
+// Example 5: Side-effects with set hooks
+class EventLogger {
+    private array $events = [];
+
+    public string $event {
+        set {
+            $this->events[] = [
+                "message" => $value,
+                "timestamp" => date("Y-m-d H:i:s")
+            ];
+            echo "Logged event: " . $value . "\n";
+        }
+    }
+}
+
+$logger = new EventLogger();
+$logger->event = "User logged in";   // Logged event: User logged in
+$logger->event = "Data processed";   // Logged event: Data processed
+```

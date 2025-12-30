@@ -16,7 +16,7 @@ VHP is being developed incrementally, with each phase adding new capabilities wh
 | **2. Control Flow** | ✅ Complete | `if`/`else`, `while`, `for`, `do-while`, `switch`, `break`/`continue` |
 | **3. Functions** | ✅ Complete | Declarations, calls, returns, parameters, 50+ built-ins |
 | **4. Arrays** | ✅ Complete | Literals, access, modification, `foreach`, 15 array functions |
-| **5. Classes & Objects** | ✅ Complete | Classes, properties, methods, constructors, inheritance, interfaces, traits, readonly, cloning |
+| **5. Classes & Objects** | ✅ Complete | Classes, properties, methods, constructors, inheritance, interfaces, traits, readonly, property hooks, cloning |
 | **6. Modern PHP 8.x Features** | ✅ Complete | Match Expressions ✅, Named Arguments ✅, Attributes ✅, Enums ✅, Pipe Operator ✅, Fibers ✅ |
 | **7. PHP Core Language** | 🔄 In Progress | Exceptions ✅, Type System ✅ (runtime validation), Namespaces, Generators, Abstract/Final ✅, Magic Methods |
 | **8. PHP 8.5 Features** | 🔄 In Progress | URI Extension, Clone with syntax, #[\NoDiscard], array_first/last ✅, Closures in constants |
@@ -87,6 +87,7 @@ VHP is being developed incrementally, with each phase adding new capabilities wh
 - Constructor Property Promotion (PHP 8.0)
 - Readonly Properties (PHP 8.1)
 - Readonly Classes (PHP 8.2)
+- Property hooks with get/set (PHP 8.4)
 - Object cloning with `clone` keyword (PHP 5.0)
 - Clone with property modification syntax (PHP 8.4)
 
@@ -168,8 +169,8 @@ This phase focuses on implementing core PHP language features that are essential
 
 #### Additional OOP Features
 
-- [ ] **Anonymous classes** (PHP 7.0) - `new class { ... }`
-- [ ] **Property hooks** (PHP 8.4) - `get`/`set` accessors on properties
+- [x] **Anonymous classes** (PHP 7.0) - `new class { ... }`
+- [x] **Property hooks** (PHP 8.4) - `get`/`set` accessors on properties
 - [ ] **Asymmetric visibility** (PHP 8.4) - `public private(set)` property visibility
 - [ ] **Static properties** - `static $property`
 - [ ] **Static property visibility** (PHP 8.5) - Asymmetric visibility for static properties

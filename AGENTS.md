@@ -62,11 +62,11 @@ src/
         ├── output.rs    # Output functions (4)
         └── reflection.rs # Reflection functions (8)
 
-tests/                   # Test suite organized by feature (417 tests)
+tests/                   # Test suite organized by feature (423 tests)
 ├── arrays/              # Array tests (18)
 ├── attributes/          # Attribute syntax and reflection tests (29)
 ├── builtins/            # Built-in function tests (26)
-├── classes/             # Class and object tests (55 including anonymous classes)
+├── classes/             # Class and object tests (76 including anonymous classes and property hooks)
 ├── comments/            # Comment syntax tests (4)
 ├── control_flow/        # Control flow tests (40 including alternative syntax)
 ├── echo/                # Echo statement tests (6)
@@ -210,6 +210,7 @@ Source Code → Lexer → Tokens → Parser → AST → Interpreter → Output
 - [x] Constructor Property Promotion (PHP 8.0)
 - [x] Readonly Properties (PHP 8.1)
 - [x] Readonly Classes (PHP 8.2)
+- [x] Property hooks with get/set (PHP 8.4)
 - [x] Object cloning with `clone` keyword (PHP 5.0)
 - [x] Clone with property modification syntax (PHP 8.4)
 - [x] Abstract classes and methods
@@ -675,7 +676,7 @@ partial error message to match
 - [x] `foreach` with arrays (value only and key-value)
 - [x] Built-in array functions (`count`, `array_push`, `array_pop`, `in_array`, `array_keys`, `array_values`, `array_merge`, `array_reverse`, `array_search`, `array_key_exists`, `range`, etc.)
 
-### Phase 5: Classes & Objects ✅ Complete
+### Phase 5: Classes & Objects ✅ Complete (including PHP 8.4 Property Hooks)
 - [x] Class declarations with `class` keyword
 - [x] Properties with visibility modifiers (`public`, `private`, `protected`)
 - [x] Methods with `$this` reference
@@ -755,8 +756,8 @@ Essential PHP features for compatibility with standard PHP code.
 - [ ] __serialize()/__unserialize() (PHP 7.4)
 
 **Additional OOP:**
-- [ ] Anonymous classes (PHP 7.0)
-- [ ] Property hooks (PHP 8.4)
+- [x] Anonymous classes (PHP 7.0)
+- [x] Property hooks (PHP 8.4)
 - [ ] Asymmetric visibility (PHP 8.4)
 - [ ] Static properties and late static binding
 - [ ] #[\Override] attribute (PHP 8.3)
