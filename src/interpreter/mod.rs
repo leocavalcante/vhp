@@ -32,6 +32,8 @@ pub enum ControlFlow {
 #[derive(Debug, Clone)]
 pub struct UserFunction {
     pub params: Vec<FunctionParam>,
+    #[allow(dead_code)] // Will be used for type validation
+    pub return_type: Option<crate::ast::TypeHint>,
     pub body: Vec<crate::ast::Stmt>,
     pub is_abstract: bool, // for abstract methods
     pub is_final: bool,    // for final methods
@@ -148,6 +150,7 @@ impl<W: Write> Interpreter<W> {
             params: vec![
                 FunctionParam {
                     name: "message".to_string(),
+                    type_hint: None,
                     default: Some(Expr::String(String::new())),
                     by_ref: false,
                     is_variadic: false,
@@ -157,6 +160,7 @@ impl<W: Write> Interpreter<W> {
                 },
                 FunctionParam {
                     name: "code".to_string(),
+                    type_hint: None,
                     default: Some(Expr::Integer(0)),
                     by_ref: false,
                     is_variadic: false,
@@ -165,6 +169,7 @@ impl<W: Write> Interpreter<W> {
                     attributes: vec![],
                 },
             ],
+            return_type: None,
             body: vec![
                 // $this->message = $message;
                 Stmt::Expression(Expr::PropertyAssign {
@@ -190,6 +195,7 @@ impl<W: Write> Interpreter<W> {
         // Add getMessage() method
         let get_message = UserFunction {
             params: vec![],
+            return_type: None,
             body: vec![Stmt::Return(Some(Expr::PropertyAccess {
                 object: Box::new(Expr::This),
                 property: "message".to_string(),
@@ -203,6 +209,7 @@ impl<W: Write> Interpreter<W> {
         // Add getCode() method
         let get_code = UserFunction {
             params: vec![],
+            return_type: None,
             body: vec![Stmt::Return(Some(Expr::PropertyAccess {
                 object: Box::new(Expr::This),
                 property: "code".to_string(),

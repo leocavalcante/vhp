@@ -18,6 +18,7 @@ impl<W: Write> Interpreter<W> {
         &mut self,
         name: &str,
         params: &[crate::ast::FunctionParam],
+        _return_type: &Option<crate::ast::TypeHint>,
         body: &[Stmt],
         attributes: &[crate::ast::Attribute],
     ) -> std::io::Result<ControlFlow> {
@@ -25,6 +26,7 @@ impl<W: Write> Interpreter<W> {
             name.to_string(),
             UserFunction {
                 params: params.to_vec(),
+                return_type: _return_type.clone(),
                 body: body.to_vec(),
                 is_abstract: false, // regular functions are never abstract
                 is_final: false,    // regular functions are never final
@@ -198,6 +200,7 @@ impl<W: Write> Interpreter<W> {
 
             let func = UserFunction {
                 params: method.params.clone(),
+                return_type: method.return_type.clone(),
                 body: method_body,
                 is_abstract: method.is_abstract,
                 is_final: method.is_final,
@@ -338,6 +341,7 @@ impl<W: Write> Interpreter<W> {
         for method in methods {
             let func = UserFunction {
                 params: method.params.clone(),
+                return_type: method.return_type.clone(),
                 body: method.body.clone(),
                 is_abstract: method.is_abstract,
                 is_final: method.is_final,
@@ -442,6 +446,7 @@ impl<W: Write> Interpreter<W> {
                 method_name_lower.clone(),
                 UserFunction {
                     params: method.params.clone(),
+                    return_type: method.return_type.clone(),
                     body: method.body.clone(),
                     is_abstract: method.is_abstract,
                     is_final: method.is_final,

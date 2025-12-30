@@ -85,6 +85,7 @@ pub(crate) fn eval_new_anonymous_class<W: Write>(
     for method in methods {
         let user_func = crate::interpreter::UserFunction {
             params: method.params.clone(),
+            return_type: method.return_type.clone(),
             body: method.body.clone(),
             is_abstract: method.is_abstract,
             is_final: method.is_final,

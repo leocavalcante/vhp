@@ -103,9 +103,10 @@ impl<W: Write> Interpreter<W> {
             Stmt::Function {
                 name,
                 params,
+                return_type,
                 body,
                 attributes,
-            } => self.handle_function_decl(name, params, body, attributes),
+            } => self.handle_function_decl(name, params, return_type, body, attributes),
 
             Stmt::Class {
                 name,
