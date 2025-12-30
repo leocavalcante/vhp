@@ -53,9 +53,25 @@ impl<W: Write> Interpreter<W> {
         // Handle object properties
         match obj_value {
             Value::Object(instance) => {
+                // First check if property exists
                 if let Some(value) = instance.properties.get(property) {
                     Ok(value.clone())
                 } else {
+                    // Check for __get magic method
+                    let class = self.classes.get(&instance.class_name).cloned();
+                    if let Some(class) = class {
+                        if let Some(method) = class.get_magic_method("__get") {
+                            let class_name = instance.class_name.clone();
+                            let mut inst_mut = instance.clone();
+                            return self.call_method_on_object(
+                                &mut inst_mut,
+                                method,
+                                &[Value::String(property.to_string())],
+                                class_name,
+                            );
+                        }
+                    }
+                    // Return null for undefined property (PHP behavior)
                     Ok(Value::Null)
                 }
             }
@@ -92,14 +108,42 @@ impl<W: Write> Interpreter<W> {
                         ));
                     }
 
-                    obj.properties.insert(property.to_string(), val.clone());
+                    // Check if this is a declared property
+                    let is_declared = obj.properties.contains_key(property)
+                        || obj.readonly_properties.contains(property);
 
-                    // If this is a readonly property, mark it as initialized
-                    if obj.readonly_properties.contains(property) {
-                        obj.initialized_readonly.insert(property.to_string());
+                    if is_declared {
+                        // Normal property assignment
+                        obj.properties.insert(property.to_string(), val.clone());
+
+                        // If this is a readonly property, mark it as initialized
+                        if obj.readonly_properties.contains(property) {
+                            obj.initialized_readonly.insert(property.to_string());
+                        }
+
+                        Ok(val)
+                    } else {
+                        // Check for __set magic method for undefined properties
+                        let class = self.classes.get(&obj.class_name).cloned();
+                        if let Some(class) = class {
+                            if let Some(method) = class.get_magic_method("__set") {
+                                // Need to clone obj to avoid borrow issues
+                                let class_name = obj.class_name.clone();
+                                let mut obj_clone = obj.clone();
+                                // Call __set
+                                self.call_method_on_object(
+                                    &mut obj_clone,
+                                    method,
+                                    &[Value::String(property.to_string()), val.clone()],
+                                    class_name,
+                                )?;
+                                return Ok(val);
+                            }
+                        }
+                        // Allow dynamic property (with potential deprecation warning in future)
+                        obj.properties.insert(property.to_string(), val.clone());
+                        Ok(val)
                     }
-
-                    Ok(val)
                 } else {
                     Err("Cannot use $this outside of object context".to_string())
                 }
@@ -119,18 +163,50 @@ impl<W: Write> Interpreter<W> {
                         ));
                     }
 
-                    instance
-                        .properties
-                        .insert(property.to_string(), val.clone());
+                    // Check if this is a declared property
+                    let is_declared = instance.properties.contains_key(property)
+                        || instance.readonly_properties.contains(property);
 
-                    // If this is a readonly property, mark it as initialized
-                    if instance.readonly_properties.contains(property) {
-                        instance.initialized_readonly.insert(property.to_string());
+                    if is_declared {
+                        // Normal property assignment
+                        instance
+                            .properties
+                            .insert(property.to_string(), val.clone());
+
+                        // If this is a readonly property, mark it as initialized
+                        if instance.readonly_properties.contains(property) {
+                            instance.initialized_readonly.insert(property.to_string());
+                        }
+
+                        self.variables
+                            .insert(var_name.clone(), Value::Object(instance));
+                        Ok(val)
+                    } else {
+                        // Check for __set magic method for undefined properties
+                        let class = self.classes.get(&instance.class_name).cloned();
+                        if let Some(class) = class {
+                            if let Some(method) = class.get_magic_method("__set") {
+                                // Call __set but still need to update the variable
+                                let class_name = instance.class_name.clone();
+                                self.call_method_on_object(
+                                    &mut instance,
+                                    method,
+                                    &[Value::String(property.to_string()), val.clone()],
+                                    class_name,
+                                )?;
+                                self.variables
+                                    .insert(var_name.clone(), Value::Object(instance));
+                                return Ok(val);
+                            }
+                        }
+                        // Allow dynamic property (with potential deprecation warning in future)
+                        instance
+                            .properties
+                            .insert(property.to_string(), val.clone());
+                        self.variables
+                            .insert(var_name.clone(), Value::Object(instance));
+                        Ok(val)
                     }
-
-                    self.variables
-                        .insert(var_name.clone(), Value::Object(instance));
-                    Ok(val)
                 } else {
                     Err(format!(
                         "Cannot access property on non-object variable ${}",
