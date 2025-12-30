@@ -91,7 +91,7 @@ pub(crate) fn eval_new_anonymous_class<W: Write>(
             attributes: method.attributes.clone(),
         };
         class_methods.insert(method.name.to_lowercase(), user_func);
-        method_visibility.insert(method.name.to_lowercase(), method.visibility.clone());
+        method_visibility.insert(method.name.to_lowercase(), method.visibility);
     }
     
     let class_def = crate::interpreter::ClassDefinition {

@@ -531,6 +531,11 @@ impl<'a> ExprParser<'a> {
                 let arrow_func = self.parse_arrow_function()?;
                 parse_postfix(self, arrow_func)
             }
+            TokenKind::Throw => {
+                self.advance(); // consume 'throw'
+                let expr = self.parse_unary()?;
+                Ok(Expr::Throw(Box::new(expr)))
+            }
             _ => Err(format!(
                 "Expected expression but found {:?} at line {}, column {}",
                 token.kind, token.line, token.column

@@ -108,8 +108,20 @@ pub enum TraitResolution {
     },
 }
 
+/// Catch clause for try statement
+#[derive(Debug, Clone)]
+pub struct CatchClause {
+    /// Exception types to catch (supports multi-catch with |)
+    pub exception_types: Vec<String>,
+    /// Variable name to bind exception (e.g., $e)
+    pub variable: String,
+    /// Body of catch block
+    pub body: Vec<Stmt>,
+}
+
 /// Statements
 #[derive(Debug, Clone)]
+#[allow(clippy::large_enum_variant)]
 pub enum Stmt {
     Echo(Vec<Expr>),
     Expression(Expr),
@@ -189,6 +201,14 @@ pub enum Stmt {
         methods: Vec<Method>,       // Enums can have methods
         attributes: Vec<Attribute>, // PHP 8.0+
     },
+    /// Try/Catch/Finally statement
+    TryCatch {
+        try_body: Vec<Stmt>,
+        catch_clauses: Vec<CatchClause>,
+        finally_body: Option<Vec<Stmt>>,
+    },
+    /// Throw statement
+    Throw(Expr),
 }
 
 /// Switch case

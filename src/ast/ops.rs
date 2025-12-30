@@ -28,6 +28,9 @@ pub enum BinaryOp {
     Or,  // || or 'or'
     Xor, // xor
 
+    // Bitwise
+    BitwiseOr, // | (bitwise OR)
+
     // Null coalescing
     NullCoalesce, // ??
 

@@ -203,4 +203,8 @@ pub enum Expr {
         class: String,
         method: String,
     },
+
+    // Throw expression (PHP 8.0+)
+    /// Used in: $x ?? throw new Exception("..."), fn() => throw new Exception()
+    Throw(Box<Expr>),
 }

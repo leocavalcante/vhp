@@ -123,6 +123,9 @@ pub(crate) fn eval_binary<W: Write>(
         // Logical operator (non-short-circuit case)
         BinaryOp::Xor => Ok(Value::Bool(left_val.to_bool() ^ right_val.to_bool())),
 
+        // Bitwise operators
+        BinaryOp::BitwiseOr => Ok(Value::Integer(left_val.to_int() | right_val.to_int())),
+
         // Already handled above with short-circuit
         BinaryOp::And | BinaryOp::Or | BinaryOp::NullCoalesce | BinaryOp::Pipe => {
             unreachable!()

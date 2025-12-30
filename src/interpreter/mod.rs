@@ -12,19 +12,20 @@ mod functions; // Function call handling (dispatcher, user functions)
 mod objects;
 mod stmt_exec;
 
-pub use value::{ObjectInstance, Value};
+pub use value::{ExceptionValue, ObjectInstance, Value};
 
 use crate::ast::{FunctionParam, Expr};
 use std::collections::HashMap;
 use std::io::{self, Write};
 
-/// Control flow signals for break/continue/return
+/// Control flow signals for break/continue/return/exception
 #[derive(Debug, Clone, PartialEq)]
 pub enum ControlFlow {
     None,
     Break,
     Continue,
     Return(Value),
+    Exception(ExceptionValue),
 }
 
 /// User-defined function
@@ -118,7 +119,7 @@ pub struct Interpreter<W: Write> {
 
 impl<W: Write> Interpreter<W> {
     pub fn new(output: W) -> Self {
-        Self {
+        let mut interp = Self {
             output,
             variables: HashMap::new(),
             functions: HashMap::new(),
@@ -132,7 +133,119 @@ impl<W: Write> Interpreter<W> {
             current_fiber: None,
             fiber_counter: 0,
             anonymous_class_counter: 0,
-        }
+        };
+        // Register built-in Exception class
+        interp.register_exception_class();
+        interp
+    }
+
+    /// Register built-in Exception class
+    fn register_exception_class(&mut self) {
+        use crate::ast::{FunctionParam, Property, Stmt, Visibility};
+
+        // Create constructor that sets message and code
+        let constructor = UserFunction {
+            params: vec![
+                FunctionParam {
+                    name: "message".to_string(),
+                    default: Some(Expr::String(String::new())),
+                    by_ref: false,
+                    is_variadic: false,
+                    visibility: None,
+                    readonly: false,
+                    attributes: vec![],
+                },
+                FunctionParam {
+                    name: "code".to_string(),
+                    default: Some(Expr::Integer(0)),
+                    by_ref: false,
+                    is_variadic: false,
+                    visibility: None,
+                    readonly: false,
+                    attributes: vec![],
+                },
+            ],
+            body: vec![
+                // $this->message = $message;
+                Stmt::Expression(Expr::PropertyAssign {
+                    object: Box::new(Expr::This),
+                    property: "message".to_string(),
+                    value: Box::new(Expr::Variable("message".to_string())),
+                }),
+                // $this->code = $code;
+                Stmt::Expression(Expr::PropertyAssign {
+                    object: Box::new(Expr::This),
+                    property: "code".to_string(),
+                    value: Box::new(Expr::Variable("code".to_string())),
+                }),
+            ],
+            is_abstract: false,
+            is_final: false,
+            attributes: vec![],
+        };
+
+        let mut methods = HashMap::new();
+        methods.insert("__construct".to_string(), constructor);
+
+        // Add getMessage() method
+        let get_message = UserFunction {
+            params: vec![],
+            body: vec![Stmt::Return(Some(Expr::PropertyAccess {
+                object: Box::new(Expr::This),
+                property: "message".to_string(),
+            }))],
+            is_abstract: false,
+            is_final: false,
+            attributes: vec![],
+        };
+        methods.insert("getmessage".to_string(), get_message);
+
+        // Add getCode() method
+        let get_code = UserFunction {
+            params: vec![],
+            body: vec![Stmt::Return(Some(Expr::PropertyAccess {
+                object: Box::new(Expr::This),
+                property: "code".to_string(),
+            }))],
+            is_abstract: false,
+            is_final: false,
+            attributes: vec![],
+        };
+        methods.insert("getcode".to_string(), get_code);
+
+        let mut method_visibility = HashMap::new();
+        method_visibility.insert("__construct".to_string(), Visibility::Public);
+        method_visibility.insert("getmessage".to_string(), Visibility::Public);
+        method_visibility.insert("getcode".to_string(), Visibility::Public);
+
+        let exception_class = ClassDefinition {
+            name: "Exception".to_string(),
+            is_abstract: false,
+            is_final: false,
+            readonly: false,
+            parent: None,
+            properties: vec![
+                Property {
+                    name: "message".to_string(),
+                    visibility: Visibility::Protected,
+                    default: Some(Expr::String(String::new())),
+                    readonly: false,
+                    attributes: vec![],
+                },
+                Property {
+                    name: "code".to_string(),
+                    visibility: Visibility::Protected,
+                    default: Some(Expr::Integer(0)),
+                    readonly: false,
+                    attributes: vec![],
+                },
+            ],
+            methods,
+            method_visibility,
+            attributes: vec![],
+        };
+
+        self.classes.insert("exception".to_string(), exception_class);
     }
 
     // Fiber management methods
@@ -314,6 +427,9 @@ impl<W: Write> Interpreter<W> {
                 }
                 ControlFlow::Break | ControlFlow::Continue => {
                     return Err("break/continue outside of loop in fiber".to_string());
+                }
+                ControlFlow::Exception(e) => {
+                    return Err(format!("__EXCEPTION__:{}:{}", e.class_name, e.message));
                 }
                 ControlFlow::None => {}
             }

@@ -166,6 +166,27 @@ impl<W: Write> Interpreter<W> {
             Expr::CallableFromStaticMethod { class, method } => {
                 self.eval_callable_from_static_method(class, method)
             }
+            Expr::Throw(expr) => {
+                // Throw expression - evaluate and return special error that can be caught
+                let value = self.eval_expr(expr)?;
+                match value {
+                    Value::Exception(exc) => {
+                        Err(format!("__EXCEPTION__:{}:{}", exc.class_name, exc.message))
+                    }
+                    Value::Object(obj) => {
+                        let message = obj
+                            .properties
+                            .get("message")
+                            .and_then(|v| match v {
+                                Value::String(s) => Some(s.clone()),
+                                _ => None,
+                            })
+                            .unwrap_or_default();
+                        Err(format!("__EXCEPTION__:{}:{}", obj.class_name, message))
+                    }
+                    _ => Err("Can only throw objects that extend Exception".to_string()),
+                }
+            }
         }
     }
 

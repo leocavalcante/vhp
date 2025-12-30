@@ -20,14 +20,32 @@ impl<W: Write> Interpreter<W> {
             // Output statements
             Stmt::Echo(exprs) => {
                 for expr in exprs {
-                    let value = self.eval_expr(expr).map_err(io::Error::other)?;
+                    let value = match self.eval_expr(expr) {
+                        Ok(v) => v,
+                        Err(e) => {
+                            // Check if this is a throw exception
+                            if let Some(exc) = Self::parse_exception_error(&e) {
+                                return Ok(ControlFlow::Exception(exc));
+                            }
+                            return Err(io::Error::other(e));
+                        }
+                    };
                     write!(self.output, "{}", value.to_output_string())?;
                 }
                 Ok(ControlFlow::None)
             }
             Stmt::Expression(expr) => {
-                self.eval_expr(expr).map_err(io::Error::other)?;
-                Ok(ControlFlow::None)
+                match self.eval_expr(expr) {
+                    Ok(_) => Ok(ControlFlow::None),
+                    Err(e) => {
+                        // Check if this is a throw exception
+                        if let Some(exc) = Self::parse_exception_error(&e) {
+                            Ok(ControlFlow::Exception(exc))
+                        } else {
+                            Err(io::Error::other(e))
+                        }
+                    }
+                }
             }
             Stmt::Html(html) => {
                 write!(self.output, "{}", html)?;
@@ -71,7 +89,10 @@ impl<W: Write> Interpreter<W> {
             Stmt::Continue => Ok(ControlFlow::Continue),
             Stmt::Return(expr) => {
                 let value = if let Some(e) = expr {
-                    self.eval_expr(e).map_err(io::Error::other)?
+                    match self.eval_expr_safe(e)? {
+                        Ok(v) => v,
+                        Err(cf) => return Ok(cf), // Propagate exception
+                    }
                 } else {
                     Value::Null
                 };
@@ -124,7 +145,184 @@ impl<W: Write> Interpreter<W> {
                 methods,
                 attributes,
             } => self.handle_enum_decl(name, *backing_type, cases, methods, attributes),
+
+            // Exception handling
+            Stmt::TryCatch {
+                try_body,
+                catch_clauses,
+                finally_body,
+            } => self.handle_try_catch(try_body, catch_clauses, finally_body),
+
+            Stmt::Throw(expr) => self.handle_throw(expr),
         }
+    }
+
+    /// Parse exception error message into ExceptionValue
+    fn parse_exception_error(error: &str) -> Option<crate::interpreter::ExceptionValue> {
+        if let Some(rest) = error.strip_prefix("__EXCEPTION__:") {
+            if let Some((class_name, message)) = rest.split_once(':') {
+                return Some(crate::interpreter::ExceptionValue {
+                    class_name: class_name.to_string(),
+                    message: message.to_string(),
+                    code: 0,
+                    file: String::new(),
+                    line: 0,
+                    previous: None,
+                });
+            }
+        }
+        None
+    }
+
+    /// Safely evaluate expression, converting throw expressions to ControlFlow::Exception
+    pub(super) fn eval_expr_safe(&mut self, expr: &crate::ast::Expr) -> std::io::Result<Result<Value, ControlFlow>> {
+        match self.eval_expr(expr) {
+            Ok(v) => Ok(Ok(v)),
+            Err(e) => {
+                if let Some(exc) = Self::parse_exception_error(&e) {
+                    Ok(Err(ControlFlow::Exception(exc)))
+                } else {
+                    Err(std::io::Error::other(e))
+                }
+            }
+        }
+    }
+
+    /// Handle try/catch/finally statement
+    fn handle_try_catch(
+        &mut self,
+        try_body: &[Stmt],
+        catch_clauses: &[crate::ast::CatchClause],
+        finally_body: &Option<Vec<Stmt>>,
+    ) -> io::Result<ControlFlow> {
+        // Execute try block
+        let mut try_result = ControlFlow::None;
+        for stmt in try_body {
+            try_result = self.execute_stmt(stmt)?;
+            if !matches!(try_result, ControlFlow::None) {
+                break;
+            }
+        }
+
+        let mut result = try_result.clone();
+        let mut caught = false;
+
+        // Check if exception was thrown
+        if let ControlFlow::Exception(ref exception) = try_result {
+            // Find matching catch clause
+            for catch_clause in catch_clauses {
+                let matches = catch_clause
+                    .exception_types
+                    .iter()
+                    .any(|t| self.is_exception_instance_of(&exception.class_name, t));
+
+                if matches {
+                    // Bind exception to variable as an Exception object
+                    let exc_obj = Value::Exception(exception.clone());
+                    self.variables.insert(catch_clause.variable.clone(), exc_obj);
+
+                    // Execute catch body
+                    result = ControlFlow::None;
+                    for stmt in &catch_clause.body {
+                        result = self.execute_stmt(stmt)?;
+                        if !matches!(result, ControlFlow::None) {
+                            break;
+                        }
+                    }
+                    caught = true;
+                    break;
+                }
+            }
+
+            if !caught {
+                result = try_result; // Re-propagate uncaught exception
+            }
+        }
+
+        // Always execute finally block
+        if let Some(finally_stmts) = finally_body {
+            let finally_result = {
+                let mut finally_flow = ControlFlow::None;
+                for stmt in finally_stmts {
+                    finally_flow = self.execute_stmt(stmt)?;
+                    if !matches!(finally_flow, ControlFlow::None) {
+                        break;
+                    }
+                }
+                finally_flow
+            };
+
+            // finally result can override return/exception
+            if !matches!(finally_result, ControlFlow::None) {
+                result = finally_result;
+            }
+        }
+
+        Ok(result)
+    }
+
+    /// Handle throw statement
+    fn handle_throw(&mut self, expr: &crate::ast::Expr) -> io::Result<ControlFlow> {
+        let value = self.eval_expr(expr).map_err(io::Error::other)?;
+
+        match value {
+            Value::Exception(exc) => Ok(ControlFlow::Exception(exc)),
+            Value::Object(obj) => {
+                // Create exception from object
+                let message = obj
+                    .properties
+                    .get("message")
+                    .and_then(|v| match v {
+                        Value::String(s) => Some(s.clone()),
+                        _ => None,
+                    })
+                    .unwrap_or_default();
+
+                let code = obj
+                    .properties
+                    .get("code")
+                    .and_then(|v| match v {
+                        Value::Integer(n) => Some(*n),
+                        _ => None,
+                    })
+                    .unwrap_or(0);
+
+                Ok(ControlFlow::Exception(crate::interpreter::ExceptionValue {
+                    class_name: obj.class_name.clone(),
+                    message,
+                    code,
+                    file: String::new(),
+                    line: 0,
+                    previous: None,
+                }))
+            }
+            _ => Err(io::Error::other(
+                "Can only throw objects that extend Exception",
+            )),
+        }
+    }
+
+    /// Check if exception class is instance of (or extends) target class
+    fn is_exception_instance_of(&self, exception_class: &str, target_class: &str) -> bool {
+        // Direct match
+        if exception_class.eq_ignore_ascii_case(target_class) {
+            return true;
+        }
+
+        // Check inheritance chain
+        let mut current = exception_class.to_lowercase();
+        while let Some(class_def) = self.classes.get(&current) {
+            if let Some(parent) = &class_def.parent {
+                if parent.eq_ignore_ascii_case(target_class) {
+                    return true;
+                }
+                current = parent.to_lowercase();
+            } else {
+                break;
+            }
+        }
+
+        false
     }
 
     /// Check if two values are identical (===)
@@ -141,7 +339,14 @@ impl<W: Write> Interpreter<W> {
 
     pub fn execute(&mut self, program: &Program) -> io::Result<()> {
         for stmt in &program.statements {
-            let _ = self.execute_stmt(stmt)?;
+            let flow = self.execute_stmt(stmt)?;
+            // Check for uncaught exception
+            if let ControlFlow::Exception(exc) = flow {
+                return Err(io::Error::other(format!(
+                    "Uncaught {}: {}",
+                    exc.class_name, exc.message
+                )));
+            }
         }
         self.output.flush()?;
         Ok(())

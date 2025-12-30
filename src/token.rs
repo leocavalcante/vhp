@@ -49,6 +49,12 @@ pub enum TokenKind {
     Abstract,   // abstract (for abstract classes and methods)
     Final,      // final (for final classes, methods, and constants)
 
+    // Exception Keywords
+    Try,     // try
+    Catch,   // catch
+    Finally, // finally
+    Throw,   // throw
+
     // Identifiers and Variables
     Variable(String),   // $name
     Identifier(String), // function names, etc.
@@ -94,6 +100,9 @@ pub enum TokenKind {
     Or,  // || or 'or'
     Not, // !
     Xor, // xor
+
+    // Bitwise Operators
+    BitwiseOr, // | (used in multi-catch and bitwise operations)
 
     // Increment/Decrement
     Increment, // ++

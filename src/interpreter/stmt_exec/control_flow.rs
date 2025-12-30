@@ -17,7 +17,10 @@ impl<W: Write> Interpreter<W> {
         elseif_branches: &[(Expr, Vec<Stmt>)],
         else_branch: &Option<Vec<Stmt>>,
     ) -> std::io::Result<ControlFlow> {
-        let cond_value = self.eval_expr(condition).map_err(std::io::Error::other)?;
+        let cond_value = match self.eval_expr_safe(condition)? {
+            Ok(v) => v,
+            Err(cf) => return Ok(cf), // Propagate exception
+        };
 
         if cond_value.to_bool() {
             for stmt in then_branch {
@@ -29,7 +32,10 @@ impl<W: Write> Interpreter<W> {
         } else {
             let mut executed = false;
             for (elseif_cond, elseif_body) in elseif_branches {
-                let elseif_value = self.eval_expr(elseif_cond).map_err(std::io::Error::other)?;
+                let elseif_value = match self.eval_expr_safe(elseif_cond)? {
+                    Ok(v) => v,
+                    Err(cf) => return Ok(cf), // Propagate exception
+                };
                 if elseif_value.to_bool() {
                     for stmt in elseif_body {
                         let cf = self.execute_stmt(stmt)?;
@@ -63,7 +69,10 @@ impl<W: Write> Interpreter<W> {
         body: &[Stmt],
     ) -> std::io::Result<ControlFlow> {
         loop {
-            let cond_value = self.eval_expr(condition).map_err(std::io::Error::other)?;
+            let cond_value = match self.eval_expr_safe(condition)? {
+                Ok(v) => v,
+                Err(cf) => return Ok(cf), // Propagate exception
+            };
 
             if !cond_value.to_bool() {
                 break;
@@ -75,6 +84,7 @@ impl<W: Write> Interpreter<W> {
                     ControlFlow::Break => return Ok(ControlFlow::None),
                     ControlFlow::Continue => break,
                     ControlFlow::Return(v) => return Ok(ControlFlow::Return(v)),
+                    ControlFlow::Exception(e) => return Ok(ControlFlow::Exception(e)),
                     ControlFlow::None => {}
                 }
             }
@@ -103,6 +113,7 @@ impl<W: Write> Interpreter<W> {
                         return_val = Some(v);
                         break;
                     }
+                    ControlFlow::Exception(e) => return Ok(ControlFlow::Exception(e)),
                     ControlFlow::None => {}
                 }
             }
@@ -158,6 +169,7 @@ impl<W: Write> Interpreter<W> {
                         return_val = Some(v);
                         break;
                     }
+                    ControlFlow::Exception(e) => return Ok(ControlFlow::Exception(e)),
                     ControlFlow::None => {}
                 }
             }
@@ -205,6 +217,7 @@ impl<W: Write> Interpreter<W> {
                             ControlFlow::Break => return Ok(ControlFlow::None),
                             ControlFlow::Continue => break,
                             ControlFlow::Return(v) => return Ok(ControlFlow::Return(v)),
+                            ControlFlow::Exception(e) => return Ok(ControlFlow::Exception(e)),
                             ControlFlow::None => {}
                         }
                     }

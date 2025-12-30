@@ -536,6 +536,107 @@ impl<'a> StmtParser<'a> {
         Ok(Stmt::Expression(expr))
     }
 
+    /// Parse try/catch/finally statement
+    /// try { ... } catch (ExceptionType $e) { ... } finally { ... }
+    pub fn parse_try(&mut self) -> Result<Stmt, String> {
+        self.advance(); // consume 'try'
+
+        // Parse try block
+        let try_body = self.parse_block()?;
+
+        let mut catch_clauses = Vec::new();
+        let mut finally_body = None;
+
+        // Parse catch clauses
+        while self.check(&TokenKind::Catch) {
+            self.advance(); // consume 'catch'
+            self.consume(TokenKind::LeftParen, "Expected '(' after 'catch'")?;
+
+            // Parse exception types (supports Type1 | Type2)
+            let mut exception_types = Vec::new();
+            loop {
+                if let TokenKind::Identifier(name) = &self.current().kind {
+                    exception_types.push(name.clone());
+                    self.advance();
+                } else {
+                    return Err(format!(
+                        "Expected exception type at line {}, column {}",
+                        self.current().line,
+                        self.current().column
+                    ));
+                }
+
+                // Check for multi-catch separator |
+                if self.check(&TokenKind::BitwiseOr) {
+                    self.advance();
+                } else {
+                    break;
+                }
+            }
+
+            // Parse variable name
+            let variable = if let TokenKind::Variable(name) = &self.current().kind {
+                let name = name.clone();
+                self.advance();
+                name
+            } else {
+                return Err(format!(
+                    "Expected exception variable at line {}, column {}",
+                    self.current().line,
+                    self.current().column
+                ));
+            };
+
+            self.consume(TokenKind::RightParen, "Expected ')' after catch clause")?;
+            let catch_body = self.parse_block()?;
+
+            catch_clauses.push(crate::ast::CatchClause {
+                exception_types,
+                variable,
+                body: catch_body,
+            });
+        }
+
+        // Parse optional finally
+        if self.check(&TokenKind::Finally) {
+            self.advance(); // consume 'finally'
+            finally_body = Some(self.parse_block()?);
+        }
+
+        // Must have at least one catch or finally
+        if catch_clauses.is_empty() && finally_body.is_none() {
+            return Err(format!(
+                "Try must have at least one catch or finally block at line {}, column {}",
+                self.current().line,
+                self.current().column
+            ));
+        }
+
+        Ok(Stmt::TryCatch {
+            try_body,
+            catch_clauses,
+            finally_body,
+        })
+    }
+
+    /// Parse throw statement
+    pub fn parse_throw_statement(&mut self) -> Result<Stmt, String> {
+        self.advance(); // consume 'throw'
+        let expr = self.parse_expression(Precedence::None)?;
+
+        if self.check(&TokenKind::Semicolon) {
+            self.advance();
+        } else if !self.check(&TokenKind::CloseTag) && !self.check(&TokenKind::Eof) {
+            return Err(format!(
+                "Expected ';' after throw at line {}, column {}",
+                self.current().line,
+                self.current().column
+            ));
+        }
+
+        Ok(Stmt::Throw(expr))
+    }
+
     /// Main statement dispatcher
     pub fn parse_statement(&mut self) -> Result<Option<Stmt>, String> {
         // Parse any attributes that may precede declarations
@@ -652,6 +753,8 @@ impl<'a> StmtParser<'a> {
                 Ok(Some(enum_stmt))
             }
             TokenKind::Return => Ok(Some(self.parse_return()?)),
+            TokenKind::Try => Ok(Some(self.parse_try()?)),
+            TokenKind::Throw => Ok(Some(self.parse_throw_statement()?)),
             TokenKind::Html(html) => {
                 self.advance();
                 Ok(Some(Stmt::Html(html)))

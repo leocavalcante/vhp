@@ -40,6 +40,28 @@ impl<W: Write> Interpreter<W> {
                 // Handle Fiber method calls
                 self.call_fiber_method(fiber.id, method, args)
             }
+            Value::Exception(ref exc) => {
+                // Handle Exception method calls
+                // Exceptions have built-in methods: getMessage(), getCode(), etc.
+                match method.to_lowercase().as_str() {
+                    "getmessage" => {
+                        if !args.is_empty() {
+                            return Err("getMessage() expects exactly 0 parameters".to_string());
+                        }
+                        Ok(Value::String(exc.message.clone()))
+                    }
+                    "getcode" => {
+                        if !args.is_empty() {
+                            return Err("getCode() expects exactly 0 parameters".to_string());
+                        }
+                        Ok(Value::Integer(exc.code))
+                    }
+                    _ => Err(format!(
+                        "Call to undefined method {}::{}()",
+                        exc.class_name, method
+                    )),
+                }
+            }
             Value::Object(mut instance) => {
                 let class_name = instance.class_name.clone();
 
@@ -289,6 +311,9 @@ impl<W: Write> Interpreter<W> {
                 }
                 crate::interpreter::ControlFlow::Break
                 | crate::interpreter::ControlFlow::Continue => break,
+                crate::interpreter::ControlFlow::Exception(e) => {
+                    return Err(format!("__EXCEPTION__:{}:{}", e.class_name, e.message));
+                }
                 crate::interpreter::ControlFlow::None => {}
             }
         }
@@ -348,6 +373,9 @@ impl<W: Write> Interpreter<W> {
                 }
                 crate::interpreter::ControlFlow::Break
                 | crate::interpreter::ControlFlow::Continue => break,
+                crate::interpreter::ControlFlow::Exception(e) => {
+                    return Err(format!("__EXCEPTION__:{}:{}", e.class_name, e.message));
+                }
                 crate::interpreter::ControlFlow::None => {}
             }
         }
@@ -447,6 +475,9 @@ impl<W: Write> Interpreter<W> {
                 }
                 crate::interpreter::ControlFlow::Break
                 | crate::interpreter::ControlFlow::Continue => break,
+                crate::interpreter::ControlFlow::Exception(e) => {
+                    return Err(format!("__EXCEPTION__:{}:{}", e.class_name, e.message));
+                }
                 crate::interpreter::ControlFlow::None => {}
             }
         }

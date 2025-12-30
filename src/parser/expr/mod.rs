@@ -83,6 +83,7 @@ impl<'a> ExprParser<'a> {
             TokenKind::And => Some(BinaryOp::And),
             TokenKind::Or => Some(BinaryOp::Or),
             TokenKind::Xor => Some(BinaryOp::Xor),
+            TokenKind::BitwiseOr => Some(BinaryOp::BitwiseOr),
             TokenKind::NullCoalesce => Some(BinaryOp::NullCoalesce),
             TokenKind::Pipe => Some(BinaryOp::Pipe),
             _ => None,

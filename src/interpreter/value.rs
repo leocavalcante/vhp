@@ -19,12 +19,16 @@ pub enum ClosureBody {
     FunctionRef(String),                // For first-class callables: strlen(...)
     MethodRef {
         // For first-class method callables: $obj->method(...)
+        #[allow(dead_code)]
         object: Box<Value>,
+        #[allow(dead_code)]
         method: String,
     },
     StaticMethodRef {
         // For first-class static callables: Class::method(...)
+        #[allow(dead_code)]
         class: String,
+        #[allow(dead_code)]
         method: String,
     },
 }
@@ -130,6 +134,7 @@ impl ArrayKey {
                 case_name,
                 ..
             } => ArrayKey::String(format!("{}::{}", enum_name, case_name)),
+            Value::Exception(exc) => ArrayKey::String(format!("Object({})", exc.class_name)),
         }
     }
 
@@ -140,6 +145,17 @@ impl ArrayKey {
             ArrayKey::String(s) => Value::String(s.clone()),
         }
     }
+}
+
+/// Exception value
+#[derive(Debug, Clone, PartialEq)]
+pub struct ExceptionValue {
+    pub class_name: String,
+    pub message: String,
+    pub code: i64,
+    pub file: String,
+    pub line: usize,
+    pub previous: Option<Box<ExceptionValue>>,
 }
 
 /// Runtime value representation
@@ -159,6 +175,7 @@ pub enum Value {
         case_name: String,
         backing_value: Option<Box<Value>>, // Some(value) for backed enums, None for pure
     },
+    Exception(ExceptionValue), // Exception instance
 }
 
 /// Object instance representation
@@ -239,6 +256,7 @@ impl Value {
                 case_name,
                 ..
             } => format!("{}::{}", enum_name, case_name),
+            Value::Exception(exc) => format!("Object({})", exc.class_name),
         }
     }
 
@@ -255,6 +273,7 @@ impl Value {
             Value::Fiber(_) => true,        // Fibers are always truthy
             Value::Closure(_) => true,      // Closures are always truthy
             Value::EnumCase { .. } => true, // Enum cases are always truthy
+            Value::Exception(_) => true,    // Exceptions are always truthy
         }
     }
 
@@ -283,6 +302,7 @@ impl Value {
             Value::Fiber(_) => 0,        // Fibers convert to 0
             Value::Closure(_) => 1,      // Closures convert to 1
             Value::EnumCase { .. } => 1, // Enum cases convert to 1
+            Value::Exception(_) => 1,    // Exceptions convert to 1
         }
     }
 
@@ -311,6 +331,7 @@ impl Value {
             Value::Fiber(_) => 0.0,        // Fibers convert to 0.0
             Value::Closure(_) => 1.0,      // Closures convert to 1.0
             Value::EnumCase { .. } => 1.0, // Enum cases convert to 1.0
+            Value::Exception(_) => 1.0,    // Exceptions convert to 1.0
         }
     }
 
@@ -343,6 +364,7 @@ impl Value {
                 case_name,
                 ..
             } => format!("{}::{}", enum_name, case_name),
+            Value::Exception(exc) => format!("Object({})", exc.class_name),
         }
     }
 
@@ -406,6 +428,10 @@ impl Value {
                     ..
                 },
             ) => en1 == en2 && cn1 == cn2, // Enum cases are identical by name
+            (Value::Exception(a), Value::Exception(b)) => {
+                // Exceptions are equal if they have the same class and message
+                a.class_name == b.class_name && a.message == b.message
+            }
             _ => false,
         }
     }
@@ -476,6 +502,10 @@ impl Value {
                     ..
                 },
             ) => en1 == en2 && cn1 == cn2,
+            // Exception comparisons
+            (Value::Exception(a), Value::Exception(b)) => {
+                a.class_name == b.class_name && a.message == b.message
+            }
             _ => self.to_bool() == other.to_bool(),
         }
     }
@@ -493,6 +523,7 @@ impl Value {
             Value::Fiber(_) => "object",        // Fibers are treated as objects for type purposes
             Value::Closure(_) => "object",      // Closures are treated as objects for type purposes
             Value::EnumCase { .. } => "object", // Enum cases are treated as objects for type purposes
+            Value::Exception(_) => "object",    // Exceptions are treated as objects for type purposes
         }
     }
 }

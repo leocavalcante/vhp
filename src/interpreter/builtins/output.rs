@@ -98,6 +98,22 @@ fn var_dump_value<W: Write>(output: &mut W, value: &Value, indent: usize) -> Res
                     .map_err(|e| e.to_string())?;
             }
         }
+        Value::Exception(exc) => {
+            writeln!(
+                output,
+                "{}object({})#1 (2) {{",
+                prefix,
+                exc.class_name
+            )
+            .map_err(|e| e.to_string())?;
+            writeln!(output, "{}  [\"message\"]=>\n{}  string({}) \"{}\"",
+                prefix, prefix, exc.message.len(), exc.message)
+                .map_err(|e| e.to_string())?;
+            writeln!(output, "{}  [\"code\"]=>\n{}  int({})",
+                prefix, prefix, exc.code)
+                .map_err(|e| e.to_string())?;
+            writeln!(output, "{}}}", prefix).map_err(|e| e.to_string())?;
+        }
     }
     Ok(())
 }

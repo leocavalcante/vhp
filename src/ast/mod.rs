@@ -10,7 +10,7 @@ mod stmt;
 pub use expr::{Argument, ArrayElement, Expr, MatchArm, PropertyModification};
 pub use ops::{AssignOp, BinaryOp, UnaryOp};
 pub use stmt::{
-    Attribute, AttributeArgument, EnumBackingType, EnumCase, FunctionParam, InterfaceConstant,
-    InterfaceMethodSignature, Method, Program, Property, Stmt, SwitchCase, TraitResolution,
-    TraitUse, Visibility,
+    Attribute, AttributeArgument, CatchClause, EnumBackingType, EnumCase, FunctionParam,
+    InterfaceConstant, InterfaceMethodSignature, Method, Program, Property, Stmt, SwitchCase,
+    TraitResolution, TraitUse, Visibility,
 };

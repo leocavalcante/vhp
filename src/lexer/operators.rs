@@ -184,10 +184,8 @@ impl Lexer {
                     self.advance();
                     TokenKind::Pipe
                 } else {
-                    return Err(format!(
-                        "Unexpected character '|' at line {}, column {}. Did you mean '|>' (pipe operator)?",
-                        line, column
-                    ));
+                    // Single pipe | for multi-catch and bitwise OR
+                    TokenKind::BitwiseOr
                 }
             }
 

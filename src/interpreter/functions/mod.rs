@@ -109,9 +109,18 @@ impl<W: Write> Interpreter<W> {
         let mut return_value = Value::Null;
         for stmt in &func.body.clone() {
             let cf = self.execute_stmt(stmt).map_err(|e| e.to_string())?;
-            if let crate::interpreter::ControlFlow::Return(val) = cf {
-                return_value = val;
-                break;
+            match cf {
+                crate::interpreter::ControlFlow::Return(val) => {
+                    return_value = val;
+                    break;
+                }
+                crate::interpreter::ControlFlow::Exception(e) => {
+                    // Restore variables and class context before propagating exception
+                    self.variables = saved_variables;
+                    self.current_class = saved_current_class;
+                    return Err(format!("__EXCEPTION__:{}:{}", e.class_name, e.message));
+                }
+                _ => {} // Continue for ControlFlow::None
             }
         }
 
@@ -205,9 +214,18 @@ impl<W: Write> Interpreter<W> {
         let mut return_value = Value::Null;
         for stmt in &func.body.clone() {
             let cf = self.execute_stmt(stmt).map_err(|e| e.to_string())?;
-            if let crate::interpreter::ControlFlow::Return(val) = cf {
-                return_value = val;
-                break;
+            match cf {
+                crate::interpreter::ControlFlow::Return(val) => {
+                    return_value = val;
+                    break;
+                }
+                crate::interpreter::ControlFlow::Exception(e) => {
+                    // Restore variables and class context before propagating exception
+                    self.variables = saved_variables;
+                    self.current_class = saved_current_class;
+                    return Err(format!("__EXCEPTION__:{}:{}", e.class_name, e.message));
+                }
+                _ => {} // Continue for ControlFlow::None
             }
         }
 

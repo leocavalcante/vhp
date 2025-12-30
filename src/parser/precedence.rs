@@ -14,13 +14,14 @@ pub enum Precedence {
     Or = 5,           // || or
     And = 6,          // && and
     Xor = 7,          // xor
-    Equality = 8,     // == === != !==
-    Comparison = 9,   // < > <= >= <=>
-    Concat = 10,      // .
-    AddSub = 11,      // + -
-    MulDiv = 12,      // * / %
-    Pow = 13,         // ** (right associative)
-    Unary = 14,       // ! - ++ --
+    BitwiseOr = 8,    // | (bitwise OR)
+    Equality = 9,     // == === != !==
+    Comparison = 10,  // < > <= >= <=>
+    Concat = 11,      // .
+    AddSub = 12,      // + -
+    MulDiv = 13,      // * / %
+    Pow = 14,         // ** (right associative)
+    Unary = 15,       // ! - ++ --
 }
 
 /// Get precedence for a token kind
@@ -41,6 +42,7 @@ pub fn get_precedence(kind: &TokenKind) -> Precedence {
         TokenKind::Or => Precedence::Or,
         TokenKind::And => Precedence::And,
         TokenKind::Xor => Precedence::Xor,
+        TokenKind::BitwiseOr => Precedence::BitwiseOr,
 
         TokenKind::Equal | TokenKind::Identical | TokenKind::NotEqual | TokenKind::NotIdentical => {
             Precedence::Equality

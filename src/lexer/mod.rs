@@ -197,6 +197,10 @@ impl Lexer {
             "with" => TokenKind::With,
             "abstract" => TokenKind::Abstract,
             "final" => TokenKind::Final,
+            "try" => TokenKind::Try,
+            "catch" => TokenKind::Catch,
+            "finally" => TokenKind::Finally,
+            "throw" => TokenKind::Throw,
             _ => TokenKind::Identifier(ident.to_string()),
         }
     }
