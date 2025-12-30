@@ -375,6 +375,40 @@ must be of type int, string given
 - When adding type-related tests, explicitly decide: strict mode or coercive mode?
 - Document in test which mode is being tested
 
+### Rust Patterns: Dead Code from Superseded Implementations
+
+**Date**: 2025-12-30
+**Feature**: DNF types (PHP 8.2)
+**Issue**: Methods marked as dead code after being superseded by better implementations
+**Details**:
+During the DNF types implementation, type checking methods were initially added to `Value` but were later superseded by `Interpreter` methods that have access to the full class hierarchy.
+
+The warning pattern:
+```
+error: methods `matches_type` and `matches_simple_type` are never used
+   --> src/interpreter/value.rs:564:12
+```
+
+These methods existed because:
+1. Initial implementation added `Value::matches_type()` for basic type checking
+2. Later, `Interpreter::value_matches_type()` was added with full class registry access for proper inheritance checking
+3. The original `Value::matches_type()` became unused but wasn't removed
+4. A related method `Value::matches_type_strict()` IS still used for strict mode checking
+
+**Root Cause**: During feature evolution, older implementations can become dead code when better versions with more context are created. The code comment even acknowledged this: "For full inheritance chain validation, use Interpreter::value_matches_type instead."
+
+**Solution**:
+- Remove dead code promptly when superseded
+- Keep related methods that are still used (e.g., `matches_type_strict()`)
+- Use `cargo clippy -- -D warnings` to catch dead code early
+
+**Prevention**:
+- When adding a better implementation with more context, remove the old one
+- Search codebase for all usages before determining a method is unused
+- Check if the method is called internally (private helpers) vs externally
+- Run clippy regularly during development, not just at QA time
+- If a method will be needed later, add `#[allow(dead_code)]` with a comment explaining why
+
 ---
 
 ## Adding New Learnings
@@ -409,3 +443,4 @@ Categories:
 | Initial | Created with foundational learnings | architect |
 | 2025-12-30 | Added PHP Compatibility: Feature Incompatibility Validation pattern from asymmetric-visibility implementation | qa |
 | 2025-12-30 | Added Interpreter Patterns: Union Type Coercion Order and Testing Patterns: Type Tests Need declare(strict_types=1) | qa |
+| 2025-12-30 | Added Rust Patterns: Dead Code from Superseded Implementations from dnf-types QA | qa |
