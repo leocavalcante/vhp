@@ -1,0 +1,13 @@
+--TEST--
+Catching child exception with parent catch clause
+--FILE--
+<?php
+class MyException extends Exception {}
+
+try {
+    throw new MyException("my error");
+} catch (Exception $e) {
+    echo "Caught via Exception";
+}
+--EXPECT--
+Caught via Exception

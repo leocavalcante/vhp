@@ -1,0 +1,17 @@
+--TEST--
+Nested try/catch blocks
+--FILE--
+<?php
+try {
+    try {
+        throw new Exception("inner");
+    } catch (Exception $e) {
+        echo "caught inner\n";
+        throw new Exception("rethrown");
+    }
+} catch (Exception $e) {
+    echo "caught outer";
+}
+--EXPECT--
+caught inner
+caught outer

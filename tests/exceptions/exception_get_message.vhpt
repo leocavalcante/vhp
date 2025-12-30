@@ -1,0 +1,11 @@
+--TEST--
+Exception getMessage() method
+--FILE--
+<?php
+try {
+    throw new Exception("Test message");
+} catch (Exception $e) {
+    echo $e->getMessage();
+}
+--EXPECT--
+Test message

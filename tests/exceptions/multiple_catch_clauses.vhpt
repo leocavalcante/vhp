@@ -1,0 +1,15 @@
+--TEST--
+Multiple catch clauses - first match wins
+--FILE--
+<?php
+class CustomException extends Exception {}
+
+try {
+    throw new CustomException("custom");
+} catch (CustomException $e) {
+    echo "caught CustomException";
+} catch (Exception $e) {
+    echo "caught Exception";
+}
+--EXPECT--
+caught CustomException

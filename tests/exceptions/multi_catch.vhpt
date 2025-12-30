@@ -1,0 +1,13 @@
+--TEST--
+Multi-catch with pipe operator (PHP 7.1+)
+--FILE--
+<?php
+class CustomException extends Exception {}
+
+try {
+    throw new CustomException("custom error");
+} catch (InvalidArgumentException | CustomException $e) {
+    echo "Caught: custom error";
+}
+--EXPECT--
+Caught: custom error

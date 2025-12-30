@@ -1,0 +1,17 @@
+--TEST--
+Try/finally without catch
+--FILE--
+<?php
+function test() {
+    try {
+        echo "try\n";
+        return "returned";
+    } finally {
+        echo "finally\n";
+    }
+}
+echo test();
+--EXPECT--
+try
+finally
+returned

@@ -1,0 +1,15 @@
+--TEST--
+Throw as expression (PHP 8.0+)
+--FILE--
+<?php
+function getValue($val) {
+    return $val ?? throw new Exception("Value required");
+}
+
+try {
+    $result = getValue(null);
+} catch (Exception $e) {
+    echo "Exception caught";
+}
+--EXPECT--
+Exception caught

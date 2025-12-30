@@ -1,0 +1,11 @@
+--TEST--
+Basic try/catch exception handling
+--FILE--
+<?php
+try {
+    throw new Exception("Test error");
+} catch (Exception $e) {
+    echo "Caught exception";
+}
+--EXPECT--
+Caught exception

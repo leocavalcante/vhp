@@ -1,0 +1,16 @@
+--TEST--
+Try/catch/finally execution order
+--FILE--
+<?php
+try {
+    echo "try\n";
+    throw new Exception("error");
+} catch (Exception $e) {
+    echo "catch\n";
+} finally {
+    echo "finally\n";
+}
+--EXPECT--
+try
+catch
+finally

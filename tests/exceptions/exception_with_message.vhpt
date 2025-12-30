@@ -1,0 +1,11 @@
+--TEST--
+Exception with message through constructor
+--FILE--
+<?php
+try {
+    throw new Exception("Something went wrong");
+} catch (Exception $e) {
+    echo "Exception caught";
+}
+--EXPECT--
+Exception caught

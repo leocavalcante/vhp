@@ -1,0 +1,7 @@
+--TEST--
+Uncaught exception error
+--FILE--
+<?php
+throw new Exception("Uncaught!");
+--EXPECT_ERROR--
+Uncaught Exception: Uncaught!
