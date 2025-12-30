@@ -192,6 +192,7 @@ impl<W: Write> Interpreter<W> {
                             readonly: param.readonly,
                             is_static: false, // Promoted properties cannot be static
                             attributes: param.attributes.clone(),
+                            hooks: vec![],     // Promoted properties cannot have hooks
                         });
 
                         // Prepend assignment: $this->param_name = $param_name

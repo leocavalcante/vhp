@@ -135,6 +135,7 @@ impl ClassDefinition {
     }
 
     /// Check if class has a magic method
+    #[allow(dead_code)]
     pub fn has_magic_method(&self, name: &str) -> bool {
         self.get_magic_method(name).is_some()
     }
@@ -334,6 +335,7 @@ impl<W: Write> Interpreter<W> {
                     readonly: false,
                     is_static: false,
                     attributes: vec![],
+                    hooks: vec![],
                 },
                 Property {
                     name: "code".to_string(),
@@ -342,6 +344,7 @@ impl<W: Write> Interpreter<W> {
                     readonly: false,
                     is_static: false,
                     attributes: vec![],
+                    hooks: vec![],
                 },
             ],
             methods,
