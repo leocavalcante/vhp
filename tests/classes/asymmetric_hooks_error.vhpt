@@ -1,0 +1,11 @@
+--TEST--
+Property hooks incompatible with asymmetric visibility
+--FILE--
+<?php
+class Test {
+    public private(set) string $name {
+        get => "value";
+    }
+}
+--EXPECT_ERROR--
+Property hooks cannot be combined with asymmetric visibility

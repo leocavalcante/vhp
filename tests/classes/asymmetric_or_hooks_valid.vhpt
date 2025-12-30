@@ -1,0 +1,20 @@
+--TEST--
+Property hooks and asymmetric visibility work independently
+--FILE--
+<?php
+class Test {
+    // Property with hooks (no asymmetric visibility)
+    public string $name {
+        get => "John";
+    }
+
+    // Property with asymmetric visibility (no hooks)
+    public private(set) string $email = "test@example.com";
+}
+
+$obj = new Test();
+echo $obj->name . "\n";
+echo $obj->email . "\n";
+--EXPECT--
+John
+test@example.com
