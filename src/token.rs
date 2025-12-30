@@ -56,6 +56,8 @@ pub enum TokenKind {
     Abstract,   // abstract (for abstract classes and methods)
     Final,      // final (for final classes, methods, and constants)
     Static,     // static (for static methods and properties)
+    Get,        // get (PHP 8.4) - property hooks
+    Set,        // set (PHP 8.4) - property hooks
 
     // Namespace Keywords
     Namespace,  // namespace
