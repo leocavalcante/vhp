@@ -557,41 +557,6 @@ impl Value {
             Value::Exception(exc) => Box::leak(exc.class_name.clone().into_boxed_str()),
         }
     }
-
-    /// Check if value matches a type hint (basic version without interpreter access)
-    /// NOTE: This method has limitations for inheritance checking.
-    /// For full inheritance chain validation, use Interpreter::value_matches_type instead.
-    pub fn matches_type(&self, type_hint: &crate::ast::TypeHint) -> bool {
-        use crate::ast::TypeHint;
-        match type_hint {
-            TypeHint::Simple(name) => self.matches_simple_type(name),
-            TypeHint::Nullable(inner) => matches!(self, Value::Null) || self.matches_type(inner),
-            TypeHint::Union(types) => types.iter().any(|t| self.matches_type(t)),
-            TypeHint::Intersection(types) => types.iter().all(|t| self.matches_type(t)),
-            TypeHint::DNF(intersections) => {
-                // DNF: (A&B)|(C&D)|E
-                // Value must match at least one intersection group
-                // WARNING: This only checks direct parent/interfaces, not full hierarchy
-                intersections.iter().any(|group| {
-                    // All types in the group must match
-                    group.iter().all(|t| self.matches_type(t))
-                })
-            }
-            TypeHint::Class(class_name) => {
-                if let Value::Object(obj) = self {
-                    obj.is_instance_of(class_name)
-                } else {
-                    false
-                }
-            }
-            TypeHint::Void => false,       // void is for return types only
-            TypeHint::Never => false,      // never is for return types only
-            TypeHint::Static => false,     // Requires class context
-            TypeHint::SelfType => false,   // Requires class context
-            TypeHint::ParentType => false, // Requires class context
-        }
-    }
-
     /// Strict type matching (no coercion) - PHP 7.0+ strict_types mode
     pub fn matches_type_strict(&self, type_hint: &crate::ast::TypeHint) -> bool {
         use crate::ast::TypeHint;
@@ -641,30 +606,6 @@ impl Value {
             TypeHint::Static => false,
             TypeHint::SelfType => false,
             TypeHint::ParentType => false,
-        }
-    }
-
-    /// Check if value matches a simple type name
-    fn matches_simple_type(&self, type_name: &str) -> bool {
-        match (type_name, self) {
-            ("int", Value::Integer(_)) => true,
-            ("string", Value::String(_)) => true,
-            ("float", Value::Float(_)) => true,
-            ("float", Value::Integer(_)) => true, // int is compatible with float
-            ("bool", Value::Bool(_)) => true,
-            ("array", Value::Array(_)) => true,
-            ("object", Value::Object(_)) => true,
-            ("object", Value::Fiber(_)) => true,
-            ("object", Value::Closure(_)) => true,
-            ("object", Value::EnumCase { .. }) => true,
-            ("callable", Value::Closure(_)) => true,
-            ("callable", Value::String(_)) => true, // function name
-            ("iterable", Value::Array(_)) => true,
-            ("mixed", _) => true,
-            ("null", Value::Null) => true,
-            ("false", Value::Bool(false)) => true,
-            ("true", Value::Bool(true)) => true,
-            _ => false,
         }
     }
 }
