@@ -1,5 +1,5 @@
 ---
-name: manager
+name: Manager
 description: Orchestrates the complete VHP roadmap development workflow by coordinating Architect, Coder, QA, and Tech Writer agents through planning, implementation, validation, documentation, and git operations.
 ---
 
