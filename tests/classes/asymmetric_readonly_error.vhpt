@@ -1,0 +1,9 @@
+--TEST--
+Readonly and asymmetric visibility are incompatible
+--FILE--
+<?php
+class User {
+    public private(set) readonly string $name;
+}
+--EXPECT_ERROR--
+Readonly properties cannot have asymmetric visibility

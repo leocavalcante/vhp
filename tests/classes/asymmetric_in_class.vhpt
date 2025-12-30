@@ -1,0 +1,21 @@
+--TEST--
+Asymmetric property can be written inside class
+--FILE--
+<?php
+class Counter {
+    public private(set) int $value = 0;
+
+    public function add(int $n) {
+        $this->value = $this->value + $n; // OK: private write inside class
+    }
+
+    public function getValue(): int {
+        return $this->value;
+    }
+}
+
+$counter = new Counter();
+$counter->add(5);
+echo $counter->getValue();
+--EXPECT--
+5

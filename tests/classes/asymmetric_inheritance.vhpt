@@ -1,0 +1,21 @@
+--TEST--
+Asymmetric visibility with inheritance
+--FILE--
+<?php
+class Base {
+    public protected(set) string $status = "pending";
+}
+
+class Child extends Base {
+    public function approve() {
+        $this->status = "approved"; // OK in subclass
+    }
+}
+
+$child = new Child();
+echo $child->status . "\n";
+$child->approve();
+echo $child->status;
+--EXPECT--
+pending
+approved

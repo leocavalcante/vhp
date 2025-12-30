@@ -1,0 +1,12 @@
+--TEST--
+Cannot write to protected(set) from outside
+--FILE--
+<?php
+class Base {
+    public protected(set) int $count = 0;
+}
+
+$obj = new Base();
+$obj->count = 5;
+--EXPECT_ERROR--
+Cannot modify protected property

@@ -1,0 +1,18 @@
+--TEST--
+Asymmetric visibility on static properties
+--FILE--
+<?php
+class Config {
+    public private(set) static int $version = 1;
+
+    public static function upgrade() {
+        self::$version++; // OK: write inside class
+    }
+}
+
+echo Config::$version . "\n"; // OK: public read
+Config::upgrade();
+echo Config::$version;
+--EXPECT--
+1
+2

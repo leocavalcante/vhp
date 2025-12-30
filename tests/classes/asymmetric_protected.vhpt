@@ -1,0 +1,21 @@
+--TEST--
+Asymmetric visibility with protected(set)
+--FILE--
+<?php
+class Base {
+    public protected(set) int $count = 0;
+}
+
+class Child extends Base {
+    public function increment() {
+        $this->count = $this->count + 1; // OK: protected write in subclass
+    }
+}
+
+$child = new Child();
+echo $child->count . "\n"; // OK: public read
+$child->increment();
+echo $child->count;
+--EXPECT--
+0
+1

@@ -1,0 +1,24 @@
+--TEST--
+Multiple properties with different asymmetric visibility
+--FILE--
+<?php
+class Data {
+    public private(set) int $id;
+    public protected(set) string $name;
+    public int $value; // symmetric
+
+    public function __construct(int $id, string $name, int $value) {
+        $this->id = $id;
+        $this->name = $name;
+        $this->value = $value;
+    }
+}
+
+$data = new Data(1, "test", 42);
+echo $data->id . "\n";
+echo $data->name . "\n";
+echo $data->value;
+--EXPECT--
+1
+test
+42

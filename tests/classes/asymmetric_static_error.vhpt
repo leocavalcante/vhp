@@ -1,0 +1,11 @@
+--TEST--
+Cannot write to static property with private(set) from outside
+--FILE--
+<?php
+class Config {
+    public private(set) static int $version = 1;
+}
+
+Config::$version = 2;
+--EXPECT_ERROR--
+Cannot modify private property
