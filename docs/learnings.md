@@ -265,6 +265,35 @@ Always test:
 - Error messages without positions are frustrating
 **Prevention**: Include position in Token struct, propagate to AST
 
+### PHP Compatibility: Feature Incompatibility Validation
+
+**Date**: 2025-12-30
+**Feature**: Asymmetric Visibility (PHP 8.4)
+**Issue**: Some PHP 8.4 features are mutually exclusive and need validation
+**Details**:
+- Asymmetric visibility and property hooks are incompatible (both control write access)
+- Asymmetric visibility and readonly are incompatible (both restrict writes)
+- These validations should happen at parse time, not interpretation time
+- Error messages should clearly explain why features are incompatible
+- Pattern: When adding new features that control similar aspects (e.g., write access), check for conflicts with existing features
+**Prevention**:
+- Before implementing a new feature, check if it overlaps with existing features
+- Add validation logic immediately after parsing the conflicting features
+- Test the error cases with dedicated test files (e.g., `asymmetric_hooks_error.vhpt`)
+- Document incompatibilities in the feature plan
+
+Example validation pattern:
+```rust
+// After parsing both features
+if !prop.hooks.is_empty() && write_visibility.is_some() {
+    return Err(format!(
+        "Property hooks cannot be combined with asymmetric visibility at line {}, column {}",
+        self.current().line,
+        self.current().column
+    ));
+}
+```
+
 ---
 
 ## Adding New Learnings
@@ -297,3 +326,4 @@ Categories:
 | Date | Change | Author |
 |------|--------|--------|
 | Initial | Created with foundational learnings | architect |
+| 2025-12-30 | Added PHP Compatibility: Feature Incompatibility Validation pattern from asymmetric-visibility implementation | qa |
