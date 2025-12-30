@@ -1,0 +1,18 @@
+--TEST--
+Fully qualified name with backslash
+--FILE--
+<?php
+namespace MyApp;
+
+class Helper {}
+
+namespace Other;
+
+class Helper {}
+
+namespace;
+
+$h1 = new \MyApp\Helper();
+echo "Created MyApp Helper";
+--EXPECT--
+Created MyApp Helper

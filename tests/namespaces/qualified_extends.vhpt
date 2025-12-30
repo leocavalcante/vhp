@@ -1,0 +1,26 @@
+--TEST--
+Class extends with qualified name
+--FILE--
+<?php
+namespace Base;
+
+class Animal {
+    public function speak() {
+        return "Animal sound";
+    }
+}
+
+namespace App;
+
+use Base\Animal;
+
+class Dog extends Animal {
+    public function speak() {
+        return "Woof";
+    }
+}
+
+$dog = new Dog();
+echo $dog->speak();
+--EXPECT--
+Woof

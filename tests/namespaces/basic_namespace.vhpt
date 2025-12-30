@@ -1,0 +1,16 @@
+--TEST--
+Basic namespace declaration
+--FILE--
+<?php
+namespace MyApp;
+
+class User {
+    public function getName() {
+        return "User from MyApp";
+    }
+}
+
+$user = new User();
+echo $user->getName();
+--EXPECT--
+User from MyApp

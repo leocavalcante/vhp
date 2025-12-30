@@ -1,0 +1,25 @@
+--TEST--
+Braced namespace syntax
+--FILE--
+<?php
+namespace Foo {
+    class A {
+        public function name() { return "Foo\\A"; }
+    }
+}
+
+namespace Bar {
+    class A {
+        public function name() { return "Bar\\A"; }
+    }
+}
+
+namespace {
+    $foo = new \Foo\A();
+    $bar = new \Bar\A();
+    echo $foo->name() . "\n";
+    echo $bar->name();
+}
+--EXPECT--
+Foo\A
+Bar\A

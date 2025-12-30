@@ -1,0 +1,16 @@
+--TEST--
+Nested namespace
+--FILE--
+<?php
+namespace MyApp\Database;
+
+class Connection {
+    public function connect() {
+        return "Connected to database";
+    }
+}
+
+$conn = new Connection();
+echo $conn->connect();
+--EXPECT--
+Connected to database

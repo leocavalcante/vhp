@@ -1,0 +1,27 @@
+--TEST--
+Global namespace block
+--FILE--
+<?php
+namespace App;
+
+class Foo {
+    public function test() {
+        return "App Foo";
+    }
+}
+
+namespace {
+    class Foo {
+        public function test() {
+            return "Global Foo";
+        }
+    }
+    
+    $global = new Foo();
+    $app = new \App\Foo();
+    echo $global->test() . "\n";
+    echo $app->test();
+}
+--EXPECT--
+Global Foo
+App Foo

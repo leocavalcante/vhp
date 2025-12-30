@@ -1,0 +1,24 @@
+--TEST--
+Group use statement (PHP 7.0+)
+--FILE--
+<?php
+namespace MyApp\Models {
+    class User {
+        public function type() { return "User"; }
+    }
+    class Post {
+        public function type() { return "Post"; }
+    }
+}
+
+namespace Main;
+
+use MyApp\Models\{User, Post};
+
+$u = new User();
+$p = new Post();
+echo $u->type() . "\n";
+echo $p->type();
+--EXPECT--
+User
+Post

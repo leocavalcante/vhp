@@ -1,0 +1,25 @@
+--TEST--
+Multiple classes in same namespace
+--FILE--
+<?php
+namespace App;
+
+class Foo {
+    public function greet() {
+        return "Hello from Foo";
+    }
+}
+
+class Bar {
+    public function greet() {
+        return "Hello from Bar";
+    }
+}
+
+$foo = new Foo();
+$bar = new Bar();
+echo $foo->greet() . "\n";
+echo $bar->greet();
+--EXPECT--
+Hello from Foo
+Hello from Bar

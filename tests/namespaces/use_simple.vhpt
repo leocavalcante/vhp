@@ -1,0 +1,20 @@
+--TEST--
+Simple use statement without alias
+--FILE--
+<?php
+namespace Lib;
+
+class Database {
+    public function connect() {
+        return "Connected";
+    }
+}
+
+namespace App;
+
+use Lib\Database;
+
+$db = new Database();
+echo $db->connect();
+--EXPECT--
+Connected
