@@ -43,7 +43,7 @@ Every. Single. Line. Written through prompts to AI agents. Zero manual coding.
 - **🎯 Zero Dependencies** — Pure standard library, no external crates, no bloat
 - **✨ PHP 8.x Compatible** — Run your WordPress, Laravel, Drupal — *unchanged*
 - **🔮 Modern Features** — Arrow functions, match expressions, fibers, attributes, pipe operator
-- **📈 Battle-Tested** — 423 comprehensive tests and counting
+- **📈 Battle-Tested** — 433 comprehensive tests and counting
 
 ## ⚡ Get Started in 60 Seconds
 
@@ -216,6 +216,7 @@ That's the difference between a tool and an ecosystem.
 - ✅ Readonly classes (PHP 8.2)
 - ✅ Property hooks with get/set (PHP 8.4)
 - ✅ Object cloning with `clone` and `clone with`
+- ✅ Magic methods (__toString, __invoke, __get/__set, __call)
 
 **Type System:**
 - ✅ Runtime type validation for parameters and return types (PHP 7.0+)
@@ -252,8 +253,8 @@ That's the difference between a tool and an ecosystem.
 We're just getting started. Check out the [roadmap](https://leocavalcante.github.io/vhp/roadmap) to see what's coming:
 
 - More built-in functions (file I/O, JSON, date/time)
-- Advanced OOP features (magic methods, late static binding)
-- Namespace support
+- Advanced OOP features (static properties, late static binding)
+- Generators (yield/yield from)
 - Composer compatibility
 - Performance optimizations
 - And much more...

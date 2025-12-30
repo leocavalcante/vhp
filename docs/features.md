@@ -1334,6 +1334,144 @@ echo $o1->inner->value;  // 20 (affected by change to clone)
 echo $o2->inner->value;  // 20
 ```
 
+## Magic Methods
+
+Magic methods are special methods that PHP calls automatically in certain situations. They enable custom behavior for common operations like string conversion, property access, and method calls.
+
+### __toString
+
+Called when an object is used in a string context (echo, concatenation, etc.).
+
+```php
+<?php
+class User {
+    private $name;
+
+    public function __construct($name) {
+        $this->name = $name;
+    }
+
+    public function __toString(): string {
+        return $this->name;
+    }
+}
+
+$user = new User("Alice");
+echo $user;           // Alice
+echo "Hello, " . $user;  // Hello, Alice
+```
+
+### __invoke
+
+Called when an object is used as a function.
+
+```php
+<?php
+class Adder {
+    private $base;
+
+    public function __construct($base) {
+        $this->base = $base;
+    }
+
+    public function __invoke($n) {
+        return $this->base + $n;
+    }
+}
+
+$add5 = new Adder(5);
+echo $add5(10);  // 15
+```
+
+### __get and __set
+
+Called when accessing or setting undefined/inaccessible properties.
+
+```php
+<?php
+class MagicProps {
+    private $data = [];
+
+    public function __get($name) {
+        return $this->data[$name] ?? "undefined";
+    }
+
+    public function __set($name, $value) {
+        $this->data[$name] = $value;
+    }
+}
+
+$obj = new MagicProps();
+$obj->foo = "bar";
+echo $obj->foo;      // bar
+echo $obj->missing;  // undefined
+```
+
+### __isset and __unset
+
+Called when `isset()` or `unset()` is used on undefined/inaccessible properties.
+
+```php
+<?php
+class Container {
+    private $items = [];
+
+    public function __set($name, $value) {
+        $this->items[$name] = $value;
+    }
+
+    public function __isset($name) {
+        return isset($this->items[$name]);
+    }
+
+    public function __unset($name) {
+        unset($this->items[$name]);
+    }
+}
+
+$c = new Container();
+$c->key = "value";
+echo isset($c->key) ? "yes" : "no";  // yes
+unset($c->key);
+echo isset($c->key) ? "yes" : "no";  // no
+```
+
+### __call and __callStatic
+
+Called when invoking undefined/inaccessible methods.
+
+```php
+<?php
+class Wrapper {
+    public function __call($method, $args) {
+        return "Called $method with " . count($args) . " args";
+    }
+
+    public static function __callStatic($method, $args) {
+        return "Static: $method";
+    }
+}
+
+$w = new Wrapper();
+echo $w->unknownMethod(1, 2, 3);  // Called unknownMethod with 3 args
+echo Wrapper::anything();         // Static: anything
+```
+
+### Supported Magic Methods
+
+| Method | Purpose | Status |
+|--------|---------|--------|
+| `__construct` | Object initialization | Implemented |
+| `__toString` | String conversion | Implemented |
+| `__invoke` | Callable objects | Implemented |
+| `__get` | Property read overloading | Implemented |
+| `__set` | Property write overloading | Implemented |
+| `__isset` | isset() overloading | Implemented |
+| `__unset` | unset() overloading | Implemented |
+| `__call` | Method call overloading | Implemented |
+| `__callStatic` | Static method call overloading | Implemented |
+| `__clone` | Clone behavior | Implemented |
+
 ## Traits
 
 Traits enable code reuse in single inheritance languages by allowing methods to be shared across multiple classes.

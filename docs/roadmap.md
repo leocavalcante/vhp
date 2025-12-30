@@ -157,12 +157,12 @@ This phase focuses on implementing core PHP language features that are essential
 
 #### Magic Methods
 
-- [ ] **__toString()** - String representation of objects
-- [ ] **__invoke()** - Callable objects
-- [ ] **__get()/__set()** - Property overloading
-- [ ] **__isset()/__unset()** - Property checking
-- [ ] **__call()/__callStatic()** - Method overloading
-- [ ] **__clone()** - Custom clone behavior
+- [x] **__toString()** - String representation of objects ✅
+- [x] **__invoke()** - Callable objects ✅
+- [x] **__get()/__set()** - Property overloading ✅
+- [x] **__isset()/__unset()** - Property checking ✅
+- [x] **__call()/__callStatic()** - Method overloading ✅
+- [x] **__clone()** - Custom clone behavior ✅
 - [ ] **__debugInfo()** - Custom var_dump output
 - [ ] **__sleep()/__wakeup()** - Serialization hooks
 - [ ] **__serialize()/__unserialize()** (PHP 7.4) - Modern serialization
@@ -182,16 +182,16 @@ This phase focuses on implementing core PHP language features that are essential
 
 #### Control Flow Additions
 
-- [ ] **Alternative syntax** - `if:`, `endif;`, `foreach:`, `endforeach;`, etc.
+- [x] **Alternative syntax** - `if:`, `endif;`, `foreach:`, `endforeach;`, etc. ✅
 - [ ] **goto statement** - Jump to label
 - [ ] **declare directive** - `declare(strict_types=1);`
 
 #### Function Features
 
-- [ ] **Arrow functions** (PHP 7.4) - `fn($x) => $x * 2`
+- [x] **Arrow functions** (PHP 7.4) - `fn($x) => $x * 2` ✅
 - [x] **Variadic functions** - `function f(...$args)`
 - [x] **Argument unpacking** - `f(...$array)`
-- [ ] **First-class callables** (PHP 8.1) - `$fn = strlen(...)`
+- [x] **First-class callables** (PHP 8.1) - `$fn = strlen(...)` ✅
 - [ ] **Closures in constants** (PHP 8.5) - Static closures in constant expressions
 
 ### Phase 8: PHP 8.5 New Features 📋
