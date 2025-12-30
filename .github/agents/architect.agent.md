@@ -1,5 +1,5 @@
 ---
-name: VHP Architect
+name: Architect
 description: Software architect for VHP. Use to design implementation plans for the next roadmap item. Creates detailed plans in docs/plans/planned/ that the coder agent can follow without hassle.
 tools:
   - read

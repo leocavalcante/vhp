@@ -1,5 +1,5 @@
 ---
-name: VHP Coder
+name: Coder
 description: Expert Rust engineer specialized in programming language design and implementation. Use for designing lexers, parsers, AST nodes, interpreters, type systems, and implementing new PHP language features in VHP.
 tools:
   - read
