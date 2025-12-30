@@ -565,6 +565,50 @@ impl Value {
         }
     }
 
+    /// Strict type matching (no coercion) - PHP 7.0+ strict_types mode
+    pub fn matches_type_strict(&self, type_hint: &crate::ast::TypeHint) -> bool {
+        use crate::ast::TypeHint;
+        match type_hint {
+            TypeHint::Simple(name) => match (name.as_str(), self) {
+                ("int", Value::Integer(_)) => true,
+                ("float", Value::Float(_)) => true,
+                ("float", Value::Integer(_)) => true, // int is subtype of float (widening allowed)
+                ("string", Value::String(_)) => true,
+                ("bool", Value::Bool(_)) => true,
+                ("array", Value::Array(_)) => true,
+                ("object", Value::Object(_)) => true,
+                ("object", Value::Fiber(_)) => true,
+                ("object", Value::Closure(_)) => true,
+                ("object", Value::EnumCase { .. }) => true,
+                ("callable", Value::Closure(_)) => true,
+                ("callable", Value::String(_)) => true,
+                ("iterable", Value::Array(_)) => true,
+                ("mixed", _) => true,
+                ("null", Value::Null) => true,
+                ("false", Value::Bool(false)) => true,
+                ("true", Value::Bool(true)) => true,
+                _ => false,
+            },
+            TypeHint::Nullable(inner) => {
+                matches!(self, Value::Null) || self.matches_type_strict(inner)
+            }
+            TypeHint::Union(types) => types.iter().any(|t| self.matches_type_strict(t)),
+            TypeHint::Intersection(types) => types.iter().all(|t| self.matches_type_strict(t)),
+            TypeHint::Class(class_name) => {
+                if let Value::Object(obj) = self {
+                    obj.is_instance_of(class_name)
+                } else {
+                    false
+                }
+            }
+            TypeHint::Void => false,
+            TypeHint::Never => false,
+            TypeHint::Static => false,
+            TypeHint::SelfType => false,
+            TypeHint::ParentType => false,
+        }
+    }
+
     /// Check if value matches a simple type name
     fn matches_simple_type(&self, type_name: &str) -> bool {
         match (type_name, self) {
