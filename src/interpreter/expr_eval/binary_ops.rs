@@ -92,12 +92,12 @@ pub(crate) fn eval_binary<W: Write>(
             }
         }
 
-        // String concatenation
-        BinaryOp::Concat => Ok(Value::String(format!(
-            "{}{}",
-            left_val.to_string_val(),
-            right_val.to_string_val()
-        ))),
+        // String concatenation (support __toString)
+        BinaryOp::Concat => {
+            let left_str = interpreter.value_to_string(&left_val)?;
+            let right_str = interpreter.value_to_string(&right_val)?;
+            Ok(Value::String(format!("{}{}", left_str, right_str)))
+        }
 
         // Comparison operators
         BinaryOp::Equal => Ok(Value::Bool(left_val.loose_equals(&right_val))),

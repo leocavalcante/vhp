@@ -30,7 +30,10 @@ impl<W: Write> Interpreter<W> {
                             return Err(io::Error::other(e));
                         }
                     };
-                    write!(self.output, "{}", value.to_output_string())?;
+                    // Use value_to_string to support __toString magic method
+                    let str_val = self.value_to_string(&value)
+                        .map_err(io::Error::other)?;
+                    write!(self.output, "{}", str_val)?;
                 }
                 Ok(ControlFlow::None)
             }
