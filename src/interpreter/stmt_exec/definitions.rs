@@ -259,7 +259,7 @@ impl<W: Write> Interpreter<W> {
         }
 
         // Clone values that will be used after moving to ClassDefinition
-        let resolved_parent_clone = resolved_parent.clone();
+        let _resolved_parent_clone = resolved_parent.clone();
 
         let class_def = ClassDefinition {
             name: name.to_string(),
