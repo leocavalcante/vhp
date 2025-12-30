@@ -158,6 +158,15 @@ impl<'a> StmtParser<'a> {
                 false
             };
 
+            // Check for readonly modifier if not already found (can appear after static too)
+            let readonly = readonly
+                || if self.check(&TokenKind::Readonly) {
+                    self.advance();
+                    true
+                } else {
+                    false
+                };
+
             // Parse type hints if present (for property types)
             // Note: Currently type hints are parsed but not yet enforced for properties
             let _property_type = if let TokenKind::Identifier(_) = &self.current().kind {
