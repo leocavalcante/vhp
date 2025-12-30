@@ -213,6 +213,10 @@ pub struct Interpreter<W: Write> {
 
     // Anonymous class support
     anonymous_class_counter: usize, // For generating unique class names
+
+    // Strict types mode (PHP 7.0+)
+    strict_types: bool,              // Current strict_types mode
+    strict_types_stack: Vec<bool>,   // Stack for block-scoped declare
 }
 
 impl<W: Write> Interpreter<W> {
@@ -235,6 +239,8 @@ impl<W: Write> Interpreter<W> {
             current_fiber: None,
             fiber_counter: 0,
             anonymous_class_counter: 0,
+            strict_types: false,
+            strict_types_stack: vec![],
         };
         // Register built-in Exception class
         interp.register_exception_class();

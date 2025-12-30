@@ -171,6 +171,9 @@ impl<W: Write> Interpreter<W> {
             Stmt::Namespace { name, body } => self.handle_namespace(name, body),
             Stmt::Use(items) => self.handle_use_statement(items),
             Stmt::GroupUse(group_use) => self.handle_group_use(group_use),
+
+            // Declare directive
+            Stmt::Declare { directives, body } => self.handle_declare(directives, body),
         }
     }
 
@@ -439,6 +442,57 @@ impl<W: Write> Interpreter<W> {
 
             self.namespace_context.add_import(&full_item);
         }
+        Ok(ControlFlow::None)
+    }
+
+    /// Handle declare directive
+    fn handle_declare(
+        &mut self,
+        directives: &[crate::ast::DeclareDirective],
+        body: &Option<Vec<Stmt>>,
+    ) -> io::Result<ControlFlow> {
+        use crate::ast::DeclareDirective;
+
+        // Process directives
+        for directive in directives {
+            match directive {
+                DeclareDirective::StrictTypes(enabled) => {
+                    if body.is_some() {
+                        // Block-scope strict_types
+                        self.strict_types_stack.push(self.strict_types);
+                        self.strict_types = *enabled;
+                    } else {
+                        // File-scope strict_types
+                        self.strict_types = *enabled;
+                    }
+                }
+                DeclareDirective::Encoding(_) => {
+                    // Encoding is mostly ignored in modern PHP
+                }
+                DeclareDirective::Ticks(_) => {
+                    // Ticks for register_tick_function (advanced, not implemented)
+                }
+            }
+        }
+
+        // Execute body if present
+        if let Some(stmts) = body {
+            let mut result = ControlFlow::None;
+            for stmt in stmts {
+                result = self.execute_stmt(stmt)?;
+                if !matches!(result, ControlFlow::None) {
+                    break;
+                }
+            }
+
+            // Restore strict_types after block
+            if !self.strict_types_stack.is_empty() {
+                self.strict_types = self.strict_types_stack.pop().unwrap();
+            }
+
+            return Ok(result);
+        }
+
         Ok(ControlFlow::None)
     }
 }
