@@ -36,7 +36,7 @@ cd /Users/leocavalcante/Projects/vhp && cargo build --release
 
 ### Step 3: Test Suite Execution
 ```bash
-cd /Users/leocavalcante/Projects/vhp && ./target/release/vhp test -v
+cd /Users/leocavalcante/Projects/vhp && make test
 ```
 - Run the full test suite
 - Report pass/fail counts
