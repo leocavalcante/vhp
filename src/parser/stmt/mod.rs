@@ -388,6 +388,7 @@ impl<'a> StmtParser<'a> {
             visibility,
             default,
             readonly: false,        // Will be set by caller if needed
+            is_static: false,       // Will be set by caller if needed
             attributes: Vec::new(), // Will be set by caller
         })
     }

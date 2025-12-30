@@ -243,16 +243,28 @@ impl<'a> ExprParser<'a> {
                 let name = name.clone();
                 self.advance();
 
-                // Check for static method call (ClassName::method()) or enum case access (EnumName::CASE)
+                // Check for static method call (ClassName::method()), enum case access (EnumName::CASE), or static property (ClassName::$property)
                 if self.check(&TokenKind::DoubleColon) {
                     self.advance(); // consume '::'
+
+                    // Check for static property access (ClassName::$property)
+                    if let TokenKind::Variable(prop_name) = &self.current().kind {
+                        let prop_name = prop_name.clone();
+                        self.advance();
+                        let expr = Expr::StaticPropertyAccess {
+                            class: name,
+                            property: prop_name,
+                        };
+                        return parse_postfix(self, expr);
+                    }
+
                     let method_or_case = if let TokenKind::Identifier(id) = &self.current().kind {
                         let id = id.clone();
                         self.advance();
                         id
                     } else {
                         return Err(format!(
-                            "Expected method or case name after '::' at line {}, column {}",
+                            "Expected method, case name, or property after '::' at line {}, column {}",
                             self.current().line,
                             self.current().column
                         ));
@@ -427,16 +439,28 @@ impl<'a> ExprParser<'a> {
             TokenKind::Parent => {
                 self.advance(); // consume 'parent'
 
-                // parent::method() call
+                // parent::method() call or parent::$property access
                 if self.check(&TokenKind::DoubleColon) {
                     self.advance(); // consume '::'
+
+                    // Check for static property access (parent::$property)
+                    if let TokenKind::Variable(prop_name) = &self.current().kind {
+                        let prop_name = prop_name.clone();
+                        self.advance();
+                        let expr = Expr::StaticPropertyAccess {
+                            class: "parent".to_string(),
+                            property: prop_name,
+                        };
+                        return parse_postfix(self, expr);
+                    }
+
                     let method = if let TokenKind::Identifier(method_name) = &self.current().kind {
                         let method_name = method_name.clone();
                         self.advance();
                         method_name
                     } else {
                         return Err(format!(
-                            "Expected method name after 'parent::' at line {}, column {}",
+                            "Expected method name or property after 'parent::' at line {}, column {}",
                             self.current().line,
                             self.current().column
                         ));
@@ -460,6 +484,58 @@ impl<'a> ExprParser<'a> {
                 } else {
                     Err(format!(
                         "Expected '::' after 'parent' at line {}, column {}",
+                        token.line, token.column
+                    ))
+                }
+            }
+            TokenKind::Static => {
+                self.advance(); // consume 'static'
+
+                // static::method() call or static::$property access (late static binding)
+                if self.check(&TokenKind::DoubleColon) {
+                    self.advance(); // consume '::'
+
+                    // Check for static property access (static::$property)
+                    if let TokenKind::Variable(prop_name) = &self.current().kind {
+                        let prop_name = prop_name.clone();
+                        self.advance();
+                        let expr = Expr::StaticPropertyAccess {
+                            class: "static".to_string(),
+                            property: prop_name,
+                        };
+                        return parse_postfix(self, expr);
+                    }
+
+                    let method = if let TokenKind::Identifier(method_name) = &self.current().kind {
+                        let method_name = method_name.clone();
+                        self.advance();
+                        method_name
+                    } else {
+                        return Err(format!(
+                            "Expected method name or property after 'static::' at line {}, column {}",
+                            self.current().line,
+                            self.current().column
+                        ));
+                    };
+
+                    self.consume(
+                        TokenKind::LeftParen,
+                        "Expected '(' after static method name",
+                    )?;
+                    let args = self.parse_arguments()?;
+                    self.consume(
+                        TokenKind::RightParen,
+                        "Expected ')' after static method arguments",
+                    )?;
+                    let call = Expr::StaticMethodCall {
+                        class_name: "static".to_string(),
+                        method,
+                        args,
+                    };
+                    parse_postfix(self, call)
+                } else {
+                    Err(format!(
+                        "Expected '::' after 'static' at line {}, column {}",
                         token.line, token.column
                     ))
                 }

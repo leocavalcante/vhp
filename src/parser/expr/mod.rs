@@ -244,9 +244,26 @@ impl<'a> ExprParser<'a> {
                         };
                         continue;
                     }
+                    Expr::StaticPropertyAccess { class, property } => {
+                        // Static property assignment: ClassName::$prop = value
+                        if !matches!(assign_op, AssignOp::Assign) {
+                            return Err(format!(
+                                "Compound assignment not supported for static properties at line {}, column {}",
+                                op_token.line, op_token.column
+                            ));
+                        }
+                        self.advance();
+                        let right = self.parse_expression(Precedence::None)?;
+                        left = Expr::StaticPropertyAssign {
+                            class: class.clone(),
+                            property: property.clone(),
+                            value: Box::new(right),
+                        };
+                        continue;
+                    }
                     _ => {
                         return Err(format!(
-                            "Left side of assignment must be a variable, array element, or property at line {}, column {}",
+                            "Left side of assignment must be a variable, array element, property, or static property at line {}, column {}",
                             op_token.line, op_token.column
                         ));
                     }

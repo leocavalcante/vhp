@@ -151,13 +151,9 @@ impl<'a> StmtParser<'a> {
                 };
             
             // Check for static modifier
-            let is_static = if let TokenKind::Identifier(s) = &self.current().kind {
-                if s.to_lowercase() == "static" {
-                    self.advance();
-                    true
-                } else {
-                    false
-                }
+            let is_static = if self.check(&TokenKind::Static) {
+                self.advance();
+                true
             } else {
                 false
             };
@@ -178,9 +174,10 @@ impl<'a> StmtParser<'a> {
                 method.attributes = attributes;
                 methods.push(method);
             } else if self.check(&TokenKind::Variable(String::new())) {
-                // Parse property with readonly modifier
+                // Parse property with readonly and static modifiers
                 let mut prop = self.parse_property(visibility)?;
                 prop.readonly = readonly;
+                prop.is_static = is_static;
                 prop.attributes = attributes;
                 properties.push(prop);
             } else {
