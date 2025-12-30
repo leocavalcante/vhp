@@ -829,6 +829,12 @@ impl<'a> StmtParser<'a> {
             TokenKind::Return => Ok(Some(self.parse_return()?)),
             TokenKind::Try => Ok(Some(self.parse_try()?)),
             TokenKind::Throw => Ok(Some(self.parse_throw_statement()?)),
+            TokenKind::Namespace => Ok(Some(self.parse_namespace()?)),
+            TokenKind::Use => {
+                // Distinguish between use statements (at top level) and trait use (in class)
+                // This is a top-level use statement (namespace import)
+                Ok(Some(self.parse_use_statement()?))
+            }
             TokenKind::Html(html) => {
                 self.advance();
                 Ok(Some(Stmt::Html(html)))
@@ -853,5 +859,257 @@ impl<'a> StmtParser<'a> {
                 token.kind, token.line, token.column
             )),
         }
+    }
+
+    /// Parse namespace declaration
+    /// namespace Foo\Bar { ... } or namespace Foo\Bar; or namespace { ... }
+    pub fn parse_namespace(&mut self) -> Result<Stmt, String> {
+        use crate::ast::NamespaceBody;
+
+        self.advance(); // consume 'namespace'
+
+        // Check if this is a global namespace block: namespace { ... }
+        // or a named namespace
+        let name = if self.check(&TokenKind::LeftBrace) || self.check(&TokenKind::Semicolon) {
+            None // Global namespace
+        } else {
+            Some(self.parse_qualified_name()?)
+        };
+
+        // Determine body style
+        let body = if self.check(&TokenKind::LeftBrace) {
+            // Braced namespace: namespace Foo { ... }
+            self.advance(); // consume {
+            let mut stmts = Vec::new();
+            while !self.check(&TokenKind::RightBrace) && !self.check(&TokenKind::Eof) {
+                if let Some(stmt) = self.parse_statement()? {
+                    stmts.push(stmt);
+                }
+            }
+            self.consume(TokenKind::RightBrace, "Expected '}' after namespace body")?;
+            NamespaceBody::Braced(stmts)
+        } else {
+            // Unbraced namespace: namespace Foo; (rest of file)
+            self.consume(
+                TokenKind::Semicolon,
+                "Expected ';' or '{' after namespace declaration",
+            )?;
+            NamespaceBody::Unbraced
+        };
+
+        Ok(Stmt::Namespace { name, body })
+    }
+
+    /// Parse qualified name (e.g., Foo\Bar\Baz or \Foo\Bar\Baz)
+    pub fn parse_qualified_name(&mut self) -> Result<crate::ast::QualifiedName, String> {
+        use crate::ast::QualifiedName;
+
+        let is_fully_qualified = if self.check(&TokenKind::Backslash) {
+            self.advance();
+            true
+        } else {
+            false
+        };
+
+        let mut parts = vec![];
+
+        // First part
+        if let TokenKind::Identifier(name) = &self.current().kind {
+            parts.push(name.clone());
+            self.advance();
+        } else {
+            return Err(format!(
+                "Expected identifier in qualified name at line {}, column {}",
+                self.current().line,
+                self.current().column
+            ));
+        }
+
+        // Additional parts after \
+        while self.check(&TokenKind::Backslash) {
+            // Peek ahead to see if there's an identifier after the backslash
+            // Don't consume the backslash if it's followed by { (for group use)
+            let next_idx = *self.pos + 1;
+            if next_idx < self.tokens.len() {
+                if let TokenKind::LeftBrace = &self.tokens[next_idx].kind {
+                    // Stop here - this backslash is part of group use syntax
+                    break;
+                }
+            }
+
+            self.advance();
+            if let TokenKind::Identifier(name) = &self.current().kind {
+                parts.push(name.clone());
+                self.advance();
+            } else {
+                return Err(format!(
+                    "Expected identifier after '\\' at line {}, column {}",
+                    self.current().line,
+                    self.current().column
+                ));
+            }
+        }
+
+        Ok(QualifiedName::new(parts, is_fully_qualified))
+    }
+
+    /// Parse use statement
+    /// use Foo\Bar; use Foo\Bar as Baz; use function Foo\bar; use const Foo\BAR;
+    /// use Foo\{Bar, Baz}; (group use)
+    pub fn parse_use_statement(&mut self) -> Result<Stmt, String> {
+        use crate::ast::{UseItem, UseType};
+
+        self.advance(); // consume 'use'
+
+        // Check for `use function` or `use const`
+        let default_type = if self.check(&TokenKind::Function) {
+            self.advance();
+            UseType::Function
+        } else if self.check(&TokenKind::Const) {
+            self.advance();
+            UseType::Constant
+        } else {
+            UseType::Class
+        };
+
+        // Parse the name
+        let name = self.parse_qualified_name()?;
+
+        // Check for group use: use Foo\{Bar, Baz}
+        // First consume the backslash before the brace if present
+        if self.check(&TokenKind::Backslash) {
+            self.advance(); // consume the \ before {
+            if !self.check(&TokenKind::LeftBrace) {
+                return Err(format!(
+                    "Expected '{{' after '\\' in use statement at line {}, column {}",
+                    self.current().line,
+                    self.current().column
+                ));
+            }
+        }
+
+        if self.check(&TokenKind::LeftBrace) {
+            return self.parse_group_use(name, default_type);
+        }
+
+        // Parse single or multiple uses
+        let mut items = vec![];
+
+        // First item
+        let alias = if self.check(&TokenKind::As) {
+            self.advance();
+            if let TokenKind::Identifier(alias_name) = &self.current().kind {
+                let alias_name = alias_name.clone();
+                self.advance();
+                Some(alias_name)
+            } else {
+                return Err(format!(
+                    "Expected identifier after 'as' at line {}, column {}",
+                    self.current().line,
+                    self.current().column
+                ));
+            }
+        } else {
+            None
+        };
+
+        items.push(UseItem {
+            name: name.clone(),
+            alias,
+            use_type: default_type.clone(),
+        });
+
+        // Additional items after comma
+        while self.check(&TokenKind::Comma) {
+            self.advance();
+            let name = self.parse_qualified_name()?;
+            let alias = if self.check(&TokenKind::As) {
+                self.advance();
+                if let TokenKind::Identifier(alias_name) = &self.current().kind {
+                    let alias_name = alias_name.clone();
+                    self.advance();
+                    Some(alias_name)
+                } else {
+                    return Err(format!(
+                        "Expected identifier after 'as' at line {}, column {}",
+                        self.current().line,
+                        self.current().column
+                    ));
+                }
+            } else {
+                None
+            };
+            items.push(UseItem {
+                name,
+                alias,
+                use_type: default_type.clone(),
+            });
+        }
+
+        self.consume(TokenKind::Semicolon, "Expected ';' after use statement")?;
+        Ok(Stmt::Use(items))
+    }
+
+    /// Parse group use statement: use Foo\{Bar, Baz};
+    fn parse_group_use(
+        &mut self,
+        prefix: crate::ast::QualifiedName,
+        default_type: crate::ast::UseType,
+    ) -> Result<Stmt, String> {
+        use crate::ast::{GroupUse, UseItem, UseType};
+
+        self.advance(); // consume '{'
+
+        let mut items = vec![];
+
+        loop {
+            // Check for type modifier
+            let use_type = if self.check(&TokenKind::Function) {
+                self.advance();
+                UseType::Function
+            } else if self.check(&TokenKind::Const) {
+                self.advance();
+                UseType::Constant
+            } else {
+                default_type.clone()
+            };
+
+            let name = self.parse_qualified_name()?;
+            let alias = if self.check(&TokenKind::As) {
+                self.advance();
+                if let TokenKind::Identifier(alias_name) = &self.current().kind {
+                    let alias_name = alias_name.clone();
+                    self.advance();
+                    Some(alias_name)
+                } else {
+                    return Err(format!(
+                        "Expected identifier after 'as' at line {}, column {}",
+                        self.current().line,
+                        self.current().column
+                    ));
+                }
+            } else {
+                None
+            };
+
+            items.push(UseItem {
+                name,
+                alias,
+                use_type,
+            });
+
+            if !self.check(&TokenKind::Comma) {
+                break;
+            }
+            self.advance();
+        }
+
+        self.consume(
+            TokenKind::RightBrace,
+            "Expected '}' after group use items",
+        )?;
+        self.consume(TokenKind::Semicolon, "Expected ';' after use statement")?;
+
+        Ok(Stmt::GroupUse(GroupUse { prefix, items }))
     }
 }

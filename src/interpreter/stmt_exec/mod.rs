@@ -155,6 +155,11 @@ impl<W: Write> Interpreter<W> {
             } => self.handle_try_catch(try_body, catch_clauses, finally_body),
 
             Stmt::Throw(expr) => self.handle_throw(expr),
+
+            // Namespace support
+            Stmt::Namespace { name, body } => self.handle_namespace(name, body),
+            Stmt::Use(items) => self.handle_use_statement(items),
+            Stmt::GroupUse(group_use) => self.handle_group_use(group_use),
         }
     }
 
@@ -351,5 +356,74 @@ impl<W: Write> Interpreter<W> {
         }
         self.output.flush()?;
         Ok(())
+    }
+
+    /// Handle namespace declaration
+    fn handle_namespace(
+        &mut self,
+        name: &Option<crate::ast::QualifiedName>,
+        body: &crate::ast::NamespaceBody,
+    ) -> io::Result<ControlFlow> {
+        // Set current namespace
+        if let Some(ns_name) = name {
+            self.namespace_context.current = ns_name.parts.clone();
+        } else {
+            // Global namespace
+            self.namespace_context.current = vec![];
+        }
+
+        // Clear imports when entering new namespace
+        self.namespace_context.class_imports.clear();
+        self.namespace_context.function_imports.clear();
+        self.namespace_context.constant_imports.clear();
+
+        // Execute braced namespace body
+        match body {
+            crate::ast::NamespaceBody::Braced(stmts) => {
+                for stmt in stmts {
+                    let flow = self.execute_stmt(stmt)?;
+                    if !matches!(flow, ControlFlow::None) {
+                        return Ok(flow);
+                    }
+                }
+            }
+            crate::ast::NamespaceBody::Unbraced => {
+                // For unbraced namespaces, the rest of the file is in this namespace
+                // This is handled by the parser/caller
+            }
+        }
+
+        Ok(ControlFlow::None)
+    }
+
+    /// Handle use statement
+    fn handle_use_statement(&mut self, items: &[crate::ast::UseItem]) -> io::Result<ControlFlow> {
+        for item in items {
+            self.namespace_context.add_import(item);
+        }
+        Ok(ControlFlow::None)
+    }
+
+    /// Handle group use statement
+    fn handle_group_use(&mut self, group_use: &crate::ast::GroupUse) -> io::Result<ControlFlow> {
+        for item in &group_use.items {
+            // Combine prefix and item name
+            let mut full_parts = group_use.prefix.parts.clone();
+            full_parts.extend(item.name.parts.clone());
+
+            let full_name = crate::ast::QualifiedName::new(
+                full_parts,
+                group_use.prefix.is_fully_qualified || item.name.is_fully_qualified,
+            );
+
+            let full_item = crate::ast::UseItem {
+                name: full_name,
+                alias: item.alias.clone(),
+                use_type: item.use_type.clone(),
+            };
+
+            self.namespace_context.add_import(&full_item);
+        }
+        Ok(ControlFlow::None)
     }
 }

@@ -66,17 +66,7 @@ impl<'a> StmtParser<'a> {
         // Check for extends
         let parent = if self.check(&TokenKind::Extends) {
             self.advance();
-            if let TokenKind::Identifier(parent_name) = &self.current().kind {
-                let parent_name = parent_name.clone();
-                self.advance();
-                Some(parent_name)
-            } else {
-                return Err(format!(
-                    "Expected parent class name after 'extends' at line {}, column {}",
-                    self.current().line,
-                    self.current().column
-                ));
-            }
+            Some(self.parse_qualified_name()?)
         } else {
             None
         };
@@ -86,16 +76,7 @@ impl<'a> StmtParser<'a> {
         if self.check(&TokenKind::Implements) {
             self.advance();
             loop {
-                if let TokenKind::Identifier(iface) = &self.current().kind {
-                    interfaces.push(iface.clone());
-                    self.advance();
-                } else {
-                    return Err(format!(
-                        "Expected interface name after 'implements' at line {}, column {}",
-                        self.current().line,
-                        self.current().column
-                    ));
-                }
+                interfaces.push(self.parse_qualified_name()?);
 
                 if !self.check(&TokenKind::Comma) {
                     break;

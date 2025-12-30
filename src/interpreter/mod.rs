@@ -18,6 +18,73 @@ use crate::ast::{FunctionParam, Expr};
 use std::collections::HashMap;
 use std::io::{self, Write};
 
+/// Namespace context for name resolution
+#[derive(Debug, Clone)]
+pub struct NamespaceContext {
+    /// Current namespace (empty for global)
+    pub current: Vec<String>,
+    /// Use imports: alias -> fully qualified name
+    pub class_imports: HashMap<String, crate::ast::QualifiedName>,
+    pub function_imports: HashMap<String, crate::ast::QualifiedName>,
+    pub constant_imports: HashMap<String, crate::ast::QualifiedName>,
+}
+
+impl NamespaceContext {
+    pub fn new() -> Self {
+        Self {
+            current: vec![],
+            class_imports: HashMap::new(),
+            function_imports: HashMap::new(),
+            constant_imports: HashMap::new(),
+        }
+    }
+
+    /// Resolve a class name to fully qualified
+    pub fn resolve_class(&self, name: &crate::ast::QualifiedName) -> String {
+        // Already fully qualified
+        if name.is_fully_qualified {
+            return name.parts.join("\\");
+        }
+
+        // Single name - check imports first
+        if name.parts.len() == 1 {
+            let simple_name = &name.parts[0];
+            if let Some(imported) = self.class_imports.get(simple_name) {
+                return imported.parts.join("\\");
+            }
+        }
+
+        // Relative name - prepend current namespace
+        let mut full = self.current.clone();
+        full.extend(name.parts.clone());
+        full.join("\\")
+    }
+
+    // Note: Function resolution would work similar to class resolution
+    // but with fallback to global namespace for built-in functions.
+    // This is left for future implementation when namespaced functions are needed.
+
+    /// Add a use import
+    pub fn add_import(&mut self, item: &crate::ast::UseItem) {
+        let alias = item
+            .alias
+            .clone()
+            .unwrap_or_else(|| item.name.last().cloned().unwrap_or_default());
+
+        match item.use_type {
+            crate::ast::UseType::Class => {
+                self.class_imports.insert(alias, item.name.clone());
+            }
+            crate::ast::UseType::Function => {
+                self.function_imports.insert(alias, item.name.clone());
+            }
+            crate::ast::UseType::Constant => {
+                self.constant_imports.insert(alias, item.name.clone());
+            }
+        }
+    }
+}
+
 /// Control flow signals for break/continue/return/exception
 #[derive(Debug, Clone, PartialEq)]
 pub enum ControlFlow {
@@ -110,6 +177,9 @@ pub struct Interpreter<W: Write> {
     current_object: Option<ObjectInstance>,
     current_class: Option<String>,
     
+    // Namespace support
+    namespace_context: NamespaceContext,
+    
     // Fiber support
     fibers: HashMap<usize, value::FiberInstance>, // All fibers by ID
     current_fiber: Option<usize>,                 // Currently executing fiber ID
@@ -131,6 +201,7 @@ impl<W: Write> Interpreter<W> {
             enums: HashMap::new(),
             current_object: None,
             current_class: None,
+            namespace_context: NamespaceContext::new(),
             fibers: HashMap::new(),
             current_fiber: None,
             fiber_counter: 0,

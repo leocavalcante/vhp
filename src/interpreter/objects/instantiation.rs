@@ -25,26 +25,42 @@ impl<W: Write> Interpreter<W> {
         class_name: &str,
         args: &[Argument],
     ) -> Result<Value, String> {
-        let class_name_lower = class_name.to_lowercase();
+        // Resolve class name through namespace context
+        let resolved_class_name = if let Some(stripped) = class_name.strip_prefix('\\') {
+            // Fully qualified name - strip leading backslash for lookup
+            stripped.to_string()
+        } else if class_name.contains('\\') {
+            // Qualified name - treat as relative to current namespace
+            let parts: Vec<String> = class_name.split('\\').map(|s| s.to_string()).collect();
+            let qn = crate::ast::QualifiedName::new(parts, false);
+            self.namespace_context.resolve_class(&qn)
+        } else {
+            // Unqualified name - check imports then current namespace
+            let parts = vec![class_name.to_string()];
+            let qn = crate::ast::QualifiedName::new(parts, false);
+            self.namespace_context.resolve_class(&qn)
+        };
+        
+        let class_name_lower = resolved_class_name.to_lowercase();
 
         // Check if class exists
         if !self.classes.contains_key(&class_name_lower) {
-            return Err(format!("Class '{}' not found", class_name));
+            return Err(format!("Class '{}' not found (resolved to '{}')", class_name, resolved_class_name));
         }
         
         // Check if class is abstract
         {
             let class_def = self.classes.get(&class_name_lower).unwrap();
             if class_def.is_abstract {
-                return Err(format!("Cannot instantiate abstract class {}", class_name));
+                return Err(format!("Cannot instantiate abstract class {}", resolved_class_name));
             }
         }
 
         // Collect properties from hierarchy
-        let properties = self.collect_properties(class_name)?;
+        let properties = self.collect_properties(&resolved_class_name)?;
 
         // Create new object instance
-        let mut instance = ObjectInstance::new(class_name.to_string());
+        let mut instance = ObjectInstance::new(resolved_class_name.clone());
 
         // Initialize properties with default values and track readonly
         for prop in properties {

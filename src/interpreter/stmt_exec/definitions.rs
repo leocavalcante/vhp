@@ -44,15 +44,21 @@ impl<W: Write> Interpreter<W> {
         is_abstract: bool,
         is_final: bool,
         readonly: bool,
-        parent: &Option<String>,
-        interfaces: &[String],
+        parent: &Option<crate::ast::QualifiedName>,
+        interfaces: &[crate::ast::QualifiedName],
         trait_uses: &[crate::ast::TraitUse],
         properties: &[Property],
         methods: &[crate::ast::Method],
         attributes: &[crate::ast::Attribute],
     ) -> std::io::Result<ControlFlow> {
+        // Resolve interface names through namespace context
+        let resolved_interfaces: Vec<String> = interfaces
+            .iter()
+            .map(|iface| self.namespace_context.resolve_class(iface))
+            .collect();
+
         // Validate all implemented interfaces exist
-        for iface_name in interfaces {
+        for iface_name in &resolved_interfaces {
             if !self.interfaces.contains_key(&iface_name.to_lowercase()) {
                 return Err(std::io::Error::other(format!(
                     "Interface '{}' not found",
@@ -60,9 +66,14 @@ impl<W: Write> Interpreter<W> {
                 )));
             }
         }
-        
+
+        // Resolve parent class name if exists
+        let resolved_parent = parent
+            .as_ref()
+            .map(|p| self.namespace_context.resolve_class(p));
+
         // If extending a class, check parent isn't final and validate abstract methods
-        if let Some(parent_name) = parent {
+        if let Some(parent_name) = &resolved_parent {
             let parent_name_lower = parent_name.to_lowercase();
             if let Some(parent_class) = self.classes.get(&parent_name_lower).cloned() {
                 // Cannot extend final class
@@ -99,7 +110,7 @@ impl<W: Write> Interpreter<W> {
         let mut all_properties = Vec::new();
 
         // If there's a parent class, inherit its properties and methods
-        if let Some(parent_name) = parent {
+        if let Some(parent_name) = &resolved_parent {
             let parent_name_lower = parent_name.to_lowercase();
             if let Some(parent_class) = self.classes.get(&parent_name_lower).cloned() {
                 // Inherit parent properties
@@ -211,7 +222,7 @@ impl<W: Write> Interpreter<W> {
         }
 
         // Verify all interface methods are implemented
-        for iface_name in interfaces {
+        for iface_name in &resolved_interfaces {
             if let Some(iface_def) = self.interfaces.get(&iface_name.to_lowercase()) {
                 for (method_name, method_params) in &iface_def.methods {
                     let method_name_lower = method_name.to_lowercase();
@@ -238,15 +249,25 @@ impl<W: Write> Interpreter<W> {
             is_abstract,
             is_final,
             readonly,
-            parent: parent.clone(),
+            parent: resolved_parent,
             properties: all_properties,
             methods: methods_map,
             method_visibility: visibility_map,
             attributes: attributes.to_vec(),
         };
 
-        // Store class definition (case-insensitive)
-        self.classes.insert(name.to_lowercase(), class_def);
+        // Store class definition with fully qualified name (case-insensitive)
+        let fqn = if self.namespace_context.current.is_empty() {
+            name.to_lowercase()
+        } else {
+            format!(
+                "{}\\{}",
+                self.namespace_context.current.join("\\"),
+                name
+            )
+            .to_lowercase()
+        };
+        self.classes.insert(fqn, class_def);
         Ok(ControlFlow::None)
     }
 
@@ -254,13 +275,19 @@ impl<W: Write> Interpreter<W> {
     pub(super) fn handle_interface_decl(
         &mut self,
         name: &str,
-        parents: &[String],
+        parents: &[crate::ast::QualifiedName],
         methods: &[crate::ast::InterfaceMethodSignature],
         constants: &[crate::ast::InterfaceConstant],
         attributes: &[crate::ast::Attribute],
     ) -> std::io::Result<ControlFlow> {
+        // Resolve parent interface names
+        let resolved_parents: Vec<String> = parents
+            .iter()
+            .map(|p| self.namespace_context.resolve_class(p))
+            .collect();
+
         // Validate parent interfaces exist
-        for parent_name in parents {
+        for parent_name in &resolved_parents {
             if !self.interfaces.contains_key(&parent_name.to_lowercase()) {
                 return Err(std::io::Error::other(format!(
                     "Parent interface '{}' not found",
@@ -271,7 +298,7 @@ impl<W: Write> Interpreter<W> {
 
         // Collect all methods from parent interfaces
         let mut all_methods = Vec::new();
-        for parent_name in parents {
+        for parent_name in &resolved_parents {
             if let Some(parent_iface) = self.interfaces.get(&parent_name.to_lowercase()).cloned() {
                 all_methods.extend(parent_iface.methods.clone());
             }
@@ -293,14 +320,24 @@ impl<W: Write> Interpreter<W> {
 
         let iface_def = InterfaceDefinition {
             name: name.to_string(),
-            parents: parents.to_vec(),
+            parents: resolved_parents,
             methods: all_methods,
             constants: const_map,
             attributes: attributes.to_vec(),
         };
 
-        // Store interface definition (case-insensitive)
-        self.interfaces.insert(name.to_lowercase(), iface_def);
+        // Store interface definition with fully qualified name (case-insensitive)
+        let fqn = if self.namespace_context.current.is_empty() {
+            name.to_lowercase()
+        } else {
+            format!(
+                "{}\\{}",
+                self.namespace_context.current.join("\\"),
+                name
+            )
+            .to_lowercase()
+        };
+        self.interfaces.insert(fqn, iface_def);
         Ok(ControlFlow::None)
     }
 

@@ -197,6 +197,8 @@ impl Lexer {
             "with" => TokenKind::With,
             "abstract" => TokenKind::Abstract,
             "final" => TokenKind::Final,
+            "namespace" => TokenKind::Namespace,
+            "const" => TokenKind::Const,
             "try" => TokenKind::Try,
             "catch" => TokenKind::Catch,
             "finally" => TokenKind::Finally,
@@ -376,6 +378,12 @@ impl Lexer {
             ']' => {
                 self.advance();
                 Ok(TokenKind::RightBracket)
+            }
+
+            // Backslash for namespaces
+            '\\' => {
+                self.advance();
+                Ok(TokenKind::Backslash)
             }
 
             // Operators

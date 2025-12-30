@@ -473,11 +473,41 @@ impl<'a> ExprParser<'a> {
                     return parse_postfix(self, anon_class);
                 }
                 
+                // Parse qualified class name (e.g., \Foo\Bar or Foo\Bar\Baz)
+                let mut class_name_parts = Vec::new();
+                let is_fully_qualified = if self.check(&TokenKind::Backslash) {
+                    self.advance();
+                    true
+                } else {
+                    false
+                };
+                
                 let class_name = match &self.current().kind {
                     TokenKind::Identifier(name) => {
-                        let name = name.clone();
+                        class_name_parts.push(name.clone());
                         self.advance();
-                        name
+                        
+                        // Continue parsing backslash-separated parts
+                        while self.check(&TokenKind::Backslash) {
+                            self.advance();
+                            if let TokenKind::Identifier(part) = &self.current().kind {
+                                class_name_parts.push(part.clone());
+                                self.advance();
+                            } else {
+                                return Err(format!(
+                                    "Expected identifier after '\\' at line {}, column {}",
+                                    self.current().line,
+                                    self.current().column
+                                ));
+                            }
+                        }
+                        
+                        // Construct the full class name
+                        if is_fully_qualified {
+                            format!("\\{}", class_name_parts.join("\\"))
+                        } else {
+                            class_name_parts.join("\\")
+                        }
                     }
                     TokenKind::Fiber => {
                         self.advance();

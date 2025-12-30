@@ -39,7 +39,7 @@ pub enum TokenKind {
     Interface,  // interface
     Implements, // implements
     Trait,      // trait
-    Use,        // use (for traits in class)
+    Use,        // use (for traits in class and namespace imports)
     Insteadof,  // insteadof
     Readonly,   // readonly (PHP 8.1)
     Enum,       // enum (PHP 8.1)
@@ -48,6 +48,10 @@ pub enum TokenKind {
     With,       // with (PHP 8.4) - for clone with syntax
     Abstract,   // abstract (for abstract classes and methods)
     Final,      // final (for final classes, methods, and constants)
+
+    // Namespace Keywords
+    Namespace,  // namespace
+    Const,      // const (for use const and class constants)
 
     // Exception Keywords
     Try,     // try
@@ -126,6 +130,7 @@ pub enum TokenKind {
     Pipe,         // |> (PHP 8.5 pipe operator)
     Hash,         // # (for attributes when followed by [)
     Ellipsis,     // ... (variadic/spread operator)
+    Backslash,    // \ (for namespaces and fully qualified names)
 
     // Special
     Html(String), // Raw HTML outside PHP tags

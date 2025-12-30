@@ -32,16 +32,7 @@ impl<'a> StmtParser<'a> {
         if self.check(&TokenKind::Extends) {
             self.advance();
             loop {
-                if let TokenKind::Identifier(parent) = &self.current().kind {
-                    parents.push(parent.clone());
-                    self.advance();
-                } else {
-                    return Err(format!(
-                        "Expected parent interface name after 'extends' at line {}, column {}",
-                        self.current().line,
-                        self.current().column
-                    ));
-                }
+                parents.push(self.parse_qualified_name()?);
 
                 if !self.check(&TokenKind::Comma) {
                     break;
@@ -59,10 +50,10 @@ impl<'a> StmtParser<'a> {
             // Parse attributes that may precede method or constant
             let attributes = self.parse_attributes()?;
 
-            if let TokenKind::Identifier(keyword) = &self.current().kind {
-                if keyword.to_lowercase() == "const" {
-                    // Parse const with the attributes we already parsed
-                    self.advance(); // consume 'const'
+            // Check for 'const' keyword
+            if self.check(&TokenKind::Const) {
+                // Parse const with the attributes we already parsed
+                self.advance(); // consume 'const'
 
                     let name = if let TokenKind::Identifier(name) = &self.current().kind {
                         let name = name.clone();
@@ -86,7 +77,6 @@ impl<'a> StmtParser<'a> {
                         attributes,
                     });
                     continue;
-                }
             }
 
             if self.check(&TokenKind::Function) {

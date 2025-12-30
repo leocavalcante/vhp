@@ -1,5 +1,60 @@
 use super::expr::Expr;
 
+/// Qualified name for namespace and class references (e.g., MyApp\Database\Connection)
+#[derive(Debug, Clone, PartialEq)]
+pub struct QualifiedName {
+    /// Path parts (e.g., ["MyApp", "Database", "Connection"])
+    pub parts: Vec<String>,
+    /// Whether it starts with \ (fully qualified)
+    pub is_fully_qualified: bool,
+}
+
+impl QualifiedName {
+    pub fn new(parts: Vec<String>, is_fully_qualified: bool) -> Self {
+        Self {
+            parts,
+            is_fully_qualified,
+        }
+    }
+
+    /// Get just the final name (class name, function name, etc.)
+    pub fn last(&self) -> Option<&String> {
+        self.parts.last()
+    }
+}
+
+/// Use statement type
+#[derive(Debug, Clone, PartialEq)]
+pub enum UseType {
+    Class,    // use Foo\Bar;
+    Function, // use function Foo\helper;
+    Constant, // use const Foo\VALUE;
+}
+
+/// Single use import
+#[derive(Debug, Clone)]
+pub struct UseItem {
+    pub name: QualifiedName,
+    pub alias: Option<String>, // `as` alias
+    pub use_type: UseType,
+}
+
+/// Group use statement: use Foo\{Bar, Baz};
+#[derive(Debug, Clone)]
+pub struct GroupUse {
+    pub prefix: QualifiedName,
+    pub items: Vec<UseItem>,
+}
+
+/// Namespace body style
+#[derive(Debug, Clone)]
+pub enum NamespaceBody {
+    /// Braced: namespace Foo { ... }
+    Braced(Vec<Stmt>),
+    /// Unbraced: namespace Foo; (rest of file)
+    Unbraced,
+}
+
 /// Type hint for parameters and return values
 #[derive(Debug, Clone, PartialEq)]
 pub enum TypeHint {
@@ -211,7 +266,7 @@ pub enum Stmt {
     Return(Option<Expr>),
     Interface {
         name: String,
-        parents: Vec<String>,
+        parents: Vec<QualifiedName>,
         methods: Vec<InterfaceMethodSignature>,
         constants: Vec<InterfaceConstant>,
         attributes: Vec<Attribute>, // PHP 8.0+
@@ -228,8 +283,8 @@ pub enum Stmt {
         is_abstract: bool, // abstract class modifier
         is_final: bool,    // final class modifier
         readonly: bool, // PHP 8.2+: all properties are implicitly readonly
-        parent: Option<String>,
-        interfaces: Vec<String>,
+        parent: Option<QualifiedName>,
+        interfaces: Vec<QualifiedName>,
         trait_uses: Vec<TraitUse>,
         properties: Vec<Property>,
         methods: Vec<Method>,
@@ -250,6 +305,15 @@ pub enum Stmt {
     },
     /// Throw statement
     Throw(Expr),
+    /// Namespace declaration
+    Namespace {
+        name: Option<QualifiedName>, // None for global namespace
+        body: NamespaceBody,
+    },
+    /// Use statement
+    Use(Vec<UseItem>),
+    /// Group use statement (PHP 7.0+)
+    GroupUse(GroupUse),
 }
 
 /// Switch case

@@ -11,6 +11,7 @@ pub use expr::{Argument, ArrayElement, Expr, MatchArm, PropertyModification};
 pub use ops::{AssignOp, BinaryOp, UnaryOp};
 pub use stmt::{
     Attribute, AttributeArgument, CatchClause, EnumBackingType, EnumCase, FunctionParam,
-    InterfaceConstant, InterfaceMethodSignature, Method, Program, Property, Stmt, SwitchCase,
-    TraitResolution, TraitUse, TypeHint, Visibility,
+    GroupUse, InterfaceConstant, InterfaceMethodSignature, Method, NamespaceBody, Program,
+    Property, QualifiedName, Stmt, SwitchCase, TraitResolution, TraitUse, TypeHint, UseItem,
+    UseType, Visibility,
 };
