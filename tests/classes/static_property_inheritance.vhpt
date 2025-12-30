@@ -6,7 +6,7 @@ class Base {
     protected static $value = "base";
 
     public static function getValue() {
-        return self::$value;
+        return static::$value;
     }
 }
 
