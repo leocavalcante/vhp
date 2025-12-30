@@ -135,6 +135,7 @@ $fiber->resume(); // Non-blocking concurrent execution
 - 🎭 **Interfaces & Traits** — Flexible, composable design patterns
 - 🛡️ **Attributes** — Metadata that doesn't suck (PHP 8.0)
 - 🚫 **Exception Handling** — try/catch/finally with throw expressions
+- 📝 **Type Declarations** — Full parsing support for parameter and return types (PHP 7.0+)
 
 ## 🔥 What Makes VHP Special
 

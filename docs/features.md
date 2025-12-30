@@ -2370,3 +2370,183 @@ throw new Exception("This will crash");
 - **Multi-catch Order**: In multi-catch, types are checked left to right
 - **Expression Context**: Throw expressions have higher precedence than most operators
 
+## Type Declarations (PHP 7.0+)
+
+VHP supports PHP's type declaration syntax for parameters and return types. Type hints are currently parsed and stored but not yet validated at runtime.
+
+### Parameter Type Hints
+
+Type hints can be added to function and method parameters to document expected types.
+
+```php
+<?php
+function greet(string $name, int $age): void {
+    echo "Hello, $name. You are $age years old.";
+}
+
+greet("Alice", 30); // Output: Hello, Alice. You are 30 years old.
+```
+
+**Supported simple types:**
+- `int` - Integer values
+- `float` - Floating-point values
+- `string` - String values
+- `bool` - Boolean values (true/false)
+- `array` - Array values
+- `object` - Object instances
+- `callable` - Callable values (functions, closures)
+- `mixed` - Any type (PHP 8.0+)
+
+### Nullable Types (PHP 7.1)
+
+Prefix a type with `?` to allow null values.
+
+```php
+<?php
+function setName(?string $name): void {
+    if ($name === null) {
+        echo "Name not provided";
+    } else {
+        echo "Name: $name";
+    }
+}
+
+setName(null);    // Output: Name not provided
+setName("Bob");   // Output: Name: Bob
+```
+
+### Union Types (PHP 8.0)
+
+Use `|` to accept multiple types.
+
+```php
+<?php
+function process(int|string $value): string {
+    if (is_int($value)) {
+        return "Number: " . $value;
+    }
+    return "Text: " . $value;
+}
+
+echo process(42);      // Output: Number: 42
+echo process("hello"); // Output: Text: hello
+```
+
+Union types can include null:
+
+```php
+<?php
+function getValue(): int|float|null {
+    return null;
+}
+```
+
+### Intersection Types (PHP 8.1)
+
+Use `&` to require multiple types (typically interfaces).
+
+```php
+<?php
+function process(Iterator&Countable $collection): int {
+    return count($collection);
+}
+```
+
+### Return Type Declarations
+
+Specify the type a function returns using `: type` after the parameter list.
+
+```php
+<?php
+function add(int $a, int $b): int {
+    return $a + $b;
+}
+
+function getUser(): array {
+    return ["name" => "Alice", "age" => 30];
+}
+```
+
+**Special return types:**
+- `void` - Function returns nothing (PHP 7.1)
+- `never` - Function never returns (throws or exits) (PHP 8.1)
+- `static` - Returns instance of called class (PHP 8.0)
+- `self` - Returns instance of declaring class
+- `parent` - Returns instance of parent class
+
+```php
+<?php
+function log(string $message): void {
+    echo $message;
+    // No return statement needed
+}
+
+function fail(): never {
+    throw new Exception("Always fails");
+}
+```
+
+### Class Type Hints
+
+Use class names as type hints:
+
+```php
+<?php
+class User {
+    public $name;
+}
+
+function processUser(User $user): string {
+    return $user->name;
+}
+```
+
+### Method Type Hints
+
+Type hints work the same way in class methods:
+
+```php
+<?php
+class Calculator {
+    public function add(int $a, int $b): int {
+        return $a + $b;
+    }
+    
+    public function divide(float $a, float $b): ?float {
+        if ($b === 0.0) {
+            return null;
+        }
+        return $a / $b;
+    }
+}
+```
+
+### Current Limitations
+
+**Type hints are currently for documentation only:**
+- ✅ Type declarations are parsed and stored in the AST
+- ✅ All PHP 7.0-8.1 type syntax is supported
+- ❌ Types are not validated at runtime
+- ❌ No type errors are thrown for mismatches
+
+**Example:**
+```php
+<?php
+function add(int $a, int $b): int {
+    return $a + $b;
+}
+
+// This currently works (but shouldn't once validation is added)
+echo add("hello", "world");
+```
+
+Runtime type validation will be added in a future update.
+
+### Best Practices
+
+- **Use type hints** for better code documentation
+- **Prefer specific types** over `mixed` when possible
+- **Use nullable types** (`?int`) instead of union with null when accepting a single type or null
+- **Document edge cases** when types don't tell the full story
+- **Prepare for validation** by writing code that would pass type checking
+

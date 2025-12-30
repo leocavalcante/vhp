@@ -62,7 +62,7 @@ src/
         ├── output.rs    # Output functions (4)
         └── reflection.rs # Reflection functions (8)
 
-tests/                   # Test suite organized by feature (367 tests)
+tests/                   # Test suite organized by feature (373 tests)
 ├── arrays/              # Array tests (18)
 ├── attributes/          # Attribute syntax and reflection tests (29)
 ├── builtins/            # Built-in function tests (26)
@@ -162,6 +162,12 @@ Source Code → Lexer → Tokens → Parser → AST → Interpreter → Output
 - [x] Local scope (function variables don't leak to global)
 - [x] Variadic functions (`...$args`)
 - [x] Argument unpacking (`func(...$array)`)
+- [x] Type hints for parameters (int, string, float, bool, array, etc.)
+- [x] Return type declarations (including void, never, static)
+- [x] Type hints for parameters (int, string, float, bool, array, etc.)
+- [x] Return type declarations (including void, never, static)
+- [x] Type hints for parameters (int, string, float, bool, array, etc.)
+- [x] Return type declarations (including void, never, static)
 
 ### Built-in Functions (73)
 - [x] **String** (23): `strlen`, `substr`, `strtoupper`, `strtolower`, `trim`, `ltrim`, `rtrim`, `str_repeat`, `str_replace`, `strpos`, `strrev`, `ucfirst`, `lcfirst`, `ucwords`, `str_starts_with`, `str_ends_with`, `str_contains`, `str_pad`, `explode`, `implode`/`join`, `sprintf`, `chr`, `ord`
@@ -418,6 +424,33 @@ try {
 $value = $input ?? throw new Exception("Missing input");
 ```
 
+### Type Declarations (PHP 7.0+, parsing only)
+- [x] Simple type hints (int, string, float, bool, array, object, callable, mixed)
+- [x] Nullable types (PHP 7.1) - `?int`, `?string`
+- [x] Union types (PHP 8.0) - `int|string`, `int|float|null`
+- [x] Intersection types (PHP 8.1) - `Iterator&Countable`
+- [x] Return type declarations (including void, never, static)
+- [x] self/parent types (in class context)
+- [ ] Runtime type validation (not yet implemented)
+- [ ] Type error messages
+
+**Example:**
+```php
+<?php
+function greet(string $name, ?int $age = null): void {
+    echo "Hello, $name";
+    if ($age !== null) {
+        echo " (age: $age)";
+    }
+}
+
+function process(int|string $value): mixed {
+    return is_int($value) ? $value * 2 : strtoupper($value);
+}
+```
+
+**Note:** Type hints are currently parsed and stored in the AST but not yet validated at runtime. Runtime type checking will be added in a future update.
+
 ## Adding New Features
 
 ### 1. Update Token Types (`token.rs`)
@@ -550,6 +583,33 @@ partial error message to match
 
 *One of `--EXPECT--` or `--EXPECT_ERROR--` required.
 
+### Type Declarations (PHP 7.0+, parsing only)
+- [x] Simple type hints (int, string, float, bool, array, object, callable, mixed)
+- [x] Nullable types (PHP 7.1) - `?int`, `?string`
+- [x] Union types (PHP 8.0) - `int|string`, `int|float|null`
+- [x] Intersection types (PHP 8.1) - `Iterator&Countable`
+- [x] Return type declarations (including void, never, static)
+- [x] self/parent types (in class context)
+- [ ] Runtime type validation (not yet implemented)
+- [ ] Type error messages
+
+**Example:**
+```php
+<?php
+function greet(string $name, ?int $age = null): void {
+    echo "Hello, $name";
+    if ($age !== null) {
+        echo " (age: $age)";
+    }
+}
+
+function process(int|string $value): mixed {
+    return is_int($value) ? $value * 2 : strtoupper($value);
+}
+```
+
+**Note:** Type hints are currently parsed and stored in the AST but not yet validated at runtime. Runtime type checking will be added in a future update.
+
 ## Roadmap
 
 ### Phase 1: Variables & Operators ✅ Complete
@@ -635,12 +695,13 @@ Essential PHP features for compatibility with standard PHP code.
 - [x] Multi-catch (PHP 7.1) - `catch (TypeA | TypeB $e)`
 
 **Type System:**
-- [ ] Type declarations (int, string, float, bool, array, callable, object)
-- [ ] Nullable types (PHP 7.1) - `?int`
-- [ ] Union types (PHP 8.0) - `int|string`
-- [ ] Intersection types (PHP 8.1) - `Iterator&Countable`
+- [x] Type declarations - parsing (int, string, float, bool, array, callable, object, mixed)
+- [x] Nullable types (PHP 7.1) - `?int`
+- [x] Union types (PHP 8.0) - `int|string`
+- [x] Intersection types (PHP 8.1) - `Iterator&Countable`
+- [x] void, never, static return types
+- [ ] Runtime type validation
 - [ ] DNF types (PHP 8.2) - `(A&B)|C`
-- [ ] mixed, void, never, static return types
 
 **Namespaces:**
 - [ ] namespace declaration
