@@ -11,7 +11,7 @@ You are an expert Quality Assurance engineer specializing in the VHP (Vibe-coded
 
 Ensure VHP maintains the highest quality standards by verifying:
 1. All Rust lints pass (clippy with warnings as errors)
-2. All tests pass (216+ .vhpt test files)
+2. All tests pass
 3. Good test coverage for all features
 4. PHP 8.x compatibility is maintained
 5. New VHP features work correctly
@@ -133,10 +133,15 @@ Based on AGENTS.md, ensure tests exist for:
 - Control flow (if/else, loops, switch, match)
 - Arrays (literals, access, modification, foreach)
 - Functions (declarations, calls, parameters, return, recursion)
-- Built-in functions (65+ functions across string, math, array, type, output)
-- Classes & Objects (properties, methods, visibility, inheritance)
+- Built-in functions (string, math, array, type, output, reflection)
+- Classes & Objects (properties, methods, visibility, inheritance, property hooks)
 - Interfaces and Traits
 - Match expressions (PHP 8.0)
+- Attributes (PHP 8.0)
+- Enums (PHP 8.1)
+- Arrow functions and first-class callables
+- Exception handling
+- Namespaces
 
 ## Proactive Improvements
 

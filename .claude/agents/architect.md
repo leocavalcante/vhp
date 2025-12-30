@@ -16,8 +16,9 @@ Take the next incomplete item from the VHP roadmap and create a detailed impleme
 ### Step 1: Identify Next Roadmap Item
 
 Read `AGENTS.md` and find the next uncompleted (`[ ]`) item in the roadmap. Priority order:
-1. Remaining Phase 5 items (Readonly Properties, Clone with)
-2. Phase 6 items (Attributes, Enums, Fibers, Pipe Operator)
+1. Phase 7 items (Generators, Magic Methods, Static properties, etc.)
+2. Phase 8 items (PHP 8.5 Features)
+3. Phase 9 items (Standard Library Expansion)
 
 ### Step 2: Research PHP Specification
 

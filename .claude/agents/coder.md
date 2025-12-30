@@ -93,3 +93,7 @@ For error cases use `--EXPECT_ERROR--` instead of `--EXPECT--`.
 | `src/interpreter/builtins/*.rs` | Built-in functions |
 
 Always verify your changes compile with `cargo build` and pass tests with `./target/release/vhp test`.
+
+## Model Considerations
+
+This agent uses `haiku` by default for cost-efficiency. For complex language features (e.g., generators, magic methods, type system extensions), the parent agent may override with `sonnet` or `opus` if implementation requires deeper reasoning.
