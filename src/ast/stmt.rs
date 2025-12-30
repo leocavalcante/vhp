@@ -1,5 +1,18 @@
 use super::expr::Expr;
 
+/// Declare directive type
+#[derive(Debug, Clone)]
+pub enum DeclareDirective {
+    /// strict_types=0 or strict_types=1
+    StrictTypes(bool),
+    /// encoding='UTF-8' (mostly ignored in modern PHP)
+    #[allow(dead_code)]
+    Encoding(String),
+    /// ticks=N (for register_tick_function, advanced feature)
+    #[allow(dead_code)]
+    Ticks(i64),
+}
+
 /// Qualified name for namespace and class references (e.g., MyApp\Database\Connection)
 #[derive(Debug, Clone, PartialEq)]
 pub struct QualifiedName {
@@ -342,6 +355,12 @@ pub enum Stmt {
     Use(Vec<UseItem>),
     /// Group use statement (PHP 7.0+)
     GroupUse(GroupUse),
+    /// Declare directive (PHP 7.0+)
+    /// declare(directive) or declare(directive) { ... }
+    Declare {
+        directives: Vec<DeclareDirective>,
+        body: Option<Vec<Stmt>>, // None for file-scope
+    },
 }
 
 /// Switch case
