@@ -66,25 +66,64 @@ impl<W: Write> Interpreter<W> {
                 let class_name = instance.class_name.clone();
 
                 // Look up method in hierarchy
-                let (method_func, declaring_class) =
-                    self.find_method(&class_name, method).ok_or_else(|| {
-                        format!("Call to undefined method {}::{}()", class_name, method)
-                    })?;
+                let method_result = self.find_method(&class_name, method);
 
-                // Call method with $this bound and named argument support
-                let result = self.call_method_on_object_with_arguments(
-                    &mut instance,
-                    &method_func,
-                    args,
-                    declaring_class,
-                )?;
+                if let Some((method_func, declaring_class)) = method_result {
+                    // Call method with $this bound and named argument support
+                    let result = self.call_method_on_object_with_arguments(
+                        &mut instance,
+                        &method_func,
+                        args,
+                        declaring_class,
+                    )?;
 
-                // Write back the modified instance to the variable if applicable
-                if let Some(name) = var_name {
-                    self.variables.insert(name, Value::Object(instance));
+                    // Write back the modified instance to the variable if applicable
+                    if let Some(name) = var_name {
+                        self.variables.insert(name, Value::Object(instance));
+                    }
+
+                    Ok(result)
+                } else {
+                    // Method not found, check for __call magic method
+                    let class = self.classes.get(&class_name).cloned();
+                    if let Some(class) = class {
+                        if let Some(call_method) = class.get_magic_method("__call") {
+                            // Build args array
+                            let arg_values: Result<Vec<_>, _> = args
+                                .iter()
+                                .map(|arg| self.eval_expr(&arg.value))
+                                .collect();
+                            let arg_values = arg_values?;
+
+                            // Create indexed array from arguments
+                            use crate::interpreter::value::ArrayKey;
+                            let args_array = Value::Array(
+                                arg_values
+                                    .into_iter()
+                                    .enumerate()
+                                    .map(|(i, v)| (ArrayKey::Integer(i as i64), v))
+                                    .collect()
+                            );
+
+                            // Call __call with method name and args array
+                            let result = self.call_method_on_object(
+                                &mut instance,
+                                call_method,
+                                &[Value::String(method.to_string()), args_array],
+                                class_name.clone(),
+                            )?;
+
+                            // Write back the modified instance if needed
+                            if let Some(name) = var_name {
+                                self.variables.insert(name, Value::Object(instance));
+                            }
+
+                            return Ok(result);
+                        }
+                    }
+
+                    Err(format!("Call to undefined method {}::{}()", class_name, method))
                 }
-
-                Ok(result)
             }
             _ => Err(format!(
                 "Cannot call method on non-object ({})",
@@ -237,9 +276,43 @@ impl<W: Write> Interpreter<W> {
         }
 
         // Look up method in hierarchy
-        let (method_func, declaring_class) = self
-            .find_method(&target_class, method)
-            .ok_or_else(|| format!("Call to undefined method {}::{}()", target_class, method))?;
+        let method_result = self.find_method(&target_class, method);
+
+        if method_result.is_none() {
+            // Method not found, check for __callStatic magic method
+            let class = self.classes.get(&target_class.to_lowercase()).cloned();
+            if let Some(class) = class {
+                if let Some(call_static) = class.get_magic_method("__callStatic") {
+                    // Build args array
+                    let arg_values: Result<Vec<_>, _> = args
+                        .iter()
+                        .map(|arg| self.eval_expr(&arg.value))
+                        .collect();
+                    let arg_values = arg_values?;
+
+                    // Create indexed array from arguments
+                    use crate::interpreter::value::ArrayKey;
+                    let args_array = Value::Array(
+                        arg_values
+                            .into_iter()
+                            .enumerate()
+                            .map(|(i, v)| (ArrayKey::Integer(i as i64), v))
+                            .collect()
+                    );
+
+                    // Call __callStatic with method name and args array
+                    // Note: __callStatic is a static method, so no instance
+                    return self.call_user_function(
+                        call_static,
+                        &[Value::String(method.to_string()), args_array],
+                    );
+                }
+            }
+
+            return Err(format!("Call to undefined method {}::{}()", target_class, method));
+        }
+
+        let (method_func, declaring_class) = method_result.unwrap();
 
         // Evaluate all arguments
         let mut arg_values = Vec::new();
