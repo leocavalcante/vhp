@@ -287,6 +287,16 @@ impl<'a> StmtParser<'a> {
                 prop.readonly = readonly;
                 prop.is_static = is_static;
                 prop.attributes = attributes;
+
+                // Validation: property hooks and asymmetric visibility are incompatible
+                if !prop.hooks.is_empty() && write_visibility.is_some() {
+                    return Err(format!(
+                        "Property hooks cannot be combined with asymmetric visibility at line {}, column {}",
+                        self.current().line,
+                        self.current().column
+                    ));
+                }
+
                 properties.push(prop);
             } else {
                 return Err(format!(
