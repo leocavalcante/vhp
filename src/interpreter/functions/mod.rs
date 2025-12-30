@@ -116,15 +116,14 @@ impl<W: Write> Interpreter<W> {
 
             // Validate type hint if present
             if let Some(ref type_hint) = param.type_hint {
-                if !value.matches_type(type_hint) {
-                    return Err(format!(
-                        "Argument {} for parameter ${} must be of type {}, {} given",
-                        arg_idx + 1,
-                        param.name,
-                        Self::format_type_hint(type_hint),
-                        value.type_name()
-                    ));
-                }
+                let validated_value = self.validate_argument_type(
+                    type_hint,
+                    &value,
+                    &param.name,
+                    arg_idx + 1,
+                )?;
+                self.variables.insert(param.name.clone(), validated_value);
+                continue;
             }
 
             self.variables.insert(param.name.clone(), value);
@@ -232,14 +231,14 @@ impl<W: Write> Interpreter<W> {
 
             // Validate type hint if present
             if let Some(ref type_hint) = param.type_hint {
-                if !value.matches_type(type_hint) {
-                    return Err(format!(
-                        "Argument for parameter ${} must be of type {}, {} given",
-                        param.name,
-                        Self::format_type_hint(type_hint),
-                        value.type_name()
-                    ));
-                }
+                let validated_value = self.validate_argument_type(
+                    type_hint,
+                    &value,
+                    &param.name,
+                    0, // We don't have position info in this path
+                )?;
+                self.variables.insert(param.name.clone(), validated_value);
+                continue;
             }
 
             self.variables.insert(param.name.clone(), value);
@@ -570,5 +569,163 @@ impl<W: Write> Interpreter<W> {
             }
         }
         Ok(Value::Null)
+    }
+
+    /// Validate argument type with strict mode support
+    fn validate_argument_type(
+        &self,
+        type_hint: &crate::ast::TypeHint,
+        value: &Value,
+        param_name: &str,
+        arg_position: usize,
+    ) -> Result<Value, String> {
+        if self.strict_types {
+            // Strict mode: exact type match required (with limited exceptions)
+            if !value.matches_type_strict(type_hint) {
+                let position_str = if arg_position > 0 {
+                    format!("Argument #{} (${})", arg_position, param_name)
+                } else {
+                    format!("Argument (${}) ", param_name)
+                };
+                return Err(format!(
+                    "{} must be of type {}, {} given",
+                    position_str,
+                    Self::format_type_hint(type_hint),
+                    value.type_name()
+                ));
+            }
+            Ok(value.clone())
+        } else {
+            // Coercive mode: attempt to coerce value
+            match self.coerce_to_type(value, type_hint) {
+                Ok(coerced) => Ok(coerced),
+                Err(_) => {
+                    let position_str = if arg_position > 0 {
+                        format!("Argument #{} (${})", arg_position, param_name)
+                    } else {
+                        format!("Argument (${}) ", param_name)
+                    };
+                    Err(format!(
+                        "{} must be of type {}, {} given",
+                        position_str,
+                        Self::format_type_hint(type_hint),
+                        value.type_name()
+                    ))
+                }
+            }
+        }
+    }
+
+    /// Attempt to coerce value to type (for non-strict mode)
+    fn coerce_to_type(
+        &self,
+        value: &Value,
+        type_hint: &crate::ast::TypeHint,
+    ) -> Result<Value, String> {
+        use crate::ast::TypeHint;
+
+        match type_hint {
+            TypeHint::Simple(name) => match name.as_str() {
+                "int" => match value {
+                    Value::Integer(_) => Ok(value.clone()),
+                    Value::Float(f) => Ok(Value::Integer(*f as i64)),
+                    Value::String(s) => {
+                        // PHP coerces strings to int by parsing leading digits
+                        let trimmed = s.trim_start();
+                        if trimmed.is_empty() {
+                            Ok(Value::Integer(0))
+                        } else {
+                            // Parse leading numeric part
+                            let mut num_str = String::new();
+                            let mut chars = trimmed.chars();
+                            if let Some(first) = chars.next() {
+                                if first == '-' || first == '+' || first.is_ascii_digit() {
+                                    num_str.push(first);
+                                } else {
+                                    return Ok(Value::Integer(0));
+                                }
+                            }
+                            for ch in chars {
+                                if ch.is_ascii_digit() {
+                                    num_str.push(ch);
+                                } else {
+                                    break;
+                                }
+                            }
+                            Ok(Value::Integer(num_str.parse().unwrap_or(0)))
+                        }
+                    }
+                    Value::Bool(true) => Ok(Value::Integer(1)),
+                    Value::Bool(false) => Ok(Value::Integer(0)),
+                    Value::Null => Ok(Value::Integer(0)),
+                    _ => Err("Cannot coerce to int".to_string()),
+                },
+                "float" => match value {
+                    Value::Float(_) => Ok(value.clone()),
+                    Value::Integer(i) => Ok(Value::Float(*i as f64)),
+                    Value::String(s) => s
+                        .trim()
+                        .parse::<f64>()
+                        .map(Value::Float)
+                        .or_else(|_| Ok(Value::Float(0.0))),
+                    Value::Bool(true) => Ok(Value::Float(1.0)),
+                    Value::Bool(false) => Ok(Value::Float(0.0)),
+                    Value::Null => Ok(Value::Float(0.0)),
+                    _ => Err("Cannot coerce to float".to_string()),
+                },
+                "string" => match value {
+                    Value::String(_) => Ok(value.clone()),
+                    Value::Integer(i) => Ok(Value::String(i.to_string())),
+                    Value::Float(f) => {
+                        if f.fract() == 0.0 && f.abs() < 1e15 {
+                            Ok(Value::String(format!("{:.0}", f)))
+                        } else {
+                            Ok(Value::String(f.to_string()))
+                        }
+                    }
+                    Value::Bool(true) => Ok(Value::String("1".to_string())),
+                    Value::Bool(false) => Ok(Value::String("".to_string())),
+                    Value::Null => Ok(Value::String("".to_string())),
+                    _ => Err("Cannot coerce to string".to_string()),
+                },
+                "bool" => Ok(Value::Bool(value.to_bool())),
+                "array" => match value {
+                    Value::Array(_) => Ok(value.clone()),
+                    _ => Err("Cannot coerce to array".to_string()),
+                },
+                _ => {
+                    // For other types, check if matches
+                    if value.matches_type(type_hint) {
+                        Ok(value.clone())
+                    } else {
+                        Err(format!("Cannot coerce to {}", name))
+                    }
+                }
+            },
+            TypeHint::Nullable(inner) => {
+                if matches!(value, Value::Null) {
+                    Ok(Value::Null)
+                } else {
+                    self.coerce_to_type(value, inner)
+                }
+            }
+            TypeHint::Union(types) => {
+                // Try each type in the union
+                for t in types {
+                    if let Ok(coerced) = self.coerce_to_type(value, t) {
+                        return Ok(coerced);
+                    }
+                }
+                Err("Cannot coerce to any type in union".to_string())
+            }
+            _ => {
+                // For other complex types, just check if matches
+                if value.matches_type(type_hint) {
+                    Ok(value.clone())
+                } else {
+                    Err("Cannot coerce to this type".to_string())
+                }
+            }
+        }
     }
 }
