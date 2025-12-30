@@ -43,7 +43,7 @@ Every. Single. Line. Written through prompts to AI agents. Zero manual coding.
 - **🎯 Zero Dependencies** — Pure standard library, no external crates, no bloat
 - **✨ PHP 8.x Compatible** — Run your WordPress, Laravel, Drupal — *unchanged*
 - **🔮 Modern Features** — Arrow functions, match expressions, fibers, attributes, pipe operator
-- **📈 Battle-Tested** — 396 comprehensive tests and counting
+- **📈 Battle-Tested** — 406 comprehensive tests and counting
 
 ## ⚡ Get Started in 60 Seconds
 
@@ -223,6 +223,13 @@ That's the difference between a tool and an ecosystem.
 - ✅ Union types (int|string, PHP 8.0)
 - ✅ Class type hints
 - ✅ void and never return types
+
+**Namespaces:**
+- ✅ Namespace declarations (braced and unbraced syntax, PHP 5.3)
+- ✅ Qualified names (Foo\Bar, \Foo\Bar)
+- ✅ Use statements with aliases
+- ✅ Group use declarations (PHP 7.0)
+- ✅ Namespace resolution for classes and interfaces
 
 **Error Handling:**
 - ✅ Exception handling (try/catch/finally)

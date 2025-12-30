@@ -62,7 +62,7 @@ src/
         ├── output.rs    # Output functions (4)
         └── reflection.rs # Reflection functions (8)
 
-tests/                   # Test suite organized by feature (396 tests)
+tests/                   # Test suite organized by feature (406 tests)
 ├── arrays/              # Array tests (18)
 ├── attributes/          # Attribute syntax and reflection tests (29)
 ├── builtins/            # Built-in function tests (26)
@@ -77,6 +77,7 @@ tests/                   # Test suite organized by feature (396 tests)
 ├── functions/           # User-defined function tests (42 including arrow functions and first-class callables)
 ├── html/                # HTML passthrough tests (5)
 ├── interfaces/          # Interface tests (7)
+├── namespaces/          # Namespace tests (10)
 ├── numbers/             # Numeric literal tests (5)
 ├── operators/           # Operator tests (37)
 ├── strings/             # String literal and escape sequence tests (8)
@@ -457,6 +458,52 @@ greet(123); // TypeError: Expected string, got int
 
 **Note:** Type hints are parsed, stored in the AST, and validated at runtime. Type errors throw descriptive error messages.
 
+### Namespaces (PHP 5.3+)
+- [x] Namespace declarations (braced and unbraced syntax)
+- [x] Qualified names (Foo\Bar, \Foo\Bar)
+- [x] Fully qualified names (starting with \)
+- [x] Use statements with aliases
+- [x] Group use declarations (PHP 7.0)
+- [x] Namespace resolution for classes
+- [x] Namespace resolution for interfaces
+- [x] Multiple namespaces in one file (braced syntax)
+
+**Example:**
+```php
+<?php
+// Basic namespace
+namespace MyApp\Database;
+
+class Connection {
+    public function connect() {
+        return "Connected!";
+    }
+}
+
+// Using classes from other namespaces
+namespace MyApp;
+
+use MyApp\Database\Connection as DbConn;
+
+$db = new DbConn();
+echo $db->connect();
+
+// Fully qualified name
+$conn = new \MyApp\Database\Connection();
+
+// Group use (PHP 7.0)
+use MyApp\Models\{User, Post, Comment};
+
+// Braced namespace syntax
+namespace Foo {
+    class Bar {}
+}
+
+namespace Baz {
+    class Qux {}
+}
+```
+
 ## Adding New Features
 
 ### 1. Update Token Types (`token.rs`)
@@ -684,9 +731,11 @@ Essential PHP features for compatibility with standard PHP code.
 - [ ] DNF types (PHP 8.2) - `(A&B)|C`
 
 **Namespaces:**
-- [ ] namespace declaration
-- [ ] use statements and aliases
-- [ ] Group use declarations (PHP 7.0)
+- [x] namespace declaration (braced and unbraced syntax)
+- [x] use statements and aliases
+- [x] Group use declarations (PHP 7.0)
+- [x] Qualified names (Foo\Bar, \Foo\Bar)
+- [x] Namespace resolution for classes and interfaces
 
 **Generators:**
 - [ ] yield keyword and yield from (PHP 7.0)
