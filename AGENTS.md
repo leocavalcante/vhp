@@ -62,13 +62,13 @@ src/
         ├── output.rs    # Output functions (4)
         └── reflection.rs # Reflection functions (8)
 
-tests/                   # Test suite organized by feature (406 tests)
+tests/                   # Test suite organized by feature (417 tests)
 ├── arrays/              # Array tests (18)
 ├── attributes/          # Attribute syntax and reflection tests (29)
 ├── builtins/            # Built-in function tests (26)
 ├── classes/             # Class and object tests (55 including anonymous classes)
 ├── comments/            # Comment syntax tests (4)
-├── control_flow/        # Control flow tests (29)
+├── control_flow/        # Control flow tests (40 including alternative syntax)
 ├── echo/                # Echo statement tests (6)
 ├── enums/               # Enum tests (16)
 ├── errors/              # Error handling tests (8)
@@ -142,6 +142,7 @@ Source Code → Lexer → Tokens → Parser → AST → Interpreter → Output
 - [x] `break` statement
 - [x] `continue` statement
 - [x] Nested loop support with proper break/continue scoping
+- [x] Alternative syntax for all control structures (`if:`, `endif;`, `while:`, `endwhile;`, `for:`, `endfor;`, `foreach:`, `endforeach;`, `switch:`, `endswitch;`)
 
 ### Arrays
 - [x] Array literals (`[1, 2, 3]`)
@@ -761,7 +762,7 @@ Essential PHP features for compatibility with standard PHP code.
 - [ ] #[\Override] attribute (PHP 8.3)
 
 **Control Flow:**
-- [ ] Alternative syntax (`if:`, `endif;`, etc.)
+- [x] Alternative syntax (`if:`, `endif;`, etc.) - All control structures
 - [ ] goto statement
 - [ ] declare directive (`strict_types`)
 
