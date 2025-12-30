@@ -1,5 +1,42 @@
 use super::expr::Expr;
 
+/// Type hint for parameters and return values
+#[derive(Debug, Clone, PartialEq)]
+pub enum TypeHint {
+    /// Simple type: int, string, float, bool, array, object, callable, mixed
+    Simple(String),
+    /// Nullable type: ?int, ?string, etc.
+    Nullable(Box<TypeHint>),
+    /// Union type (PHP 8.0+): int|string, int|null
+    Union(Vec<TypeHint>),
+    /// Intersection type (PHP 8.1+): Iterator&Countable
+    Intersection(Vec<TypeHint>),
+    /// Class/interface type
+    Class(String),
+    /// void (only for return types)
+    Void,
+    /// never (PHP 8.1+, only for return types)
+    Never,
+    /// static (PHP 8.0+, only for return types)
+    Static,
+    /// self/parent (in class context)
+    SelfType,
+    ParentType,
+}
+
+impl TypeHint {
+    /// Check if this type hint allows null values
+    #[allow(dead_code)] // Will be used for type validation
+    pub fn is_nullable(&self) -> bool {
+        match self {
+            TypeHint::Nullable(_) => true,
+            TypeHint::Union(types) => types.iter().any(|t| matches!(t, TypeHint::Simple(s) if s == "null")),
+            TypeHint::Simple(s) => s == "mixed" || s == "null",
+            _ => false,
+        }
+    }
+}
+
 /// Visibility modifier for class members
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Visibility {
@@ -46,6 +83,7 @@ pub struct Method {
     pub is_abstract: bool,
     pub is_final: bool,
     pub params: Vec<FunctionParam>,
+    pub return_type: Option<TypeHint>,
     pub body: Vec<Stmt>,
     pub attributes: Vec<Attribute>, // PHP 8.0+
 }
@@ -55,6 +93,8 @@ pub struct Method {
 pub struct InterfaceMethodSignature {
     pub name: String,
     pub params: Vec<FunctionParam>,
+    #[allow(dead_code)] // Will be used for type validation
+    pub return_type: Option<TypeHint>,
     #[allow(dead_code)] // Will be used for reflection
     pub attributes: Vec<Attribute>, // PHP 8.0+
 }
@@ -164,6 +204,7 @@ pub enum Stmt {
     Function {
         name: String,
         params: Vec<FunctionParam>,
+        return_type: Option<TypeHint>,
         body: Vec<Stmt>,
         attributes: Vec<Attribute>, // PHP 8.0+
     },
@@ -222,6 +263,8 @@ pub struct SwitchCase {
 #[derive(Debug, Clone)]
 pub struct FunctionParam {
     pub name: String,
+    #[allow(dead_code)] // Will be used for type validation
+    pub type_hint: Option<TypeHint>,
     pub default: Option<Expr>,
     /// By-reference parameter (will be used when reference semantics are implemented)
     #[allow(dead_code)]

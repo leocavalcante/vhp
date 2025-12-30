@@ -12,5 +12,5 @@ pub use ops::{AssignOp, BinaryOp, UnaryOp};
 pub use stmt::{
     Attribute, AttributeArgument, CatchClause, EnumBackingType, EnumCase, FunctionParam,
     InterfaceConstant, InterfaceMethodSignature, Method, Program, Property, Stmt, SwitchCase,
-    TraitResolution, TraitUse, Visibility,
+    TraitResolution, TraitUse, TypeHint, Visibility,
 };
