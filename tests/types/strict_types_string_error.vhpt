@@ -1,0 +1,13 @@
+--TEST--
+strict_types=1 rejects string for int
+--FILE--
+<?php
+declare(strict_types=1);
+
+function requireInt(int $n): void {
+    echo $n;
+}
+
+requireInt("42");
+--EXPECT_ERROR--
+must be of type int, string given

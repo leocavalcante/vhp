@@ -1,0 +1,20 @@
+--TEST--
+declare with block scope
+--FILE--
+<?php
+function outer(int $n) {
+    return $n;
+}
+
+declare(strict_types=1) {
+    function inner(int $n) {
+        return $n;
+    }
+    echo inner(10) . "\n";
+}
+
+// Outside block, coercion works
+echo outer("42");
+--EXPECT--
+10
+42

@@ -1,0 +1,27 @@
+--TEST--
+Comprehensive declare(strict_types) test
+--FILE--
+<?php
+// Test 1: Coercive mode (default)
+function coercive(int $n): int {
+    return $n * 2;
+}
+echo coercive("5") . "\n";  // String coerced to int
+
+// Test 2: Strict mode enabled
+declare(strict_types=1);
+
+function strict(int $n): int {
+    return $n * 3;
+}
+echo strict(10) . "\n";  // OK: exact type
+
+// Test 3: Widening allowed in strict mode
+function strictFloat(float $f): float {
+    return $f / 2;
+}
+echo strictFloat(20) . "\n";  // OK: int widens to float
+--EXPECT--
+10
+30
+10

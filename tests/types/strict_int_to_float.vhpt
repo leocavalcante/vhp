@@ -1,0 +1,13 @@
+--TEST--
+strict_types allows int for float (widening)
+--FILE--
+<?php
+declare(strict_types=1);
+
+function half(float $n): float {
+    return $n / 2;
+}
+
+echo half(10);
+--EXPECT--
+5

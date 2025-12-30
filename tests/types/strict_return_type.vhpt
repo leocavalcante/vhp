@@ -1,0 +1,13 @@
+--TEST--
+strict_types with return type validation
+--FILE--
+<?php
+declare(strict_types=1);
+
+function getString(): string {
+    return "hello";
+}
+
+echo getString();
+--EXPECT--
+hello

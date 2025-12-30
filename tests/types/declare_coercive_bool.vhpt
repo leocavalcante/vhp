@@ -1,0 +1,13 @@
+--TEST--
+Coercive mode converts bool to int
+--FILE--
+<?php
+function toInt(int $n): int {
+    return $n;
+}
+
+echo toInt(true) . "\n";
+echo toInt(false);
+--EXPECT--
+1
+0
