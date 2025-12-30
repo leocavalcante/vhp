@@ -197,6 +197,9 @@ pub struct Interpreter<W: Write> {
     // Initialized when class is defined, shared across all instances
     static_properties: HashMap<String, HashMap<String, Value>>,
 
+    // Readonly static properties: class_name_lowercase -> property_name set
+    static_readonly_properties: HashMap<String, std::collections::HashSet<String>>,
+
     // Called class context (for 'static' - late static binding)
     called_class: Option<String>,
 
@@ -225,6 +228,7 @@ impl<W: Write> Interpreter<W> {
             current_object: None,
             current_class: None,
             static_properties: HashMap::new(),
+            static_readonly_properties: HashMap::new(),
             called_class: None,
             namespace_context: NamespaceContext::new(),
             fibers: HashMap::new(),
