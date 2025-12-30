@@ -149,6 +149,7 @@ pub struct Property {
     pub name: String,
     #[allow(dead_code)] // Will be used for visibility enforcement
     pub visibility: Visibility,
+    pub write_visibility: Option<Visibility>, // PHP 8.4+ asymmetric visibility, None means same as read
     pub default: Option<Expr>,
     pub readonly: bool,             // PHP 8.1+
     pub is_static: bool,            // PHP 5.0+
