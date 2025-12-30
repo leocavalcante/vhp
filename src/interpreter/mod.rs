@@ -125,6 +125,21 @@ pub struct ClassDefinition {
     pub attributes: Vec<crate::ast::Attribute>,
 }
 
+impl ClassDefinition {
+    /// Find a magic method by name (case-insensitive)
+    pub fn get_magic_method(&self, name: &str) -> Option<&UserFunction> {
+        self.methods
+            .iter()
+            .find(|(k, _)| k.eq_ignore_ascii_case(name))
+            .map(|(_, v)| v)
+    }
+
+    /// Check if class has a magic method
+    pub fn has_magic_method(&self, name: &str) -> bool {
+        self.get_magic_method(name).is_some()
+    }
+}
+
 /// Interface definition stored in the interpreter
 #[derive(Debug, Clone)]
 pub struct InterfaceDefinition {
@@ -530,6 +545,55 @@ impl<W: Write> Interpreter<W> {
         // Simplified implementation - return the resume value
         // In a full implementation, we'd restore the exact execution context
         Ok(resume_value)
+    }
+
+    /// Convert value to string, calling __toString if available
+    pub(super) fn value_to_string(&mut self, value: &Value) -> Result<String, String> {
+        match value {
+            Value::String(s) => Ok(s.clone()),
+            Value::Integer(i) => Ok(i.to_string()),
+            Value::Float(f) => {
+                if f.fract() == 0.0 && f.abs() < 1e15 {
+                    Ok(format!("{:.0}", f))
+                } else {
+                    Ok(f.to_string())
+                }
+            }
+            Value::Bool(true) => Ok("1".to_string()),
+            Value::Bool(false) => Ok(String::new()),
+            Value::Null => Ok(String::new()),
+            Value::Array(_) => Err("Array to string conversion".to_string()),
+            Value::Object(obj) => {
+                // Check for __toString magic method
+                let class = self.classes.get(&obj.class_name).cloned();
+                if let Some(class) = class {
+                    if let Some(method) = class.get_magic_method("__toString") {
+                        let class_name = obj.class_name.clone();
+                        let mut obj_mut = obj.clone();
+                        let result = self.call_method_on_object(&mut obj_mut, method, &[], class_name)?;
+                        if let Value::String(s) = result {
+                            Ok(s)
+                        } else {
+                            Err(format!(
+                                "{}::__toString() must return a string value",
+                                obj.class_name
+                            ))
+                        }
+                    } else {
+                        Err(format!(
+                            "Object of class {} could not be converted to string",
+                            obj.class_name
+                        ))
+                    }
+                } else {
+                    Err(format!("Class {} not found", obj.class_name))
+                }
+            }
+            Value::Fiber(fiber) => Ok(format!("Object(Fiber#{:06})", fiber.id)),
+            Value::Closure(_) => Err("Object of class Closure could not be converted to string".to_string()),
+            Value::EnumCase { enum_name, case_name, .. } => Ok(format!("{}::{}", enum_name, case_name)),
+            Value::Exception(exc) => Ok(format!("Object({})", exc.class_name)),
+        }
     }
 }
 
