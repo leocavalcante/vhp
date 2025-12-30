@@ -1,0 +1,12 @@
+--TEST--
+Alternative syntax with else if (two tokens)
+--FILE--
+<?php
+$x = 2;
+if ($x == 1):
+    echo "one";
+else if ($x == 2):
+    echo "two";
+endif;
+--EXPECT--
+two

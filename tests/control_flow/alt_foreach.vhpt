@@ -1,0 +1,10 @@
+--TEST--
+Alternative foreach syntax
+--FILE--
+<?php
+$arr = ["a", "b", "c"];
+foreach ($arr as $v):
+    echo $v;
+endforeach;
+--EXPECT--
+abc

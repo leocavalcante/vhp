@@ -1,0 +1,10 @@
+--TEST--
+Alternative foreach with key-value
+--FILE--
+<?php
+$arr = ["x" => 1, "y" => 2];
+foreach ($arr as $k => $v):
+    echo $k . "=" . $v . " ";
+endforeach;
+--EXPECT--
+x=1 y=2

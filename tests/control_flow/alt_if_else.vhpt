@@ -1,0 +1,12 @@
+--TEST--
+Alternative if-else syntax
+--FILE--
+<?php
+$x = 2;
+if ($x == 1):
+    echo "one";
+else:
+    echo "not one";
+endif;
+--EXPECT--
+not one

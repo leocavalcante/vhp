@@ -1,0 +1,9 @@
+--TEST--
+Alternative syntax with HTML passthrough
+--FILE--
+<?php $show = true; ?>
+<?php if ($show): ?>
+<p>Shown</p>
+<?php endif; ?>
+--EXPECT--
+<p>Shown</p>

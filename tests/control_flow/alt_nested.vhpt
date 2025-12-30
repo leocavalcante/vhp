@@ -1,0 +1,17 @@
+--TEST--
+Nested alternative syntax
+--FILE--
+<?php
+$items = [1, 2];
+foreach ($items as $item):
+    if ($item == 1):
+        echo "first";
+    else:
+        echo "other";
+    endif;
+    echo "\n";
+endforeach;
+--EXPECT--
+first
+other
+
