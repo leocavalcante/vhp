@@ -915,3 +915,174 @@ echo "Timestamp: " . $event->timestamp . "\n";
 // $event->timestamp = time();     // Error: Cannot modify private property
 ```
 
+## #[\Override] Attribute (PHP 8.3)
+
+The `#[\Override]` attribute validates that methods actually override parent methods, catching typos and refactoring errors at class definition time.
+
+```php
+<?php
+// Example 1: Basic override validation
+class Animal {
+    public function makeSound() {
+        return "...";
+    }
+}
+
+class Dog extends Animal {
+    #[\Override]
+    public function makeSound() {
+        return "Woof!";
+    }
+}
+
+$dog = new Dog();
+echo $dog->makeSound() . "\n";  // Woof!
+
+// Example 2: Catching typos early
+class Cat extends Animal {
+    // Without #[\Override], this typo would be silent
+    public function makeSounds() {  // Typo: should be makeSound
+        return "Meow!";
+    }
+}
+
+$cat = new Cat();
+echo $cat->makeSound() . "\n";  // "..." (wrong - uses parent method)
+
+// With #[\Override], the error is caught immediately
+class Bird extends Animal {
+    #[\Override]
+    public function makeSounds() {  // Error at class definition!
+        return "Tweet!";
+    }
+}
+// Error: Bird::makeSounds has #[\Override] attribute, but no matching parent method exists
+
+// Example 3: Interface validation
+interface Drawable {
+    public function draw();
+    public function erase();
+}
+
+class Circle implements Drawable {
+    #[\Override]
+    public function draw() {
+        return "Drawing circle";
+    }
+
+    #[\Override]
+    public function erase() {
+        return "Erasing circle";
+    }
+}
+
+$circle = new Circle();
+echo $circle->draw() . "\n";   // Drawing circle
+echo $circle->erase() . "\n";  // Erasing circle
+
+// Example 4: Trait method overriding
+trait Timestampable {
+    public function getTimestamp() {
+        return time();
+    }
+}
+
+class Post {
+    use Timestampable;
+
+    #[\Override]
+    public function getTimestamp() {
+        return "2024-01-01 12:00:00";  // Custom implementation
+    }
+}
+
+$post = new Post();
+echo $post->getTimestamp() . "\n";  // 2024-01-01 12:00:00
+
+// Example 5: Abstract method implementation
+abstract class Shape {
+    abstract public function area();
+    abstract public function perimeter();
+}
+
+class Rectangle extends Shape {
+    private $width = 10;
+    private $height = 5;
+
+    #[\Override]
+    public function area() {
+        return $this->width * $this->height;
+    }
+
+    #[\Override]
+    public function perimeter() {
+        return 2 * ($this->width + $this->height);
+    }
+}
+
+$rect = new Rectangle();
+echo "Area: " . $rect->area() . "\n";          // Area: 50
+echo "Perimeter: " . $rect->perimeter() . "\n"; // Perimeter: 30
+
+// Example 6: Preventing silent refactoring errors
+class Payment {
+    public function processPayment($amount) {
+        echo "Processing payment: $amount\n";
+    }
+}
+
+class CreditCardPayment extends Payment {
+    #[\Override]
+    public function processPayment($amount) {
+        echo "Processing credit card payment: $amount\n";
+    }
+}
+
+// Later, parent class gets refactored to use "process" instead of "processPayment"
+// Without #[\Override], child class method would silently stop being called
+// With #[\Override], you get an immediate error telling you to update the child class
+
+$payment = new CreditCardPayment();
+$payment->processPayment(100);  // Processing credit card payment: 100
+
+// Example 7: Multiple inheritance levels
+class Vehicle {
+    public function start() {
+        return "Starting vehicle";
+    }
+}
+
+class Car extends Vehicle {
+    // Doesn't override start()
+}
+
+class SportsCar extends Car {
+    #[\Override]
+    public function start() {
+        return "Starting sports car with turbo!";  // Valid: overrides Vehicle::start()
+    }
+}
+
+$car = new SportsCar();
+echo $car->start() . "\n";  // Starting sports car with turbo!
+
+// Example 8: Magic method overrides
+class Logger {
+    public function __toString() {
+        return "Logger instance";
+    }
+}
+
+class FileLogger extends Logger {
+    private $filename = "app.log";
+
+    #[\Override]
+    public function __toString() {
+        return "FileLogger: " . $this->filename;
+    }
+}
+
+$logger = new FileLogger();
+echo $logger . "\n";  // FileLogger: app.log
+```
+

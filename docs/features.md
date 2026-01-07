@@ -2518,6 +2518,272 @@ enum Level: int {
 - **Boolean Context**: All enum cases are truthy
 - **Comparison**: Use strict comparison (`===`) to compare enum cases
 
+## #[\Override] Attribute (PHP 8.3)
+
+The `#[\Override]` attribute explicitly marks methods that override parent class, interface, or trait methods. The PHP engine validates that the method actually overrides something at class definition time, catching typos and refactoring errors.
+
+### Basic Usage
+
+```php
+<?php
+class Animal {
+    public function makeSound() {
+        return "...";
+    }
+}
+
+class Dog extends Animal {
+    #[\Override]
+    public function makeSound() {
+        return "Woof!";
+    }
+}
+
+$dog = new Dog();
+echo $dog->makeSound();  // Woof!
+```
+
+### Why Use #[\Override]?
+
+**Without `#[\Override]` - Silent failure:**
+```php
+<?php
+class Animal {
+    public function makeSound() {
+        return "...";
+    }
+}
+
+class Cat extends Animal {
+    // Typo! Should be makeSound, but no error
+    public function makeSounds() {
+        return "Meow!";
+    }
+}
+
+$cat = new Cat();
+echo $cat->makeSound();  // "..." (wrong - uses parent method)
+```
+
+**With `#[\Override]` - Caught at definition time:**
+```php
+<?php
+class Bird extends Animal {
+    #[\Override]
+    public function makeSounds() {  // Error immediately!
+        return "Tweet!";
+    }
+}
+// Error: Bird::makeSounds has #[\Override] attribute, but no matching parent method exists
+```
+
+### Validating Interface Methods
+
+The `#[\Override]` attribute works with interface implementation:
+
+```php
+<?php
+interface Drawable {
+    public function draw();
+}
+
+class Circle implements Drawable {
+    #[\Override]
+    public function draw() {
+        return "Drawing circle";
+    }
+}
+
+$circle = new Circle();
+echo $circle->draw();  // Drawing circle
+```
+
+### Validating Trait Methods
+
+Works with trait composition:
+
+```php
+<?php
+trait Greetable {
+    public function greet() {
+        return "Hello";
+    }
+}
+
+class Person {
+    use Greetable;
+
+    #[\Override]
+    public function greet() {
+        return "Hi there!";
+    }
+}
+
+$person = new Person();
+echo $person->greet();  // Hi there!
+```
+
+### Validating Abstract Methods
+
+Implementing abstract methods counts as overriding:
+
+```php
+<?php
+abstract class Shape {
+    abstract public function area();
+}
+
+class Circle extends Shape {
+    private $radius = 5;
+
+    #[\Override]
+    public function area() {
+        return 3.14 * $this->radius * $this->radius;
+    }
+}
+
+$circle = new Circle();
+echo $circle->area();  // 78.5
+```
+
+### Inheritance Chain Validation
+
+`#[\Override]` validates against the entire parent hierarchy:
+
+```php
+<?php
+class GrandParent {
+    public function legacy() {
+        return "old";
+    }
+}
+
+class Parent extends GrandParent {
+    // Doesn't override legacy()
+}
+
+class Child extends Parent {
+    #[\Override]
+    public function legacy() {
+        return "new";  // Valid: overrides GrandParent::legacy()
+    }
+}
+
+$child = new Child();
+echo $child->legacy();  // new
+```
+
+### Multiple Interfaces
+
+Works with multiple interface implementations:
+
+```php
+<?php
+interface A {
+    public function foo();
+}
+
+interface B {
+    public function bar();
+}
+
+class C implements A, B {
+    #[\Override]
+    public function foo() {
+        return "foo";
+    }
+
+    #[\Override]
+    public function bar() {
+        return "bar";
+    }
+}
+
+$c = new C();
+echo $c->foo() . $c->bar();  // foobar
+```
+
+### Case Insensitivity
+
+Both the attribute name and method name matching are case-insensitive:
+
+```php
+<?php
+class Base {
+    public function Method() {
+        return "base";
+    }
+}
+
+class Child extends Base {
+    #[\override]  // lowercase attribute works
+    public function method() {  // case-insensitive method match
+        return "child";
+    }
+}
+
+$child = new Child();
+echo $child->method();  // child
+```
+
+### Error Cases
+
+**No parent method:**
+```php
+<?php
+class Standalone {
+    #[\Override]
+    public function test() {
+        return "fail";
+    }
+}
+// Error: Standalone::test has #[\Override] attribute, but no matching parent method exists
+```
+
+**Typo in method name:**
+```php
+<?php
+class Animal {
+    public function speak() {
+        return "...";
+    }
+}
+
+class Dog extends Animal {
+    #[\Override]
+    public function bark() {  // Error: doesn't override speak()
+        return "Woof!";
+    }
+}
+// Error: Dog::bark has #[\Override] attribute, but no matching parent method exists
+```
+
+### Override Sources
+
+A method marked with `#[\Override]` must exist in one of:
+
+1. **Parent class** (any ancestor in the hierarchy)
+2. **Implemented interface** (any interface or parent interface)
+3. **Used trait** (any trait or nested trait)
+
+### Key Points
+
+- **Validation timing**: Checked at class definition time, not at method call time
+- **Case insensitive**: Both attribute name and method names are case-insensitive
+- **Works with**: Parent classes, interfaces, traits, abstract methods, magic methods
+- **Error format**: `ClassName::methodName has #[\Override] attribute, but no matching parent method exists`
+- **Static methods**: Can use `#[\Override]` on static method overrides
+- **Constructor**: Can use `#[\Override]` on `__construct` if parent has it
+- **PHP 8.3 feature**: Part of the PHP 8.3 release
+
+### Use Cases
+
+1. **Refactoring safety**: Catch method name changes in parent classes
+2. **API contract**: Document that a method is meant to override parent behavior
+3. **Typo prevention**: Detect typos in override method names at definition time
+4. **Interface compliance**: Ensure interface methods are actually implemented
+5. **Team coordination**: Make override intent explicit for code reviewers
+
 ## Pipe Operator (PHP 8.5)
 
 The pipe operator (`|>`) enables functional-style function chaining, making data transformations more readable by flowing left-to-right.
