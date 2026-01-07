@@ -3,7 +3,7 @@
 //! This module contains the tree-walking interpreter that executes
 //! the AST produced by the parser.
 
-mod builtins;
+pub mod builtins;
 mod value;
 
 // Submodules for organized implementation
@@ -12,7 +12,7 @@ mod functions; // Function call handling (dispatcher, user functions)
 mod objects;
 mod stmt_exec;
 
-pub use value::{ExceptionValue, ObjectInstance, Value};
+pub use value::{ArrayKey, ExceptionValue, ObjectInstance, Value};
 
 use crate::ast::{Expr, FunctionParam};
 use std::collections::HashMap;
