@@ -1,0 +1,28 @@
+--TEST--
+#[\Override] with method from one of multiple interfaces
+--FILE--
+<?php
+interface A {
+    public function foo();
+}
+
+interface B {
+    public function bar();
+}
+
+class C implements A, B {
+    #[Override]
+    public function foo() {
+        return "foo";
+    }
+
+    #[Override]
+    public function bar() {
+        return "bar";
+    }
+}
+
+$c = new C();
+echo $c->foo() . $c->bar();
+--EXPECT--
+foobar

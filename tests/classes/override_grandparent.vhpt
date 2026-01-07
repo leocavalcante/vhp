@@ -1,0 +1,24 @@
+--TEST--
+#[\Override] validates against grandparent methods
+--FILE--
+<?php
+class GrandParent {
+    public function legacy() {
+        return "old";
+    }
+}
+
+class ParentClass extends GrandParent {
+}
+
+class Child extends ParentClass {
+    #[Override]
+    public function legacy() {
+        return "new";
+    }
+}
+
+$child = new Child();
+echo $child->legacy();
+--EXPECT--
+new

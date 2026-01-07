@@ -1,0 +1,19 @@
+--TEST--
+#[\Override] attribute validates interface methods
+--FILE--
+<?php
+interface Drawable {
+    public function draw();
+}
+
+class Circle implements Drawable {
+    #[Override]
+    public function draw() {
+        return "Drawing circle";
+    }
+}
+
+$circle = new Circle();
+echo $circle->draw();
+--EXPECT--
+Drawing circle

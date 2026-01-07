@@ -1,0 +1,21 @@
+--TEST--
+Basic #[\Override] attribute on valid override
+--FILE--
+<?php
+class Animal {
+    public function speak() {
+        return "...";
+    }
+}
+
+class Dog extends Animal {
+    #[Override]
+    public function speak() {
+        return "Woof!";
+    }
+}
+
+$dog = new Dog();
+echo $dog->speak();
+--EXPECT--
+Woof!

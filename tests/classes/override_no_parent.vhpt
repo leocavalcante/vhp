@@ -1,0 +1,12 @@
+--TEST--
+#[\Override] error when class has no parent
+--FILE--
+<?php
+class Standalone {
+    #[Override]
+    public function test() {
+        return "fail";
+    }
+}
+--EXPECT_ERROR--
+has #[\Override] attribute, but no matching parent method exists

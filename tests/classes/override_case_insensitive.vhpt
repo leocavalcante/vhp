@@ -1,0 +1,21 @@
+--TEST--
+#[\Override] is case-insensitive
+--FILE--
+<?php
+class Base {
+    public function Method() {
+        return "base";
+    }
+}
+
+class Child extends Base {
+    #[override]
+    public function method() {
+        return "child";
+    }
+}
+
+$child = new Child();
+echo $child->method();
+--EXPECT--
+child

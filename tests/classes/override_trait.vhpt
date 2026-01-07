@@ -1,0 +1,23 @@
+--TEST--
+#[\Override] attribute validates trait methods
+--FILE--
+<?php
+trait Greetable {
+    public function greet() {
+        return "Hello";
+    }
+}
+
+class Person {
+    use Greetable;
+
+    #[Override]
+    public function greet() {
+        return "Hi there!";
+    }
+}
+
+$person = new Person();
+echo $person->greet();
+--EXPECT--
+Hi there!

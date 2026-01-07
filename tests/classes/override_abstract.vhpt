@@ -1,0 +1,21 @@
+--TEST--
+#[\Override] with abstract method implementation
+--FILE--
+<?php
+abstract class Shape {
+    abstract public function area();
+}
+
+class Circle extends Shape {
+    private $radius = 5;
+
+    #[Override]
+    public function area() {
+        return 3.14 * $this->radius * $this->radius;
+    }
+}
+
+$circle = new Circle();
+echo $circle->area();
+--EXPECT--
+78.5

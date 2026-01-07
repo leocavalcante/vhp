@@ -1,0 +1,20 @@
+--TEST--
+#[\Override] error when interface method doesn't exist
+--FILE--
+<?php
+interface Drawable {
+    public function draw();
+}
+
+class Circle implements Drawable {
+    public function draw() {
+        return "Drawing circle";
+    }
+
+    #[Override]
+    public function paint() {
+        return "Painting";
+    }
+}
+--EXPECT_ERROR--
+has #[\Override] attribute, but no matching parent method exists

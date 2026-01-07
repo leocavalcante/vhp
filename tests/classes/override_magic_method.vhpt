@@ -1,0 +1,21 @@
+--TEST--
+#[\Override] on magic method override
+--FILE--
+<?php
+class Base {
+    public function __toString() {
+        return "Base";
+    }
+}
+
+class Child extends Base {
+    #[Override]
+    public function __toString() {
+        return "Child";
+    }
+}
+
+$child = new Child();
+echo $child;
+--EXPECT--
+Child
