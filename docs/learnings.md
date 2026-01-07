@@ -409,6 +409,31 @@ These methods existed because:
 - Run clippy regularly during development, not just at QA time
 - If a method will be needed later, add `#[allow(dead_code)]` with a comment explaining why
 
+### Parser Patterns: Attribute Name Resolution
+
+**Date**: 2026-01-07
+**Feature**: #[\Override] attribute (PHP 8.3)
+**Issue**: PHP attributes can be specified with or without leading backslash
+**Details**:
+PHP allows attributes to be referenced in multiple ways:
+- Simple name: `#[Override]`
+- Fully qualified: `#[\Override]`
+- With namespace: `#[MyNamespace\MyAttribute]`
+
+The VHP parser currently only supports simple identifier names in attributes (via `TokenKind::Identifier`). To support fully qualified names with leading backslash, the parser would need to handle `TokenKind::Backslash` or qualified name parsing in the attribute context.
+
+For built-in attributes like `Override`, using the simple name form (`#[Override]`) works correctly because:
+1. The attribute name is stored as-is in the AST
+2. Validation logic uses case-insensitive string comparison
+3. PHP's attribute resolution is flexible enough that both forms are semantically equivalent
+
+**Workaround**: Use simple names without backslash for attributes in test files and user code until qualified name parsing is added to the attribute parser.
+
+**Prevention**:
+- When adding new built-in attributes, document that simple names should be used
+- If adding attribute name resolution, update the parser to handle qualified names in attributes
+- Test both simple and qualified forms when attribute parsing is enhanced
+
 ---
 
 ## Adding New Learnings
@@ -444,3 +469,4 @@ Categories:
 | 2025-12-30 | Added PHP Compatibility: Feature Incompatibility Validation pattern from asymmetric-visibility implementation | qa |
 | 2025-12-30 | Added Interpreter Patterns: Union Type Coercion Order and Testing Patterns: Type Tests Need declare(strict_types=1) | qa |
 | 2025-12-30 | Added Rust Patterns: Dead Code from Superseded Implementations from dnf-types QA | qa |
+| 2026-01-07 | Added Parser Patterns: Attribute Name Resolution Pattern from override-attribute implementation | coder |
