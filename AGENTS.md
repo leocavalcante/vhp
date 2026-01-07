@@ -28,6 +28,9 @@ make test-verbose       # Build and run tests (verbose output)
 ./target/release/vhp test        # Compact output
 ./target/release/vhp test -v     # Verbose output
 
+# Run performance benchmarks
+make bench              # Compare VHP vs PHP performance
+
 # Lint
 make lint               # Run clippy with warnings as errors
 ```
@@ -50,8 +53,15 @@ src/
 │   ├── expr.rs          # Expression parsing
 │   ├── stmt.rs          # Statement parsing
 │   └── precedence.rs    # Operator precedence (Pratt parsing)
-└── interpreter/         # Tree-walking interpreter (modularized)
-    ├── mod.rs           # Main interpreter logic
+├── vm/                  # Bytecode Virtual Machine (primary execution engine)
+│   ├── mod.rs           # VM execution loop
+│   ├── compiler.rs      # AST to bytecode compilation
+│   ├── opcode.rs        # Opcode definitions
+│   ├── frame.rs         # Call frames and loop contexts
+│   ├── class.rs         # CompiledClass, CompiledInterface, etc.
+│   └── builtins.rs      # Bridge to interpreter builtins
+└── interpreter/         # Value types and built-in functions
+    ├── mod.rs           # Value definitions, ObjectInstance
     ├── value.rs         # Value type and coercion
     └── builtins/        # Built-in function modules
         ├── mod.rs       # Module exports
@@ -86,18 +96,28 @@ tests/                   # Test suite organized by feature (490 tests)
 ├── types/               # Type declaration and validation tests (53 including DNF types)
 └── variables/           # Variable assignment and scope tests (8)
 
-Makefile                 # Build automation (build, lint, test targets)
+bench/                   # Performance benchmarks comparing VHP vs PHP
+├── array_operations.php # Array manipulation and built-in functions
+├── fibonacci.php        # Recursive function calls (stack performance)
+├── function_calls.php   # Function call overhead and parameter passing
+├── loops.php            # Loop constructs and iteration performance
+├── object_creation.php  # Object instantiation
+├── string_operations.php # String manipulation and built-in functions
+└── README.md            # Benchmark documentation
+
+Makefile                 # Build automation (build, lint, test, bench targets)
 ```
 
 ## Implementation Pipeline
 
 ```
-Source Code → Lexer → Tokens → Parser → AST → Interpreter → Output
+Source Code → Lexer → Tokens → Parser → AST → Compiler → Bytecode → VM → Output
 ```
 
 1. **Lexer** (`lexer.rs`): Converts source text into tokens, handles PHP/HTML mode switching
 2. **Parser** (`parser/`): Builds AST from tokens using recursive descent with Pratt parsing for operator precedence
-3. **Interpreter** (`interpreter/`): Tree-walking interpreter with variable storage and PHP-compatible type coercion
+3. **Compiler** (`vm/compiler.rs`): Compiles AST to bytecode instructions
+4. **VM** (`vm/mod.rs`): Executes bytecode with stack-based virtual machine (7x faster than tree-walking)
 
 ## Current Features (v0.1.0)
 
