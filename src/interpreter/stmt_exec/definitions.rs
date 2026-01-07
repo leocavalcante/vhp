@@ -261,14 +261,15 @@ impl<W: Write> Interpreter<W> {
 
         // Clone values that will be used after moving to ClassDefinition
         let _resolved_parent_clone = resolved_parent.clone();
+        let _resolved_interfaces_clone = resolved_interfaces.clone();
 
         let class_def = ClassDefinition {
             name: name.to_string(),
             is_abstract,
             is_final,
             readonly,
-            parent: resolved_parent,
-            interfaces: resolved_interfaces,
+            parent: resolved_parent.clone(),
+            interfaces: resolved_interfaces.clone(),
             properties: all_properties,
             methods: methods_map,
             method_visibility: visibility_map,
@@ -281,7 +282,19 @@ impl<W: Write> Interpreter<W> {
         } else {
             format!("{}\\{}", self.namespace_context.current.join("\\"), name).to_lowercase()
         };
-        self.classes.insert(fqn.clone(), class_def);
+        self.classes.insert(fqn.clone(), class_def.clone());
+
+        // Validate #[\Override] attributes on methods
+        for method in methods {
+            self.validate_override_attribute(
+                name,
+                method,
+                &resolved_parent,
+                &resolved_interfaces,
+                trait_uses,
+            )
+            .map_err(std::io::Error::other)?;
+        }
 
         // Initialize static properties for this class
         let mut static_props = HashMap::new();
@@ -547,5 +560,140 @@ impl<W: Write> Interpreter<W> {
 
         self.enums.insert(name.to_lowercase(), enum_def);
         Ok(ControlFlow::None)
+    }
+
+    /// Validate that methods marked with #[\Override] actually override something
+    fn validate_override_attribute(
+        &self,
+        class_name: &str,
+        method: &crate::ast::Method,
+        parent: &Option<String>,
+        interfaces: &[String],
+        trait_uses: &[crate::ast::TraitUse],
+    ) -> Result<(), String> {
+        // Check if method has #[\Override] attribute (case-insensitive)
+        let has_override = method.attributes.iter().any(|attr| {
+            attr.name.eq_ignore_ascii_case("Override")
+        });
+
+        if !has_override {
+            return Ok(()); // No validation needed
+        }
+
+        // Method must override something from:
+        // 1. Parent class
+        // 2. Implemented interfaces
+        // 3. Used traits
+
+        let method_name_lower = method.name.to_lowercase();
+        let mut found_in_parent = false;
+        let mut found_in_interface = false;
+        let mut found_in_trait = false;
+
+        // Check parent class
+        if let Some(parent_name) = parent {
+            if self.class_has_method(parent_name, &method_name_lower)? {
+                found_in_parent = true;
+            }
+        }
+
+        // Check interfaces
+        if !found_in_parent {
+            for interface_name in interfaces {
+                if self.interface_has_method(interface_name, &method_name_lower)? {
+                    found_in_interface = true;
+                    break;
+                }
+            }
+        }
+
+        // Check traits
+        if !found_in_parent && !found_in_interface {
+            for trait_use in trait_uses {
+                for trait_name in &trait_use.traits {
+                    if self.trait_has_method(trait_name, &method_name_lower)? {
+                        found_in_trait = true;
+                        break;
+                    }
+                }
+                if found_in_trait {
+                    break;
+                }
+            }
+        }
+
+        // If not found anywhere, error
+        if !found_in_parent && !found_in_interface && !found_in_trait {
+            return Err(format!(
+                "{}::{} has #[\\Override] attribute, but no matching parent method exists",
+                class_name, method.name
+            ));
+        }
+
+        Ok(())
+    }
+
+    /// Check if a class (including ancestors) has a method
+    fn class_has_method(&self, class_name: &str, method_name: &str) -> Result<bool, String> {
+        let class_key = class_name.to_lowercase();
+
+        let class_def = self.classes.get(&class_key)
+            .ok_or_else(|| format!("Class '{}' not found", class_name))?;
+
+        // Check if method exists in this class
+        if class_def.methods.contains_key(method_name) {
+            return Ok(true);
+        }
+
+        // Check parent class recursively
+        if let Some(parent_name) = &class_def.parent {
+            return self.class_has_method(parent_name, method_name);
+        }
+
+        Ok(false)
+    }
+
+    /// Check if an interface (including parent interfaces) has a method
+    fn interface_has_method(&self, interface_name: &str, method_name: &str) -> Result<bool, String> {
+        let interface_key = interface_name.to_lowercase();
+
+        let interface_def = self.interfaces.get(&interface_key)
+            .ok_or_else(|| format!("Interface '{}' not found", interface_name))?;
+
+        // Check if method exists in this interface
+        if interface_def.methods.iter().any(|(name, _)| name.to_lowercase() == method_name) {
+            return Ok(true);
+        }
+
+        // Check parent interfaces recursively
+        for parent_interface in &interface_def.parents {
+            if self.interface_has_method(parent_interface, method_name)? {
+                return Ok(true);
+            }
+        }
+
+        Ok(false)
+    }
+
+    /// Check if a trait has a method
+    fn trait_has_method(&self, trait_name: &str, method_name: &str) -> Result<bool, String> {
+        let trait_key = trait_name.to_lowercase();
+
+        let trait_def = self.traits.get(&trait_key)
+            .ok_or_else(|| format!("Trait '{}' not found", trait_name))?;
+
+        // Check if method exists in this trait
+        if trait_def.methods.contains_key(method_name) {
+            return Ok(true);
+        }
+
+        // Check traits used by this trait
+        for nested_trait_name in &trait_def.uses {
+            if self.trait_has_method(nested_trait_name, method_name)? {
+                return Ok(true);
+            }
+        }
+
+        Ok(false)
     }
 }
