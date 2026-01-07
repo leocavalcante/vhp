@@ -1,4 +1,4 @@
-.PHONY: build lint test clean release docs-serve
+.PHONY: build lint test clean release docs-serve bench
 
 # Default target
 all: build
@@ -26,6 +26,10 @@ test-verbose: release
 # Clean build artifacts
 clean:
 	cargo clean
+
+# Run performance benchmarks
+bench: release
+	python3 run_benchmarks.py
 
 # Serve documentation locally
 docs-serve:
