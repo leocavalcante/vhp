@@ -1,9 +1,10 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use crate::interpreter::Interpreter;
 use crate::lexer::Lexer;
 use crate::parser::Parser;
+use crate::vm::compiler::Compiler;
+use crate::vm::VM;
 
 #[derive(Debug, Default)]
 pub struct TestCase {
@@ -150,11 +151,20 @@ fn run_code(source: &str) -> Result<String, String> {
     let mut parser = Parser::new(tokens);
     let program = parser.parse()?;
 
+    // Compile to bytecode
+    let compiler = Compiler::new("<test>".to_string());
+    let compilation = compiler.compile_program(&program)?;
+
+    // Execute with VM
     let mut output = Vec::new();
-    let mut interpreter = Interpreter::new(&mut output);
-    interpreter
-        .execute(&program)
-        .map_err(|e| format!("Runtime error: {}", e))?;
+    let mut vm = VM::new(&mut output, std::ptr::null_mut());
+    vm.register_functions(compilation.functions);
+    vm.register_classes(compilation.classes);
+    vm.register_interfaces(compilation.interfaces);
+    vm.register_traits(compilation.traits);
+    vm.register_enums(compilation.enums);
+    vm.execute(compilation.main)
+        .map_err(|e| format!("VM error: {}", e))?;
 
     String::from_utf8(output).map_err(|e| format!("Output encoding error: {}", e))
 }
@@ -191,8 +201,26 @@ impl TestRunner {
 
     pub fn discover_tests(&self) -> Result<Vec<PathBuf>, String> {
         let mut tests = Vec::new();
-        self.discover_recursive(&self.test_dir, &mut tests)?;
-        tests.sort();
+
+        // Check if the path is a file or directory
+        if self.test_dir.is_file() {
+            // Single file - check if it has .vhpt extension
+            if self.test_dir.extension().is_some_and(|ext| ext == "vhpt") {
+                tests.push(self.test_dir.clone());
+            } else {
+                return Err(format!(
+                    "File must have .vhpt extension: {:?}",
+                    self.test_dir
+                ));
+            }
+        } else if self.test_dir.is_dir() {
+            // Directory - discover recursively
+            self.discover_recursive(&self.test_dir, &mut tests)?;
+            tests.sort();
+        } else {
+            return Err(format!("Path does not exist: {:?}", self.test_dir));
+        }
+
         Ok(tests)
     }
 
@@ -232,11 +260,19 @@ impl TestRunner {
         for test_path in &tests {
             summary.total += 1;
 
-            let relative_path = test_path
-                .strip_prefix(&self.test_dir)
-                .unwrap_or(test_path)
-                .display()
-                .to_string();
+            // For single files, show the filename; for directories, show relative path
+            let relative_path = if self.test_dir.is_file() {
+                test_path
+                    .file_name()
+                    .map(|n| n.to_string_lossy().to_string())
+                    .unwrap_or_else(|| test_path.display().to_string())
+            } else {
+                test_path
+                    .strip_prefix(&self.test_dir)
+                    .unwrap_or(test_path)
+                    .display()
+                    .to_string()
+            };
 
             let content = fs::read_to_string(test_path)
                 .map_err(|e| format!("Failed to read test file {:?}: {}", test_path, e))?;
