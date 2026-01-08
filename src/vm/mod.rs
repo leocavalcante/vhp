@@ -624,15 +624,14 @@ impl<W: Write> VM<W> {
                         return Err(format!("{}(): Return value must be of type void",
                             self.current_frame().function.name));
                     }
-                    // Validate return value only for class/interface types (strict check)
-                    if self.requires_strict_type_check(&return_type) {
-                        let return_value = self.stack.last().cloned().unwrap_or(Value::Null);
-                        if !self.value_matches_type(&return_value, &return_type) {
-                            let type_name = self.format_type_hint(&return_type);
-                            let given_type = self.get_value_type_name(&return_value);
-                            return Err(format!("{}(): Return value must be of type {}, {} returned",
-                                self.current_frame().function.name, type_name, given_type));
-                        }
+                    // Validate return value against type hint
+                    // Return types are ALWAYS strictly checked in PHP (no coercion)
+                    let return_value = self.stack.last().cloned().unwrap_or(Value::Null);
+                    if !self.value_matches_type_strict(&return_value, &return_type) {
+                        let type_name = self.format_type_hint(&return_type);
+                        let given_type = self.get_value_type_name(&return_value);
+                        return Err(format!("Return value must be of type {}, {} returned",
+                            type_name, given_type));
                     }
                 }
                 return Err("__RETURN__".to_string());
@@ -642,13 +641,12 @@ impl<W: Write> VM<W> {
                 if let Some(ref return_type) = self.current_frame().function.return_type.clone() {
                     // void is OK for return null (implicit return)
                     if !matches!(return_type, crate::ast::TypeHint::Void) {
-                        // For class types, null must be explicitly allowed
-                        if self.requires_strict_type_check(&return_type) {
-                            if !self.value_matches_type(&Value::Null, &return_type) {
-                                let type_name = self.format_type_hint(&return_type);
-                                return Err(format!("{}(): Return value must be of type {}, null returned",
-                                    self.current_frame().function.name, type_name));
-                            }
+                        // Validate null against return type
+                        // Return types are ALWAYS strictly checked in PHP (no coercion)
+                        if !self.value_matches_type_strict(&Value::Null, &return_type) {
+                            let type_name = self.format_type_hint(&return_type);
+                            return Err(format!("Return value must be of type {}, null returned",
+                                type_name));
                         }
                     }
                 }
@@ -2136,7 +2134,74 @@ impl<W: Write> VM<W> {
         }
     }
 
-    /// Check if a value matches a type hint
+    /// Check if a value matches a type hint (strict mode - no coercion)
+    /// Used for return type validation which is always strict in PHP
+    fn value_matches_type_strict(&self, value: &Value, type_hint: &crate::ast::TypeHint) -> bool {
+        use crate::ast::TypeHint;
+        match type_hint {
+            TypeHint::Simple(name) => self.value_matches_simple_type_strict(value, name),
+            TypeHint::Nullable(inner) => {
+                matches!(value, Value::Null) || self.value_matches_type_strict(value, inner)
+            }
+            TypeHint::Union(types) => types.iter().any(|t| self.value_matches_type_strict(value, t)),
+            TypeHint::Intersection(types) => {
+                types.iter().all(|t| self.value_matches_type_strict(value, t))
+            }
+            TypeHint::DNF(intersections) => {
+                // DNF: (A&B)|(C&D)|E
+                // Value must match at least one intersection group
+                intersections.iter().any(|group| {
+                    // All types in the group must match
+                    group.iter().all(|t| self.value_matches_type_strict(value, t))
+                })
+            }
+            TypeHint::Class(class_name) => {
+                if let Value::Object(obj) = value {
+                    self.is_instance_of(&obj.class_name, class_name)
+                } else {
+                    false
+                }
+            }
+            TypeHint::Void => false,       // void is for return types only
+            TypeHint::Never => false,      // never is for return types only
+            TypeHint::Static => false,     // Requires class context
+            TypeHint::SelfType => false,   // Requires class context
+            TypeHint::ParentType => false, // Requires class context
+        }
+    }
+
+    /// Helper for strict type matching (no coercion) - used for return types
+    fn value_matches_simple_type_strict(&self, value: &Value, type_name: &str) -> bool {
+        match (type_name, value) {
+            ("int", Value::Integer(_)) => true,
+            ("string", Value::String(_)) => true,
+            ("float", Value::Float(_)) => true,
+            ("float", Value::Integer(_)) => true, // int is compatible with float
+            ("bool", Value::Bool(_)) => true,
+            ("array", Value::Array(_)) => true,
+            ("object", Value::Object(_)) => true,
+            ("object", Value::Fiber(_)) => true,
+            ("object", Value::Closure(_)) => true,
+            ("object", Value::EnumCase { .. }) => true,
+            ("callable", Value::Closure(_)) => true,
+            ("callable", Value::String(_)) => true, // function name
+            ("iterable", Value::Array(_)) => true,
+            ("null", Value::Null) => true,
+            ("mixed", _) => true, // mixed accepts anything
+            _ => {
+                // Check if it's a class/interface/enum type
+                if let Value::Object(obj) = value {
+                    self.is_instance_of(&obj.class_name, type_name)
+                } else if let Value::EnumCase { enum_name, .. } = value {
+                    enum_name == type_name
+                } else {
+                    false
+                }
+            }
+        }
+    }
+
+    /// Check if a value matches a type hint (includes coercive mode for scalars)
     fn value_matches_type(&self, value: &Value, type_hint: &crate::ast::TypeHint) -> bool {
         use crate::ast::TypeHint;
         match type_hint {
