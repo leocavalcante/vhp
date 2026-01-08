@@ -137,4 +137,6 @@ pub struct ExceptionHandler {
     pub finally_offset: u32,
     /// Stack depth at try block start
     pub stack_depth: usize,
+    /// Frame depth when handler was registered (for cross-frame exception handling)
+    pub frame_depth: usize,
 }

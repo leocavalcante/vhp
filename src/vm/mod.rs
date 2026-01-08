@@ -1638,17 +1638,30 @@ impl<W: Write> VM<W> {
                             // Set $this (slot 0)
                             frame.locals[0] = Value::Object(instance);
 
-                            // Set up parameter locals (starting from slot 1)
+                            // Set up parameter locals (starting from slot 1) with type coercion
                             for (i, arg) in args.into_iter().enumerate() {
                                 if i + 1 < frame.locals.len() {
-                                        frame.locals[i + 1] = arg;
-                                    }
+                                    let coerced_arg = if i < frame.function.param_types.len() {
+                                        if let Some(ref type_hint) = frame.function.param_types[i] {
+                                            if !self.requires_strict_type_check(type_hint) {
+                                                self.coerce_value_to_type(arg, type_hint)
+                                            } else {
+                                                arg
+                                            }
+                                        } else {
+                                            arg
+                                        }
+                                    } else {
+                                        arg
+                                    };
+                                    frame.locals[i + 1] = coerced_arg;
                                 }
+                            }
 
-                                // Mark this as a constructor frame
-                                frame.is_constructor = true;
+                            // Mark this as a constructor frame
+                            frame.is_constructor = true;
 
-                                self.frames.push(frame);
+                            self.frames.push(frame);
                             } else {
                                 // No constructor, just push the object back
                                 self.stack.push(Value::Object(instance));
@@ -1662,49 +1675,62 @@ impl<W: Write> VM<W> {
             Opcode::Throw => {
                 let exception = self.stack.pop().ok_or("Stack underflow")?;
 
-                // Search for exception handler in current frame
+                let current_frame_depth = self.frames.len();
                 let current_ip = self.current_frame().ip;
-                let mut catch_offset: Option<usize> = None;
 
-                // Look for a handler that covers the current IP
-                // Search from end to beginning to find the innermost (most recent) handler
-                for handler in self.handlers.iter().rev() {
-                    // Handler is active if we're past try_start and either:
-                    // - try_end is 0 (haven't hit TryEnd yet), or
-                    // - we're before try_end
-                    let in_try_block = current_ip >= handler.try_start as usize
-                        && (handler.try_end == 0 || current_ip < handler.try_end as usize);
+                // Search for exception handler (can be in current or ancestor frames)
+                let mut handler_info: Option<(usize, usize, usize)> = None; // (catch_offset, frame_depth, handler_idx)
 
-                    if in_try_block {
-                        // Found a handler - remember the catch offset
-                        catch_offset = Some(handler.catch_offset as usize);
+                // Look for a handler, searching from newest to oldest
+                for (handler_idx, handler) in self.handlers.iter().enumerate().rev() {
+                    // Skip handlers from deeper frames (they've been popped)
+                    if handler.frame_depth > current_frame_depth {
+                        continue;
+                    }
+
+                    let handler_is_active = if handler.frame_depth == current_frame_depth {
+                        // Handler is in current frame - check IP range
+                        current_ip >= handler.try_start as usize
+                            && (handler.try_end == 0 || current_ip < handler.try_end as usize)
+                    } else {
+                        // Handler is in an ancestor frame - always active if frame exists
+                        // (exception propagates up through function calls)
+                        handler.try_end == 0 || handler.try_end > handler.try_start
+                    };
+
+                    if handler_is_active {
+                        handler_info = Some((handler.catch_offset as usize, handler.frame_depth, handler_idx));
                         break;
                     }
                 }
 
-                if let Some(offset) = catch_offset {
-                    // Disable the handler by setting try_end to current IP
-                    // This prevents nested throws from catching in the same handler
-                    let current_ip_u32 = current_ip as u32;
-                    for handler in self.handlers.iter_mut().rev() {
-                        if handler.catch_offset == offset as u32 {
-                            if handler.try_end == 0 {
-                                handler.try_end = current_ip_u32;
-                            }
-                            break;
+                if let Some((catch_offset, target_frame_depth, handler_idx)) = handler_info {
+                    // Unwind frames until we reach the target frame
+                    while self.frames.len() > target_frame_depth {
+                        self.frames.pop();
+                    }
+
+                    // Disable the handler by setting try_end
+                    if let Some(handler) = self.handlers.get_mut(handler_idx) {
+                        if handler.try_end == 0 {
+                            handler.try_end = current_ip as u32;
                         }
                     }
 
                     // Jump to catch block with exception on stack
                     self.stack.push(exception);
-                    self.current_frame_mut().jump_to(offset);
+                    if let Some(frame) = self.frames.last_mut() {
+                        frame.jump_to(catch_offset);
+                    }
                 } else {
                     // Format uncaught exception error
                     let error_msg = if let Value::Object(ref obj) = exception {
                         // Try to get the message property
                         if let Some(msg_value) = obj.properties.get("message") {
                             match msg_value {
-                                Value::String(s) if !s.is_empty() => s.clone(),
+                                Value::String(s) if !s.is_empty() => {
+                                    format!("Uncaught {}: {}", obj.class_name, s)
+                                },
                                 _ => format!("Uncaught {}", obj.class_name),
                             }
                         } else {
@@ -1720,6 +1746,7 @@ impl<W: Write> VM<W> {
             Opcode::TryStart(catch_offset, finally_offset) => {
                 // Register exception handler
                 let try_start = self.current_frame().ip as u32;
+                let frame_depth = self.frames.len();
                 self.handlers.push(ExceptionHandler {
                     try_start,
                     try_end: 0, // Will be set by TryEnd
@@ -1728,6 +1755,7 @@ impl<W: Write> VM<W> {
                     catch_var: String::new(),
                     finally_offset,
                     stack_depth: self.stack.len(),
+                    frame_depth,
                 });
             }
 
