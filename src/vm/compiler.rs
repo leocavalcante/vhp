@@ -1667,6 +1667,18 @@ impl Compiler {
             }
         }
 
+        // Add properties from used traits
+        for trait_name in &compiled_class.traits {
+            if let Some(trait_def) = self.traits.get(trait_name) {
+                for trait_prop in &trait_def.properties {
+                    // Add trait property to class if not already defined
+                    if !compiled_class.properties.iter().any(|p| p.name == trait_prop.name) {
+                        compiled_class.properties.push(trait_prop.clone());
+                    }
+                }
+            }
+        }
+
         // Compile methods
         for method in methods {
             // Check if method has #[\Override] attribute
