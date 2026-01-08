@@ -34,6 +34,7 @@ fn run(source: &str) -> Result<(), String> {
     // Execute with VM
     let output = std::io::stdout();
     let mut vm_instance = VM::new(output, std::ptr::null_mut());
+    vm_instance.register_builtins();
     vm_instance.register_functions(compilation.functions);
     vm_instance.register_classes(compilation.classes);
     vm_instance.register_interfaces(compilation.interfaces);

@@ -12,7 +12,7 @@ mod functions; // Function call handling (dispatcher, user functions)
 mod objects;
 mod stmt_exec;
 
-pub use value::{ArrayKey, ExceptionValue, ObjectInstance, Value};
+pub use value::{ArrayKey, Closure, ClosureBody, ExceptionValue, ObjectInstance, Value};
 
 use crate::ast::{Expr, FunctionParam};
 use std::collections::HashMap;
