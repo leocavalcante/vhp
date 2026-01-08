@@ -150,9 +150,9 @@ impl Compiler {
                 params,
                 return_type,
                 body,
-                attributes: _,
+                attributes,
             } => {
-                self.compile_function(name, params, return_type, body)?;
+                self.compile_function(name, params, return_type, body, attributes)?;
             }
             Stmt::Switch { expr, cases, default } => {
                 self.compile_switch(expr, cases, default)?;
@@ -917,6 +917,10 @@ impl Compiler {
                     method_compiler.function.required_param_count =
                         method.params.iter().filter(|p| p.default.is_none() && !p.is_variadic).count() as u8;
 
+                    // Store parameters and attributes for reflection
+                    method_compiler.function.parameters = method.params.clone();
+                    method_compiler.function.attributes = method.attributes.clone();
+
                     // Store parameter types for validation
                     for param in &method.params {
                         method_compiler.function.param_types.push(param.type_hint.clone());
@@ -1431,9 +1435,14 @@ impl Compiler {
         params: &[FunctionParam],
         return_type: &Option<crate::ast::TypeHint>,
         body: &[Stmt],
+        attributes: &[crate::ast::Attribute],
     ) -> Result<(), String> {
         // Create a new compiler for the function
         let mut func_compiler = Compiler::new(name.to_string());
+
+        // Store parameters and attributes for reflection
+        func_compiler.function.parameters = params.to_vec();
+        func_compiler.function.attributes = attributes.to_vec();
 
         // Set up parameters as local variables
         for (i, param) in params.iter().enumerate() {
@@ -1855,6 +1864,10 @@ impl Compiler {
             method_compiler.function.return_type = method.return_type.clone();
             method_compiler.function.is_variadic = method.params.iter().any(|p| p.is_variadic);
 
+            // Store parameters and attributes for reflection
+            method_compiler.function.parameters = method.params.clone();
+            method_compiler.function.attributes = method.attributes.clone();
+
             // Store parameter types for validation
             for param in &method.params {
                 method_compiler.function.param_types.push(param.type_hint.clone());
@@ -2036,6 +2049,10 @@ impl Compiler {
                 method.params.iter().filter(|p| p.default.is_none() && !p.is_variadic).count() as u8;
             method_compiler.function.return_type = method.return_type.clone();
 
+            // Store parameters and attributes for reflection
+            method_compiler.function.parameters = method.params.clone();
+            method_compiler.function.attributes = method.attributes.clone();
+
             // Store parameter types for validation
             for param in &method.params {
                 method_compiler.function.param_types.push(param.type_hint.clone());
@@ -2137,6 +2154,10 @@ impl Compiler {
             method_compiler.function.required_param_count =
                 method.params.iter().filter(|p| p.default.is_none() && !p.is_variadic).count() as u8;
             method_compiler.function.return_type = method.return_type.clone();
+
+            // Store parameters and attributes for reflection
+            method_compiler.function.parameters = method.params.clone();
+            method_compiler.function.attributes = method.attributes.clone();
 
             // Store parameter types for validation
             for param in &method.params {

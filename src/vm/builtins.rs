@@ -87,6 +87,15 @@ pub const BUILTIN_FUNCTIONS: &[&str] = &[
     "var_dump",
     "print_r",
     "printf",
+    // Reflection functions (handled in VM)
+    "get_class_attributes",
+    "get_property_attributes",
+    "get_method_attributes",
+    "get_method_parameter_attributes",
+    "get_function_attributes",
+    "get_parameter_attributes",
+    "get_interface_attributes",
+    "get_trait_attributes",
 ];
 
 /// Check if a function name is a built-in function

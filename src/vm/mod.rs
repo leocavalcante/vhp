@@ -9,6 +9,7 @@ pub mod class;
 pub mod compiler;
 pub mod frame;
 pub mod opcode;
+pub mod reflection;
 
 use crate::interpreter::{ArrayKey, ClosureBody, Interpreter, Value};
 use class::{CompiledClass, CompiledEnum, CompiledInterface, CompiledProperty, CompiledTrait};
@@ -983,7 +984,8 @@ impl<W: Write> VM<W> {
                 }
                 // 2. Fall back to built-in functions
                 else if builtins::is_builtin(&func_name) {
-                    let result = builtins::call_builtin(&func_name, &args, &mut self.output)?;
+                    // Check if it's a reflection function that needs VM context
+                    let result = self.call_reflection_or_builtin(&func_name, &args)?;
                     self.stack.push(result);
                 }
                 // 3. Unknown function
@@ -1002,8 +1004,8 @@ impl<W: Write> VM<W> {
                 }
                 args.reverse();
 
-                // Call the built-in function
-                let result = builtins::call_builtin(&func_name, &args, &mut self.output)?;
+                // Call reflection or builtin function
+                let result = self.call_reflection_or_builtin(&func_name, &args)?;
                 self.stack.push(result);
             }
 
@@ -2460,6 +2462,77 @@ impl<W: Write> VM<W> {
             TypeHint::Static => "static".to_string(),
             TypeHint::SelfType => "self".to_string(),
             TypeHint::ParentType => "parent".to_string(),
+        }
+    }
+
+    /// Call a reflection function or regular builtin function
+    fn call_reflection_or_builtin(&mut self, func_name: &str, args: &[Value]) -> Result<Value, String> {
+        match func_name {
+            "get_class_attributes" => {
+                if args.is_empty() {
+                    return Err("get_class_attributes() expects 1 argument".to_string());
+                }
+                let class_name = args[0].to_string_val();
+                reflection::get_class_attributes(&class_name, &self.classes)
+            }
+            "get_property_attributes" => {
+                if args.len() < 2 {
+                    return Err("get_property_attributes() expects 2 arguments".to_string());
+                }
+                let class_name = args[0].to_string_val();
+                let property_name = args[1].to_string_val();
+                reflection::get_property_attributes(&class_name, &property_name, &self.classes)
+            }
+            "get_method_attributes" => {
+                if args.len() < 2 {
+                    return Err("get_method_attributes() expects 2 arguments".to_string());
+                }
+                let class_name = args[0].to_string_val();
+                let method_name = args[1].to_string_val();
+                reflection::get_method_attributes(&class_name, &method_name, &self.classes)
+            }
+            "get_method_parameter_attributes" => {
+                if args.len() < 3 {
+                    return Err("get_method_parameter_attributes() expects 3 arguments".to_string());
+                }
+                let class_name = args[0].to_string_val();
+                let method_name = args[1].to_string_val();
+                let parameter_name = args[2].to_string_val();
+                reflection::get_method_parameter_attributes(&class_name, &method_name, &parameter_name, &self.classes)
+            }
+            "get_function_attributes" => {
+                if args.is_empty() {
+                    return Err("get_function_attributes() expects 1 argument".to_string());
+                }
+                let function_name = args[0].to_string_val();
+                reflection::get_function_attributes(&function_name, &self.functions)
+            }
+            "get_parameter_attributes" => {
+                if args.len() < 2 {
+                    return Err("get_parameter_attributes() expects 2 arguments".to_string());
+                }
+                let function_name = args[0].to_string_val();
+                let parameter_name = args[1].to_string_val();
+                reflection::get_parameter_attributes(&function_name, &parameter_name, &self.functions)
+            }
+            "get_interface_attributes" => {
+                if args.is_empty() {
+                    return Err("get_interface_attributes() expects 1 argument".to_string());
+                }
+                let interface_name = args[0].to_string_val();
+                reflection::get_interface_attributes(&interface_name, &self.interfaces)
+            }
+            "get_trait_attributes" => {
+                if args.is_empty() {
+                    return Err("get_trait_attributes() expects 1 argument".to_string());
+                }
+                let trait_name = args[0].to_string_val();
+                reflection::get_trait_attributes(&trait_name, &self.traits)
+            }
+            _ => {
+                // Call the regular built-in function
+                builtins::call_builtin(func_name, args, &mut self.output)
+            }
         }
     }
 }

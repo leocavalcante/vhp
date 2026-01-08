@@ -375,6 +375,10 @@ pub struct CompiledFunction {
     pub return_type: Option<crate::ast::TypeHint>,
     /// Parameter types for validation
     pub param_types: Vec<Option<crate::ast::TypeHint>>,
+    /// Function parameters (for reflection)
+    pub parameters: Vec<crate::ast::FunctionParam>,
+    /// Function attributes (for reflection)
+    pub attributes: Vec<crate::ast::Attribute>,
 }
 
 impl CompiledFunction {
@@ -392,6 +396,8 @@ impl CompiledFunction {
             is_variadic: false,
             return_type: None,
             param_types: Vec::new(),
+            parameters: Vec::new(),
+            attributes: Vec::new(),
         }
     }
 }
