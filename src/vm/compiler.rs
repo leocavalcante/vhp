@@ -1043,7 +1043,7 @@ impl Compiler {
                         let func_idx = self.intern_string(func_name.clone());
                         self.emit(Opcode::Call(func_idx, 1)); // 1 arg (the piped value)
                     }
-                    _ => return Err("Pipe operator requires callable on right side".to_string()),
+                    _ => return Err("Pipe operator right-hand side must be a function call".to_string()),
                 }
                 return Ok(());
             }
