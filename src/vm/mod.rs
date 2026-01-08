@@ -967,18 +967,26 @@ impl<W: Write> VM<W> {
                 for parent_def in parent_chain.iter().rev() {
                     for prop in &parent_def.properties {
                         let default_val = prop.default.clone().unwrap_or(Value::Null);
-                        instance.properties.insert(prop.name.clone(), default_val);
+                        instance.properties.insert(prop.name.clone(), default_val.clone());
                         if prop.readonly {
                             instance.readonly_properties.insert(prop.name.clone());
+                            // If property has a default value, mark as initialized
+                            if prop.default.is_some() {
+                                instance.initialized_readonly.insert(prop.name.clone());
+                            }
                         }
                     }
                 }
                 // Then initialize current class properties (can override parents)
                 for prop in &class_def.properties {
                     let default_val = prop.default.clone().unwrap_or(Value::Null);
-                    instance.properties.insert(prop.name.clone(), default_val);
+                    instance.properties.insert(prop.name.clone(), default_val.clone());
                     if prop.readonly {
                         instance.readonly_properties.insert(prop.name.clone());
+                        // If property has a default value, mark as initialized
+                        if prop.default.is_some() {
+                            instance.initialized_readonly.insert(prop.name.clone());
+                        }
                     }
                 }
 
