@@ -1681,18 +1681,33 @@ impl<W: Write> VM<W> {
                 if let Some(method) = class_def.get_method(method_name) {
                     return Some(method.clone());
                 }
-                // Try traits
+                // Try traits (recursively)
                 for trait_name in &class_def.traits {
-                    if let Some(trait_def) = self.traits.get(trait_name) {
-                        if let Some(method) = trait_def.methods.get(method_name) {
-                            return Some(method.clone());
-                        }
+                    if let Some(method) = self.find_method_in_trait(trait_name, method_name) {
+                        return Some(method);
                     }
                 }
                 // Move to parent
                 current_class = class_def.parent.clone();
             } else {
                 break;
+            }
+        }
+        None
+    }
+
+    /// Recursively look up method in trait and its used traits
+    fn find_method_in_trait(&self, trait_name: &str, method_name: &str) -> Option<Arc<CompiledFunction>> {
+        if let Some(trait_def) = self.traits.get(trait_name) {
+            // Check if this trait has the method
+            if let Some(method) = trait_def.methods.get(method_name) {
+                return Some(method.clone());
+            }
+            // Recursively check traits used by this trait
+            for used_trait in &trait_def.uses {
+                if let Some(method) = self.find_method_in_trait(used_trait, method_name) {
+                    return Some(method);
+                }
             }
         }
         None
