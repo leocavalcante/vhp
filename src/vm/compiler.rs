@@ -1731,6 +1731,35 @@ impl Compiler {
             }
         }
 
+        // Check for trait method conflicts
+        // Build a map of method names to the traits that define them
+        let mut trait_methods: std::collections::HashMap<String, Vec<String>> = std::collections::HashMap::new();
+        for trait_name in &compiled_class.traits {
+            if let Some(trait_def) = self.traits.get(trait_name) {
+                for method_name in trait_def.methods.keys() {
+                    trait_methods.entry(method_name.clone())
+                        .or_insert_with(Vec::new)
+                        .push(trait_name.clone());
+                }
+            }
+        }
+
+        // Check for conflicts (methods defined in multiple traits)
+        for (method_name, defining_traits) in &trait_methods {
+            if defining_traits.len() > 1 {
+                // Check if the class itself defines this method (which resolves the conflict)
+                let class_defines_method = methods.iter().any(|m| &m.name == method_name);
+                if !class_defines_method {
+                    // Unresolved conflict
+                    return Err(format!(
+                        "Trait method conflict: {} is defined in multiple traits ({})",
+                        method_name,
+                        defining_traits.join(", ")
+                    ));
+                }
+            }
+        }
+
         // Compile methods
         for method in methods {
             // Check if method has #[\Override] attribute
