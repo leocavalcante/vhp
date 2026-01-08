@@ -2258,8 +2258,8 @@ impl<W: Write> VM<W> {
             ("int", Value::Integer(_)) => true,
             // Coercive mode: float can be coerced to int
             ("int", Value::Float(_)) => true,
-            // Coercive mode: numeric strings can be coerced to int
-            ("int", Value::String(s)) => s.trim().parse::<i64>().is_ok() || s.trim().parse::<f64>().is_ok(),
+            // Coercive mode: strings can be coerced to int (will extract leading digits or become 0)
+            ("int", Value::String(_)) => true,
             // Coercive mode: bool can be coerced to int
             ("int", Value::Bool(_)) => true,
             ("string", Value::String(_)) => true,
@@ -2269,8 +2269,8 @@ impl<W: Write> VM<W> {
             ("string", Value::Bool(_)) => true,
             ("float", Value::Float(_)) => true,
             ("float", Value::Integer(_)) => true, // int is compatible with float
-            // Coercive mode: numeric strings can be coerced to float
-            ("float", Value::String(s)) => s.trim().parse::<f64>().is_ok(),
+            // Coercive mode: strings can be coerced to float
+            ("float", Value::String(_)) => true,
             ("bool", Value::Bool(_)) => true,
             // Coercive mode: any scalar can be coerced to bool
             ("bool", Value::Integer(_)) => true,
@@ -2412,9 +2412,8 @@ impl<W: Write> VM<W> {
                                     end_pos += 1;
                                 }
                                 if end_pos == 0 || (end_pos == 1 && (chars[0] == '+' || chars[0] == '-')) {
-                                    // No digits found - PHP 8+ throws TypeError for non-numeric strings
-                                    // Return original value to trigger type error
-                                    return value;
+                                    // No digits found - coerce to 0
+                                    return Value::Integer(0);
                                 }
                                 // Parse the numeric part
                                 let numeric_part: String = chars[..end_pos].iter().collect();
