@@ -618,13 +618,44 @@ impl Compiler {
                 self.compile_ternary(condition, then_expr, else_expr)?;
             }
             Expr::FunctionCall { name, args } => {
-                // Compile arguments in order
-                for arg in args {
-                    self.compile_expr(&arg.value)?;
+                // Check if any argument uses spread operator
+                let has_spread = args.iter().any(|arg| matches!(arg.value.as_ref(), Expr::Spread(_)));
+
+                if has_spread {
+                    // Compile with spread operator support
+                    // Strategy: Build an array with all arguments, then pass to CallSpread
+                    // Start with empty array
+                    self.emit(Opcode::NewArray(0));
+
+                    for arg in args {
+                        match arg.value.as_ref() {
+                            Expr::Spread(inner) => {
+                                // Compile the spread array
+                                self.compile_expr(inner)?;
+                                // Merge it into the argument array
+                                self.emit(Opcode::ArrayMerge);
+                            }
+                            _ => {
+                                // Regular argument - append to array
+                                self.compile_expr(&arg.value)?;
+                                self.emit(Opcode::ArrayAppend);
+                            }
+                        }
+                    }
+
+                    // Now we have an array with all arguments
+                    // Emit CallSpread opcode with function name index
+                    let name_idx = self.intern_string(name.clone());
+                    self.emit(Opcode::CallSpread(name_idx));
+                } else {
+                    // Compile arguments in order (no spread)
+                    for arg in args {
+                        self.compile_expr(&arg.value)?;
+                    }
+                    // Emit call opcode with function name index and arg count
+                    let name_idx = self.intern_string(name.clone());
+                    self.emit(Opcode::Call(name_idx, args.len() as u8));
                 }
-                // Emit call opcode with function name index and arg count
-                let name_idx = self.intern_string(name.clone());
-                self.emit(Opcode::Call(name_idx, args.len() as u8));
             }
             Expr::ArrayAssign { array, index, op, value } => {
                 // Array assignment: $arr[$key] = $value or $obj->prop[$key] = $value

@@ -737,6 +737,31 @@ impl<W: Write> VM<W> {
                     _ => return Err("Cannot append to non-array".to_string()),
                 }
             }
+            Opcode::ArrayMerge => {
+                let array2 = self.stack.pop().ok_or("Stack underflow")?;
+                let array1 = self.stack.pop().ok_or("Stack underflow")?;
+                match (array1, array2) {
+                    (Value::Array(mut arr1), Value::Array(arr2)) => {
+                        // Merge array2 into array1
+                        // Re-index to maintain sequential integer keys
+                        let next_idx = arr1
+                            .iter()
+                            .filter_map(|(k, _)| match k {
+                                ArrayKey::Integer(n) => Some(*n),
+                                _ => None,
+                            })
+                            .max()
+                            .unwrap_or(-1)
+                            + 1;
+
+                        for (i, (_, value)) in arr2.into_iter().enumerate() {
+                            arr1.push((ArrayKey::Integer(next_idx + i as i64), value));
+                        }
+                        self.stack.push(Value::Array(arr1));
+                    }
+                    _ => return Err("Cannot merge non-arrays".to_string()),
+                }
+            }
             Opcode::ArrayCount => {
                 let array = self.stack.pop().ok_or("Stack underflow")?;
                 match array {
@@ -1008,6 +1033,127 @@ impl<W: Write> VM<W> {
                 }
             }
 
+            Opcode::CallSpread(name_idx) => {
+                let func_name = self.current_frame().get_string(name_idx).to_string();
+
+                // Pop args array from stack
+                let args_array = self.stack.pop().ok_or("Stack underflow")?;
+                let args = match args_array {
+                    Value::Array(arr) => {
+                        // Extract values from array in order
+                        arr.into_iter().map(|(_, v)| v).collect::<Vec<_>>()
+                    }
+                    _ => return Err("CallSpread expects an array of arguments".to_string()),
+                };
+
+                let arg_count = args.len();
+
+                // 1. Check user-defined functions first (case-insensitive)
+                if let Some(func) = self.get_function(&func_name) {
+                    // Check minimum argument count
+                    if (arg_count as u8) < func.required_param_count {
+                        return Err(format!(
+                            "Too few arguments to function {}(), {} passed in, at least {} expected",
+                            func.name, arg_count, func.required_param_count
+                        ));
+                    }
+
+                    // Validate parameter types
+                    for (i, arg) in args.iter().enumerate() {
+                        if i < func.param_types.len() {
+                            if let Some(ref type_hint) = func.param_types[i] {
+                                let use_strict = func.strict_types || self.requires_strict_type_check(type_hint);
+                                if use_strict {
+                                    if !self.value_matches_type_strict(arg, type_hint) {
+                                        let type_name = self.format_type_hint(type_hint);
+                                        let given_type = self.get_value_type_name(arg);
+                                        return Err(format!(
+                                            "Argument {} passed to {}() must be of type {}, {} given",
+                                            i + 1, func.name, type_name, given_type
+                                        ));
+                                    }
+                                } else {
+                                    if !self.value_matches_type(arg, type_hint) {
+                                        let type_name = self.format_type_hint(type_hint);
+                                        let given_type = self.get_value_type_name(arg);
+                                        return Err(format!(
+                                            "Argument {} passed to {}() must be of type {}, {} given",
+                                            i + 1, func.name, type_name, given_type
+                                        ));
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Create new call frame
+                    let stack_base = self.stack.len();
+                    let mut frame = CallFrame::new(func.clone(), stack_base);
+
+                    // Handle variadic functions
+                    if func.is_variadic && func.param_count > 0 {
+                        let variadic_slot = (func.param_count - 1) as usize;
+                        for i in 0..variadic_slot {
+                            if i < args.len() {
+                                let coerced_arg = if i < func.param_types.len() {
+                                    if let Some(ref type_hint) = func.param_types[i] {
+                                        let use_strict = func.strict_types || self.requires_strict_type_check(type_hint);
+                                        if !use_strict {
+                                            self.coerce_value_to_type(args[i].clone(), type_hint)
+                                        } else {
+                                            args[i].clone()
+                                        }
+                                    } else {
+                                        args[i].clone()
+                                    }
+                                } else {
+                                    args[i].clone()
+                                };
+                                frame.locals[i] = coerced_arg;
+                            }
+                        }
+                        let variadic_args: Vec<(ArrayKey, Value)> = args
+                            .into_iter()
+                            .skip(variadic_slot)
+                            .enumerate()
+                            .map(|(i, v)| (ArrayKey::Integer(i as i64), v))
+                            .collect();
+                        frame.locals[variadic_slot] = Value::Array(variadic_args);
+                    } else {
+                        for (i, arg) in args.into_iter().enumerate() {
+                            if i < frame.locals.len() {
+                                let coerced_arg = if i < func.param_types.len() {
+                                    if let Some(ref type_hint) = func.param_types[i] {
+                                        let use_strict = func.strict_types || self.requires_strict_type_check(type_hint);
+                                        if !use_strict {
+                                            self.coerce_value_to_type(arg.clone(), type_hint)
+                                        } else {
+                                            arg
+                                        }
+                                    } else {
+                                        arg
+                                    }
+                                } else {
+                                    arg
+                                };
+                                frame.locals[i] = coerced_arg;
+                            }
+                        }
+                    }
+
+                    self.frames.push(frame);
+                }
+                // 2. Fall back to built-in functions
+                else if builtins::is_builtin(&func_name) {
+                    let result = self.call_reflection_or_builtin(&func_name, &args)?;
+                    self.stack.push(result);
+                }
+                // 3. Unknown function
+                else {
+                    return Err(format!("undefined function: {}", func_name));
+                }
+            }
+
             Opcode::CallBuiltin(name_idx, arg_count) => {
                 let func_name = self.current_frame().get_string(name_idx).to_string();
 
@@ -1017,6 +1163,23 @@ impl<W: Write> VM<W> {
                     args.push(self.stack.pop().ok_or("Stack underflow")?);
                 }
                 args.reverse();
+
+                // Call reflection or builtin function
+                let result = self.call_reflection_or_builtin(&func_name, &args)?;
+                self.stack.push(result);
+            }
+
+            Opcode::CallBuiltinSpread(name_idx) => {
+                let func_name = self.current_frame().get_string(name_idx).to_string();
+
+                // Pop args array from stack
+                let args_array = self.stack.pop().ok_or("Stack underflow")?;
+                let args = match args_array {
+                    Value::Array(arr) => {
+                        arr.into_iter().map(|(_, v)| v).collect::<Vec<_>>()
+                    }
+                    _ => return Err("CallBuiltinSpread expects an array of arguments".to_string()),
+                };
 
                 // Call reflection or builtin function
                 let result = self.call_reflection_or_builtin(&func_name, &args)?;

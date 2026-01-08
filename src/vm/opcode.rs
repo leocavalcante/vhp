@@ -116,10 +116,16 @@ pub enum Opcode {
     JumpIfNotNull(u32),
     /// Call function: name index, arg count
     Call(u32, u8),
+    /// Call function with spread: name index (stack: args_array -> result)
+    CallSpread(u32),
     /// Call built-in function: name index, arg count
     CallBuiltin(u32, u8),
+    /// Call built-in function with spread: name index (stack: args_array -> result)
+    CallBuiltinSpread(u32),
     /// Call a callable value (closure, first-class callable): arg count (stack: callable, args... -> result)
     CallCallable(u8),
+    /// Array merge for spread operator: merge second array into first (stack: array1, array2 -> merged_array)
+    ArrayMerge,
     /// Return from function (with value from stack)
     Return,
     /// Return null from function
@@ -305,6 +311,7 @@ impl Opcode {
 
             // Function calls: variable effect (handled specially)
             Opcode::Call(_, n) | Opcode::CallBuiltin(_, n) => -(*n as i32),
+            Opcode::CallSpread(_) | Opcode::CallBuiltinSpread(_) => 0, // pops array, pushes result
             Opcode::CallCallable(n) => -(*n as i32) - 1 + 1, // pops callable + args, pushes result
             Opcode::CallMethod(_, n) => -(*n as i32) - 1 + 1, // pops object + args, pushes result
             Opcode::CallStaticMethod(_, _, n) => -(*n as i32) + 1,
@@ -324,6 +331,7 @@ impl Opcode {
             Opcode::NewArray(n) => 1 - (*n as i32) * 2, // pops n key-value pairs, pushes array
             Opcode::ArrayAppend => -1, // pops array and value, pushes array
             Opcode::ArrayUnpack => 0, // varies at runtime
+            Opcode::ArrayMerge => -1, // pops two arrays, pushes merged array
 
             // Null coalescing jumps
             Opcode::JumpIfNull(_) | Opcode::JumpIfNotNull(_) => 0, // doesn't pop
