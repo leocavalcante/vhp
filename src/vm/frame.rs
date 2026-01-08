@@ -25,6 +25,8 @@ pub struct CallFrame {
     pub this: Option<crate::interpreter::ObjectInstance>,
     /// Called class name (for late static binding)
     pub called_class: Option<String>,
+    /// Whether this is a constructor frame (returns $this on completion)
+    pub is_constructor: bool,
 }
 
 impl CallFrame {
@@ -39,6 +41,7 @@ impl CallFrame {
             saved_globals: None,
             this: None,
             called_class: None,
+            is_constructor: false,
         }
     }
 
@@ -58,6 +61,7 @@ impl CallFrame {
             saved_globals: None,
             this: Some(this),
             called_class: Some(called_class),
+            is_constructor: false,
         }
     }
 
