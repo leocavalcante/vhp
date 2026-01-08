@@ -912,10 +912,23 @@ impl<W: Write> VM<W> {
                     // Handle variadic functions
                     if func.is_variadic && func.param_count > 0 {
                         let variadic_slot = (func.param_count - 1) as usize;
-                        // Set regular params first
+                        // Set regular params first (with type coercion)
                         for i in 0..variadic_slot {
                             if i < args.len() {
-                                frame.locals[i] = args[i].clone();
+                                let coerced_arg = if i < func.param_types.len() {
+                                    if let Some(ref type_hint) = func.param_types[i] {
+                                        if !self.requires_strict_type_check(type_hint) {
+                                            self.coerce_value_to_type(args[i].clone(), type_hint)
+                                        } else {
+                                            args[i].clone()
+                                        }
+                                    } else {
+                                        args[i].clone()
+                                    }
+                                } else {
+                                    args[i].clone()
+                                };
+                                frame.locals[i] = coerced_arg;
                             }
                         }
                         // Collect remaining args into array for variadic param
@@ -927,10 +940,23 @@ impl<W: Write> VM<W> {
                             .collect();
                         frame.locals[variadic_slot] = Value::Array(variadic_args);
                     } else {
-                        // Set up parameter locals normally
+                        // Set up parameter locals normally (with type coercion)
                         for (i, arg) in args.into_iter().enumerate() {
                             if i < frame.locals.len() {
-                                frame.locals[i] = arg;
+                                let coerced_arg = if i < func.param_types.len() {
+                                    if let Some(ref type_hint) = func.param_types[i] {
+                                        if !self.requires_strict_type_check(type_hint) {
+                                            self.coerce_value_to_type(arg, type_hint)
+                                        } else {
+                                            arg
+                                        }
+                                    } else {
+                                        arg
+                                    }
+                                } else {
+                                    arg
+                                };
+                                frame.locals[i] = coerced_arg;
                             }
                         }
                     }
@@ -2214,6 +2240,69 @@ impl<W: Write> VM<W> {
             Value::Fiber(_) => "Fiber",
             Value::EnumCase { .. } => "enum",
             Value::Exception(_) => "Exception",
+        }
+    }
+
+    /// Coerce a value to match a type hint (for coercive mode)
+    fn coerce_value_to_type(&self, value: Value, type_hint: &crate::ast::TypeHint) -> Value {
+        use crate::ast::TypeHint;
+        match type_hint {
+            TypeHint::Simple(name) => {
+                match name.as_str() {
+                    "int" => {
+                        // Convert to int using PHP rules
+                        match &value {
+                            Value::Integer(_) => value,
+                            Value::Float(f) => Value::Integer(*f as i64),
+                            Value::Bool(b) => Value::Integer(if *b { 1 } else { 0 }),
+                            Value::String(s) => {
+                                // Parse leading digits from string
+                                let trimmed = s.trim_start();
+                                if trimmed.is_empty() {
+                                    return Value::Integer(0);
+                                }
+                                // Try to parse as integer or float, taking only leading valid part
+                                let mut end_pos = 0;
+                                let chars: Vec<char> = trimmed.chars().collect();
+                                // Handle optional sign
+                                if !chars.is_empty() && (chars[0] == '+' || chars[0] == '-') {
+                                    end_pos = 1;
+                                }
+                                // Collect digits
+                                while end_pos < chars.len() && chars[end_pos].is_ascii_digit() {
+                                    end_pos += 1;
+                                }
+                                if end_pos == 0 || (end_pos == 1 && (chars[0] == '+' || chars[0] == '-')) {
+                                    // No digits found
+                                    return Value::Integer(0);
+                                }
+                                // Parse the numeric part
+                                let numeric_part: String = chars[..end_pos].iter().collect();
+                                Value::Integer(numeric_part.parse().unwrap_or(0))
+                            }
+                            _ => Value::Integer(value.to_int()),
+                        }
+                    }
+                    "float" => {
+                        Value::Float(value.to_float())
+                    }
+                    "string" => {
+                        Value::String(value.to_string_val())
+                    }
+                    "bool" => {
+                        Value::Bool(value.to_bool())
+                    }
+                    _ => value, // For other types, don't coerce
+                }
+            }
+            TypeHint::Nullable(inner) => {
+                if matches!(value, Value::Null) {
+                    value
+                } else {
+                    self.coerce_value_to_type(value, inner)
+                }
+            }
+            _ => value, // For complex types, don't coerce
         }
     }
 
