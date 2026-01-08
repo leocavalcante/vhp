@@ -379,6 +379,8 @@ pub struct CompiledFunction {
     pub parameters: Vec<crate::ast::FunctionParam>,
     /// Function attributes (for reflection)
     pub attributes: Vec<crate::ast::Attribute>,
+    /// Whether strict_types=1 was enabled when this function was compiled
+    pub strict_types: bool,
 }
 
 impl CompiledFunction {
@@ -398,6 +400,7 @@ impl CompiledFunction {
             param_types: Vec::new(),
             parameters: Vec::new(),
             attributes: Vec::new(),
+            strict_types: false,
         }
     }
 }

@@ -885,12 +885,24 @@ impl<W: Write> VM<W> {
                         ));
                     }
 
-                    // Validate parameter types (class type hints only - scalars use coercive mode)
+                    // Validate parameter types
+                    // If strict_types is enabled, validate all types strictly
+                    // Otherwise, only validate class types strictly (scalars use coercive mode)
                     for (i, arg) in args.iter().enumerate() {
                         if i < func.param_types.len() {
                             if let Some(ref type_hint) = func.param_types[i] {
-                                // Only validate class type hints strictly
-                                if self.requires_strict_type_check(type_hint) {
+                                let use_strict = func.strict_types || self.requires_strict_type_check(type_hint);
+                                if use_strict {
+                                    if !self.value_matches_type_strict(arg, type_hint) {
+                                        let type_name = self.format_type_hint(type_hint);
+                                        let given_type = self.get_value_type_name(arg);
+                                        return Err(format!(
+                                            "Argument {} passed to {}() must be of type {}, {} given",
+                                            i + 1, func.name, type_name, given_type
+                                        ));
+                                    }
+                                } else {
+                                    // Coercive mode - check if value can be coerced
                                     if !self.value_matches_type(arg, type_hint) {
                                         let type_name = self.format_type_hint(type_hint);
                                         let given_type = self.get_value_type_name(arg);
@@ -911,12 +923,13 @@ impl<W: Write> VM<W> {
                     // Handle variadic functions
                     if func.is_variadic && func.param_count > 0 {
                         let variadic_slot = (func.param_count - 1) as usize;
-                        // Set regular params first (with type coercion)
+                        // Set regular params first (with type coercion unless strict_types)
                         for i in 0..variadic_slot {
                             if i < args.len() {
                                 let coerced_arg = if i < func.param_types.len() {
                                     if let Some(ref type_hint) = func.param_types[i] {
-                                        if !self.requires_strict_type_check(type_hint) {
+                                        let use_strict = func.strict_types || self.requires_strict_type_check(type_hint);
+                                        if !use_strict {
                                             let coerced = self.coerce_value_to_type(args[i].clone(), type_hint);
                                             // Validate that coercion succeeded (type matches)
                                             if !self.value_matches_type(&coerced, type_hint) {
@@ -949,12 +962,13 @@ impl<W: Write> VM<W> {
                             .collect();
                         frame.locals[variadic_slot] = Value::Array(variadic_args);
                     } else {
-                        // Set up parameter locals normally (with type coercion)
+                        // Set up parameter locals normally (with type coercion unless strict_types)
                         for (i, arg) in args.into_iter().enumerate() {
                             if i < frame.locals.len() {
                                 let coerced_arg = if i < func.param_types.len() {
                                     if let Some(ref type_hint) = func.param_types[i] {
-                                        if !self.requires_strict_type_check(type_hint) {
+                                        let use_strict = func.strict_types || self.requires_strict_type_check(type_hint);
+                                        if !use_strict {
                                             let coerced = self.coerce_value_to_type(arg.clone(), type_hint);
                                             // Validate that coercion succeeded (type matches)
                                             if !self.value_matches_type(&coerced, type_hint) {

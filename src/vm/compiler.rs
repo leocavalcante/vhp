@@ -48,6 +48,8 @@ pub struct Compiler {
     traits: HashMap<String, Arc<CompiledTrait>>,
     /// Compiled enums collected during compilation
     enums: HashMap<String, Arc<CompiledEnum>>,
+    /// Whether strict_types=1 is active for this compilation unit
+    strict_types: bool,
 }
 
 impl Compiler {
@@ -65,6 +67,7 @@ impl Compiler {
             interfaces: HashMap::new(),
             traits: HashMap::new(),
             enums: HashMap::new(),
+            strict_types: false,
         }
     }
 
@@ -163,9 +166,19 @@ impl Compiler {
                 self.emit(Opcode::PushString(idx));
                 self.emit(Opcode::Echo);
             }
-            Stmt::Declare { directives: _, body } => {
-                // Declare directives like strict_types are handled at parse time
-                // Just compile the body if present
+            Stmt::Declare { directives, body } => {
+                // Handle declare directives
+                for directive in directives {
+                    match directive {
+                        crate::ast::DeclareDirective::StrictTypes(enabled) => {
+                            self.strict_types = *enabled;
+                        }
+                        _ => {
+                            // Other directives like encoding are ignored for now
+                        }
+                    }
+                }
+                // Compile the body if present
                 if let Some(stmts) = body {
                     for stmt in stmts {
                         self.compile_stmt(stmt)?;
@@ -1439,6 +1452,9 @@ impl Compiler {
     ) -> Result<(), String> {
         // Create a new compiler for the function
         let mut func_compiler = Compiler::new(name.to_string());
+
+        // Inherit strict_types from parent compiler
+        func_compiler.function.strict_types = self.strict_types;
 
         // Store parameters and attributes for reflection
         func_compiler.function.parameters = params.to_vec();
