@@ -1589,7 +1589,8 @@ impl Compiler {
         }
 
         // Compile catch clauses
-        for catch in catch_clauses {
+        let mut end_catch_jumps = Vec::new();
+        for (i, catch) in catch_clauses.iter().enumerate() {
             // Allocate local for exception variable
             let var_slot = self.allocate_local(catch.variable.clone());
 
@@ -1600,10 +1601,21 @@ impl Compiler {
             for stmt in &catch.body {
                 self.compile_stmt(stmt)?;
             }
+
+            // After catch body executes, jump to end (skip remaining catches)
+            // Don't emit jump for the last catch clause (no more to skip)
+            if i < catch_clauses.len() - 1 {
+                let jump_to_end = self.emit_jump(Opcode::Jump(0));
+                end_catch_jumps.push(jump_to_end);
+            }
         }
 
-        // Patch skip_catch
+        // Patch skip_catch and all end_catch jumps to point here (after all catches)
+        let after_catches = self.current_offset();
         self.patch_jump(skip_catch);
+        for jump in end_catch_jumps {
+            self.patch_jump(jump);
+        }
 
         // Compile finally body if present
         if let Some(finally) = finally_body {
@@ -1634,11 +1646,15 @@ impl Compiler {
     ) -> Result<(), String> {
         // Check if parent class exists and is not final
         if let Some(parent_name) = parent.as_ref().and_then(|p| p.last()) {
+            // Check if parent class exists (allow built-in classes)
+            let is_builtin = matches!(parent_name.as_str(),
+                "Exception" | "Error" | "TypeError" | "InvalidArgumentException" | "UnhandledMatchError");
+
             if let Some(parent_class) = self.classes.get(parent_name) {
                 if parent_class.is_final {
                     return Err(format!("cannot extend final class {}", parent_name));
                 }
-            } else {
+            } else if !is_builtin {
                 return Err(format!("Parent class '{}' not found", parent_name));
             }
         }
