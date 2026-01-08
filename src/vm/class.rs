@@ -21,8 +21,11 @@ pub struct CompiledClass {
     pub methods: HashMap<String, Arc<CompiledFunction>>,
     pub static_methods: HashMap<String, Arc<CompiledFunction>>,
     pub static_properties: HashMap<String, crate::interpreter::Value>,
+    pub readonly_static_properties: std::collections::HashSet<String>,
     pub constants: HashMap<String, crate::interpreter::Value>,
     pub method_visibility: HashMap<String, Visibility>,
+    pub method_finals: HashMap<String, bool>,
+    pub method_abstracts: HashMap<String, bool>,
     pub attributes: Vec<Attribute>,
 }
 
@@ -40,8 +43,11 @@ impl CompiledClass {
             methods: HashMap::new(),
             static_methods: HashMap::new(),
             static_properties: HashMap::new(),
+            readonly_static_properties: std::collections::HashSet::new(),
             constants: HashMap::new(),
             method_visibility: HashMap::new(),
+            method_finals: HashMap::new(),
+            method_abstracts: HashMap::new(),
             attributes: Vec::new(),
         }
     }
@@ -77,11 +83,26 @@ pub struct CompiledProperty {
 
 impl CompiledProperty {
     pub fn from_ast(prop: &Property, readonly_class: bool) -> Self {
+        // Try to evaluate simple default values at compile time
+        let default = prop.default.as_ref().and_then(|expr| {
+            use crate::ast::Expr;
+            match expr {
+                Expr::Integer(n) => Some(crate::interpreter::Value::Integer(*n)),
+                Expr::Float(n) => Some(crate::interpreter::Value::Float(*n)),
+                Expr::String(s) => Some(crate::interpreter::Value::String(s.clone())),
+                Expr::Bool(b) => Some(crate::interpreter::Value::Bool(*b)),
+                Expr::Null => Some(crate::interpreter::Value::Null),
+                Expr::Array(elements) if elements.is_empty() => {
+                    Some(crate::interpreter::Value::Array(Vec::new()))
+                }
+                _ => None, // Complex expressions need runtime evaluation
+            }
+        });
         Self {
             name: prop.name.clone(),
             visibility: prop.visibility,
             write_visibility: prop.write_visibility,
-            default: None, // Will be evaluated at runtime
+            default,
             readonly: prop.readonly || readonly_class,
             is_static: prop.is_static,
             type_hint: None, // Would need to be extracted from AST
@@ -140,6 +161,7 @@ pub struct CompiledEnum {
     pub name: String,
     pub backing_type: crate::ast::EnumBackingType,
     pub cases: HashMap<String, Option<crate::interpreter::Value>>,
+    pub case_order: Vec<String>, // Preserves insertion order for cases() method
     pub methods: HashMap<String, Arc<CompiledFunction>>,
     pub attributes: Vec<Attribute>,
 }
@@ -150,6 +172,7 @@ impl CompiledEnum {
             name,
             backing_type,
             cases: HashMap::new(),
+            case_order: Vec::new(),
             methods: HashMap::new(),
             attributes: Vec::new(),
         }
