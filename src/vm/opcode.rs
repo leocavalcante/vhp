@@ -118,10 +118,14 @@ pub enum Opcode {
     Call(u32, u8),
     /// Call function with spread: name index (stack: args_array -> result)
     CallSpread(u32),
+    /// Call function with named arguments: name index (stack: args_assoc_array -> result)
+    CallNamed(u32),
     /// Call built-in function: name index, arg count
     CallBuiltin(u32, u8),
     /// Call built-in function with spread: name index (stack: args_array -> result)
     CallBuiltinSpread(u32),
+    /// Call built-in function with named arguments: name index (stack: args_assoc_array -> result)
+    CallBuiltinNamed(u32),
     /// Call a callable value (closure, first-class callable): arg count (stack: callable, args... -> result)
     CallCallable(u8),
     /// Array merge for spread operator: merge second array into first (stack: array1, array2 -> merged_array)
@@ -312,6 +316,7 @@ impl Opcode {
             // Function calls: variable effect (handled specially)
             Opcode::Call(_, n) | Opcode::CallBuiltin(_, n) => -(*n as i32),
             Opcode::CallSpread(_) | Opcode::CallBuiltinSpread(_) => 0, // pops array, pushes result
+            Opcode::CallNamed(_) | Opcode::CallBuiltinNamed(_) => 0, // pops assoc array, pushes result
             Opcode::CallCallable(n) => -(*n as i32) - 1 + 1, // pops callable + args, pushes result
             Opcode::CallMethod(_, n) => -(*n as i32) - 1 + 1, // pops object + args, pushes result
             Opcode::CallStaticMethod(_, _, n) => -(*n as i32) + 1,

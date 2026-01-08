@@ -618,8 +618,9 @@ impl Compiler {
                 self.compile_ternary(condition, then_expr, else_expr)?;
             }
             Expr::FunctionCall { name, args } => {
-                // Check if any argument uses spread operator
+                // Check what kind of arguments we have
                 let has_spread = args.iter().any(|arg| matches!(arg.value.as_ref(), Expr::Spread(_)));
+                let has_named = args.iter().any(|arg| arg.name.is_some());
 
                 if has_spread {
                     // Compile with spread operator support
@@ -647,8 +648,38 @@ impl Compiler {
                     // Emit CallSpread opcode with function name index
                     let name_idx = self.intern_string(name.clone());
                     self.emit(Opcode::CallSpread(name_idx));
+                } else if has_named {
+                    // Compile with named arguments support
+                    // Build an array with positional args followed by named args
+                    // Use array with integer and string keys
+
+                    let mut positional_count = 0;
+                    let mut total_pairs = 0;
+
+                    // First, push all key-value pairs (positional as integers, named as strings)
+                    for (idx, arg) in args.iter().enumerate() {
+                        if let Some(ref param_name) = arg.name {
+                            // Named argument
+                            let name_idx = self.intern_string(param_name.clone());
+                            self.emit(Opcode::PushString(name_idx));
+                            self.compile_expr(&arg.value)?;
+                        } else {
+                            // Positional argument - use integer index
+                            self.emit(Opcode::PushInt(idx as i64));
+                            self.compile_expr(&arg.value)?;
+                            positional_count += 1;
+                        }
+                        total_pairs += 1;
+                    }
+
+                    // Create array from pairs
+                    self.emit(Opcode::NewArray(total_pairs as u16));
+
+                    // Emit CallNamed opcode
+                    let name_idx = self.intern_string(name.clone());
+                    self.emit(Opcode::CallNamed(name_idx));
                 } else {
-                    // Compile arguments in order (no spread)
+                    // Compile arguments in order (no spread, no named)
                     for arg in args {
                         self.compile_expr(&arg.value)?;
                     }

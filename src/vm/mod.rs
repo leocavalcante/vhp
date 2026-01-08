@@ -1154,6 +1154,179 @@ impl<W: Write> VM<W> {
                 }
             }
 
+            Opcode::CallNamed(name_idx) => {
+                let func_name = self.current_frame().get_string(name_idx).to_string();
+
+                // Pop args array from stack (mixed positional/named)
+                let args_array = self.stack.pop().ok_or("Stack underflow")?;
+                let (positional_args, named_args) = match args_array {
+                    Value::Array(arr) => {
+                        // Separate positional (integer keys) from named (string keys)
+                        let mut positional = Vec::new();
+                        let mut named = std::collections::HashMap::new();
+
+                        for (k, v) in arr {
+                            match k {
+                                ArrayKey::Integer(i) => {
+                                    positional.push((i as usize, v));
+                                }
+                                ArrayKey::String(name) => {
+                                    named.insert(name, v);
+                                }
+                            }
+                        }
+
+                        // Sort positional by index
+                        positional.sort_by_key(|(i, _)| *i);
+                        let positional: Vec<Value> = positional.into_iter().map(|(_, v)| v).collect();
+
+                        (positional, named)
+                    }
+                    _ => return Err("CallNamed expects an array of arguments".to_string()),
+                };
+
+                // 1. Check user-defined functions first (case-insensitive)
+                if let Some(func) = self.get_function(&func_name) {
+                    // Map positional and named arguments to function parameters
+                    let mut args = Vec::with_capacity(func.param_count as usize);
+
+                    for i in 0..func.param_count as usize {
+                        if i < func.parameters.len() {
+                            let param_name = &func.parameters[i].name;
+
+                            // Try positional first, then named
+                            if i < positional_args.len() {
+                                args.push(positional_args[i].clone());
+                            } else if let Some(value) = named_args.get(param_name) {
+                                args.push(value.clone());
+                            } else if func.parameters[i].default.is_some() {
+                                // Use default value - push null for now, will be handled in frame setup
+                                args.push(Value::Null); // Marker for "use default"
+                            } else if i < func.required_param_count as usize {
+                                return Err(format!(
+                                    "Missing required argument '{}' for function {}()",
+                                    param_name, func.name
+                                ));
+                            } else {
+                                args.push(Value::Null);
+                            }
+                        }
+                    }
+
+                    // Check for unknown parameters
+                    for (name, _) in &named_args {
+                        if !func.parameters.iter().any(|p| &p.name == name) {
+                            return Err(format!(
+                                "Unknown parameter '{}' for function {}()",
+                                name, func.name
+                            ));
+                        }
+                    }
+
+                    // Validate and create call frame (reuse existing logic)
+                    let arg_count = args.len();
+
+                    // Validate parameter types
+                    for (i, arg) in args.iter().enumerate() {
+                        if i < func.param_types.len() {
+                            if let Some(ref type_hint) = func.param_types[i] {
+                                let use_strict = func.strict_types || self.requires_strict_type_check(type_hint);
+                                if use_strict {
+                                    if !self.value_matches_type_strict(arg, type_hint) {
+                                        let type_name = self.format_type_hint(type_hint);
+                                        let given_type = self.get_value_type_name(arg);
+                                        return Err(format!(
+                                            "Argument {} passed to {}() must be of type {}, {} given",
+                                            i + 1, func.name, type_name, given_type
+                                        ));
+                                    }
+                                } else {
+                                    if !self.value_matches_type(arg, type_hint) {
+                                        let type_name = self.format_type_hint(type_hint);
+                                        let given_type = self.get_value_type_name(arg);
+                                        return Err(format!(
+                                            "Argument {} passed to {}() must be of type {}, {} given",
+                                            i + 1, func.name, type_name, given_type
+                                        ));
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Create new call frame
+                    let stack_base = self.stack.len();
+                    let mut frame = CallFrame::new(func.clone(), stack_base);
+
+                    // Handle variadic functions
+                    if func.is_variadic && func.param_count > 0 {
+                        let variadic_slot = (func.param_count - 1) as usize;
+                        for i in 0..variadic_slot {
+                            if i < args.len() {
+                                let coerced_arg = if i < func.param_types.len() {
+                                    if let Some(ref type_hint) = func.param_types[i] {
+                                        let use_strict = func.strict_types || self.requires_strict_type_check(type_hint);
+                                        if !use_strict {
+                                            self.coerce_value_to_type(args[i].clone(), type_hint)
+                                        } else {
+                                            args[i].clone()
+                                        }
+                                    } else {
+                                        args[i].clone()
+                                    }
+                                } else {
+                                    args[i].clone()
+                                };
+                                frame.locals[i] = coerced_arg;
+                            }
+                        }
+                        let variadic_args: Vec<(ArrayKey, Value)> = args
+                            .into_iter()
+                            .skip(variadic_slot)
+                            .enumerate()
+                            .map(|(i, v)| (ArrayKey::Integer(i as i64), v))
+                            .collect();
+                        frame.locals[variadic_slot] = Value::Array(variadic_args);
+                    } else {
+                        for (i, arg) in args.into_iter().enumerate() {
+                            if i < frame.locals.len() {
+                                let coerced_arg = if i < func.param_types.len() {
+                                    if let Some(ref type_hint) = func.param_types[i] {
+                                        let use_strict = func.strict_types || self.requires_strict_type_check(type_hint);
+                                        if !use_strict {
+                                            self.coerce_value_to_type(arg.clone(), type_hint)
+                                        } else {
+                                            arg
+                                        }
+                                    } else {
+                                        arg
+                                    }
+                                } else {
+                                    arg
+                                };
+                                frame.locals[i] = coerced_arg;
+                            }
+                        }
+                    }
+
+                    self.frames.push(frame);
+                }
+                // 2. Fall back to built-in functions
+                else if builtins::is_builtin(&func_name) {
+                    // For built-ins, use positional args first, then add named
+                    let mut args = positional_args;
+                    for (_, v) in named_args {
+                        args.push(v);
+                    }
+                    let result = self.call_reflection_or_builtin(&func_name, &args)?;
+                    self.stack.push(result);
+                }
+                // 3. Unknown function
+                else {
+                    return Err(format!("undefined function: {}", func_name));
+                }
+            }
+
             Opcode::CallBuiltin(name_idx, arg_count) => {
                 let func_name = self.current_frame().get_string(name_idx).to_string();
 
@@ -1180,6 +1353,32 @@ impl<W: Write> VM<W> {
                     }
                     _ => return Err("CallBuiltinSpread expects an array of arguments".to_string()),
                 };
+
+                // Call reflection or builtin function
+                let result = self.call_reflection_or_builtin(&func_name, &args)?;
+                self.stack.push(result);
+            }
+
+            Opcode::CallBuiltinNamed(name_idx) => {
+                let func_name = self.current_frame().get_string(name_idx).to_string();
+
+                // Pop args associative array from stack
+                let args_array = self.stack.pop().ok_or("Stack underflow")?;
+                let named_args = match args_array {
+                    Value::Array(arr) => {
+                        arr.into_iter().filter_map(|(k, v)| {
+                            if let ArrayKey::String(name) = k {
+                                Some((name, v))
+                            } else {
+                                None
+                            }
+                        }).collect::<Vec<(String, Value)>>()
+                    }
+                    _ => return Err("CallBuiltinNamed expects an associative array of arguments".to_string()),
+                };
+
+                // For built-ins, convert named args to positional
+                let args: Vec<Value> = named_args.into_iter().map(|(_, v)| v).collect();
 
                 // Call reflection or builtin function
                 let result = self.call_reflection_or_builtin(&func_name, &args)?;
