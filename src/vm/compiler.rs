@@ -714,6 +714,36 @@ impl Compiler {
                             }
                         }
                     }
+                    Expr::StaticPropertyAccess { class, property } => {
+                        // Static property array access: Class::$prop[$key] = $value
+                        // Load the static property (which should be an array)
+                        let class_idx = self.intern_string(class.clone());
+                        let prop_idx = self.intern_string(property.clone());
+                        self.emit(Opcode::LoadStaticProp(class_idx, prop_idx));
+
+                        // Compile the key (or null for append)
+                        if let Some(key_expr) = index {
+                            self.compile_expr(key_expr)?;
+                        } else {
+                            self.emit(Opcode::PushNull);
+                        }
+
+                        // Compile the value
+                        self.compile_expr(value)?;
+
+                        // Set in array
+                        if index.is_some() {
+                            self.emit(Opcode::ArraySet);
+                        } else {
+                            // Stack: array, null, value -> need array, value
+                            self.emit(Opcode::Swap);  // array, value, null
+                            self.emit(Opcode::Pop);   // array, value
+                            self.emit(Opcode::ArrayAppend);
+                        }
+
+                        // Store the modified array back to the static property
+                        self.emit(Opcode::StoreStaticProp(class_idx, prop_idx));
+                    }
                     _ => return Err("Complex array assignment not yet implemented".to_string()),
                 }
             }
