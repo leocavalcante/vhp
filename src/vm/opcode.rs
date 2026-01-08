@@ -86,6 +86,8 @@ pub enum Opcode {
     And,
     /// Logical OR: pop two values, push bool result
     Or,
+    /// Logical XOR: pop two values, push bool result
+    Xor,
 
     // ==================== Bitwise ====================
     /// Bitwise AND: pop two values, push result
@@ -116,6 +118,8 @@ pub enum Opcode {
     Call(u32, u8),
     /// Call built-in function: name index, arg count
     CallBuiltin(u32, u8),
+    /// Call a callable value (closure, first-class callable): arg count (stack: callable, args... -> result)
+    CallCallable(u8),
     /// Return from function (with value from stack)
     Return,
     /// Return null from function
@@ -158,6 +162,10 @@ pub enum Opcode {
     LoadProperty(u32),
     /// Store property: property name index (stack: object, value -> object)
     StoreProperty(u32),
+    /// Store property on $this and update local slot 0: property name index (stack: value -> void)
+    StoreThisProperty(u32),
+    /// Store property in clone with - validates property exists (stack: object, value -> object)
+    StoreCloneProperty(u32),
     /// Load static property: class name index, property name index
     LoadStaticProp(u32, u32),
     /// Store static property: class name index, property name index
@@ -172,6 +180,10 @@ pub enum Opcode {
     InstanceOf(u32),
     /// Clone object (stack: object -> cloned_object)
     Clone,
+    /// Call constructor on object: arg count (stack: object, args... -> object)
+    CallConstructor(u8),
+    /// Load enum case: enum name index, case name index
+    LoadEnumCase(u32, u32),
 
     // ==================== Stack Manipulation ====================
     /// Pop and discard top of stack
@@ -273,7 +285,7 @@ impl Opcode {
             Opcode::Add | Opcode::Sub | Opcode::Mul | Opcode::Div | Opcode::Mod |
             Opcode::Pow | Opcode::Concat | Opcode::Eq | Opcode::Ne | Opcode::Identical |
             Opcode::NotIdentical | Opcode::Lt | Opcode::Le | Opcode::Gt | Opcode::Ge |
-            Opcode::Spaceship | Opcode::And | Opcode::Or | Opcode::BitwiseAnd |
+            Opcode::Spaceship | Opcode::And | Opcode::Or | Opcode::Xor | Opcode::BitwiseAnd |
             Opcode::BitwiseOr | Opcode::BitwiseXor | Opcode::ShiftLeft | Opcode::ShiftRight |
             Opcode::NullCoalesce | Opcode::ArrayGet | Opcode::ArrayPush |
             Opcode::ArrayGetKeyAt | Opcode::ArrayGetValueAt => -1,
@@ -293,15 +305,20 @@ impl Opcode {
 
             // Function calls: variable effect (handled specially)
             Opcode::Call(_, n) | Opcode::CallBuiltin(_, n) => -(*n as i32),
+            Opcode::CallCallable(n) => -(*n as i32) - 1 + 1, // pops callable + args, pushes result
             Opcode::CallMethod(_, n) => -(*n as i32) - 1 + 1, // pops object + args, pushes result
             Opcode::CallStaticMethod(_, _, n) => -(*n as i32) + 1,
+            Opcode::CallConstructor(n) => -(*n as i32), // pops args, uses object in-place
 
             // Object operations
             Opcode::NewObject(_) => 1,
             Opcode::LoadProperty(_) => 0, // pops object, pushes value
             Opcode::StoreProperty(_) => -1, // pops object and value, pushes object
+            Opcode::StoreThisProperty(_) => 0, // pops value, modifies $this in slot 0, pushes value back
+            Opcode::StoreCloneProperty(_) => -1, // pops object and value, pushes modified object
             Opcode::LoadStaticProp(_, _) => 1,
             Opcode::StoreStaticProp(_, _) => -1,
+            Opcode::LoadEnumCase(_, _) => 1, // pushes enum case value
 
             // Array
             Opcode::NewArray(n) => 1 - (*n as i32) * 2, // pops n key-value pairs, pushes array
@@ -350,10 +367,14 @@ pub struct CompiledFunction {
     pub local_names: Vec<String>,
     /// Parameter count
     pub param_count: u8,
+    /// Required parameter count (parameters without defaults)
+    pub required_param_count: u8,
     /// Is variadic
     pub is_variadic: bool,
     /// Return type (for validation)
     pub return_type: Option<crate::ast::TypeHint>,
+    /// Parameter types for validation
+    pub param_types: Vec<Option<crate::ast::TypeHint>>,
 }
 
 impl CompiledFunction {
@@ -367,8 +388,10 @@ impl CompiledFunction {
             local_count: 0,
             local_names: Vec::new(),
             param_count: 0,
+            required_param_count: 0,
             is_variadic: false,
             return_type: None,
+            param_types: Vec::new(),
         }
     }
 }
