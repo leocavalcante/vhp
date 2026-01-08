@@ -1291,12 +1291,18 @@ impl Compiler {
             self.patch_jump(skip_arm);
         }
 
-        // Compile default if present, otherwise push null
+        // Compile default if present, otherwise throw UnhandledMatchError
         if let Some(default_expr) = default {
             self.compile_expr(default_expr)?;
         } else {
-            // UnhandledMatchError - for now just push null
-            self.emit(Opcode::PushNull);
+            // Throw UnhandledMatchError exception
+            // Create new UnhandledMatchError("Unhandled match value")
+            let class_idx = self.intern_string("UnhandledMatchError".to_string());
+            self.emit(Opcode::NewObject(class_idx));
+            let msg_idx = self.intern_string("Unhandled match value".to_string());
+            self.emit(Opcode::PushString(msg_idx));
+            self.emit(Opcode::CallConstructor(1));
+            self.emit(Opcode::Throw);
         }
 
         // Patch all end jumps

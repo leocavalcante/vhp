@@ -11,7 +11,7 @@ pub mod frame;
 pub mod opcode;
 
 use crate::interpreter::{ArrayKey, ClosureBody, Interpreter, Value};
-use class::{CompiledClass, CompiledEnum, CompiledInterface, CompiledTrait};
+use class::{CompiledClass, CompiledEnum, CompiledInterface, CompiledProperty, CompiledTrait};
 use frame::{CallFrame, ExceptionHandler, LoopContext};
 use opcode::{CastType, CompiledFunction, Constant, Opcode};
 use std::collections::HashMap;
@@ -95,14 +95,146 @@ impl<W: Write> VM<W> {
 
     /// Register built-in classes like Exception
     pub fn register_builtins(&mut self) {
-        // Register Exception class
+        // Register Exception class with properties and methods
         let mut exception = CompiledClass::new("Exception".to_string());
-        // Exception doesn't need compiled methods since it's just a data holder
-        // The getMessage, getCode, etc. are handled by the builtins
+
+        // Add message property
+        exception.properties.push(CompiledProperty {
+            name: "message".to_string(),
+            visibility: crate::ast::Visibility::Private,
+            write_visibility: None,
+            default: Some(Value::String(String::new())),
+            readonly: false,
+            is_static: false,
+            type_hint: None,
+            attributes: Vec::new(),
+        });
+
+        // Add code property
+        exception.properties.push(CompiledProperty {
+            name: "code".to_string(),
+            visibility: crate::ast::Visibility::Private,
+            write_visibility: None,
+            default: Some(Value::Integer(0)),
+            readonly: false,
+            is_static: false,
+            type_hint: None,
+            attributes: Vec::new(),
+        });
+
+        // Create __construct method: __construct(string $message = "", int $code = 0)
+        let mut construct = CompiledFunction::new("Exception::__construct".to_string());
+        construct.param_count = 2;
+        construct.required_param_count = 0; // Both have defaults
+        construct.local_count = 3; // $this, $message, $code
+        construct.local_names = vec!["this".to_string(), "message".to_string(), "code".to_string()];
+
+        // Bytecode for constructor:
+        // Store $message to $this->message
+        construct.bytecode.push(Opcode::LoadFast(1)); // Load $message
+        construct.strings.push("message".to_string());
+        construct.bytecode.push(Opcode::StoreThisProperty(0)); // Store to $this->message
+
+        // Store $code to $this->code
+        construct.bytecode.push(Opcode::LoadFast(2)); // Load $code
+        construct.strings.push("code".to_string());
+        construct.bytecode.push(Opcode::StoreThisProperty(1)); // Store to $this->code
+
+        construct.bytecode.push(Opcode::ReturnNull);
+        exception.methods.insert("__construct".to_string(), Arc::new(construct));
+
+        // Create getMessage method
+        let mut get_message = CompiledFunction::new("Exception::getMessage".to_string());
+        get_message.param_count = 0;
+        get_message.local_count = 1; // $this
+        get_message.local_names = vec!["this".to_string()];
+
+        // Bytecode: return $this->message
+        get_message.strings.push("message".to_string());
+        get_message.bytecode.push(Opcode::LoadThis);
+        get_message.bytecode.push(Opcode::LoadProperty(0)); // Load $this->message
+        get_message.bytecode.push(Opcode::Return);
+        exception.methods.insert("getMessage".to_string(), Arc::new(get_message));
+
+        // Create getCode method
+        let mut get_code = CompiledFunction::new("Exception::getCode".to_string());
+        get_code.param_count = 0;
+        get_code.local_count = 1; // $this
+        get_code.local_names = vec!["this".to_string()];
+
+        // Bytecode: return $this->code
+        get_code.strings.push("code".to_string());
+        get_code.bytecode.push(Opcode::LoadThis);
+        get_code.bytecode.push(Opcode::LoadProperty(0)); // Load $this->code
+        get_code.bytecode.push(Opcode::Return);
+        exception.methods.insert("getCode".to_string(), Arc::new(get_code));
+
         self.classes.insert("Exception".to_string(), Arc::new(exception));
 
-        // Register Error class
+        // Register Error class (same structure as Exception)
         let mut error = CompiledClass::new("Error".to_string());
+
+        // Add message property
+        error.properties.push(CompiledProperty {
+            name: "message".to_string(),
+            visibility: crate::ast::Visibility::Private,
+            write_visibility: None,
+            default: Some(Value::String(String::new())),
+            readonly: false,
+            is_static: false,
+            type_hint: None,
+            attributes: Vec::new(),
+        });
+
+        // Add code property
+        error.properties.push(CompiledProperty {
+            name: "code".to_string(),
+            visibility: crate::ast::Visibility::Private,
+            write_visibility: None,
+            default: Some(Value::Integer(0)),
+            readonly: false,
+            is_static: false,
+            type_hint: None,
+            attributes: Vec::new(),
+        });
+
+        // Create __construct method
+        let mut error_construct = CompiledFunction::new("Error::__construct".to_string());
+        error_construct.param_count = 2;
+        error_construct.required_param_count = 0;
+        error_construct.local_count = 3;
+        error_construct.local_names = vec!["this".to_string(), "message".to_string(), "code".to_string()];
+        error_construct.bytecode.push(Opcode::LoadFast(1));
+        error_construct.strings.push("message".to_string());
+        error_construct.bytecode.push(Opcode::StoreThisProperty(0));
+        error_construct.bytecode.push(Opcode::LoadFast(2));
+        error_construct.strings.push("code".to_string());
+        error_construct.bytecode.push(Opcode::StoreThisProperty(1));
+        error_construct.bytecode.push(Opcode::ReturnNull);
+        error.methods.insert("__construct".to_string(), Arc::new(error_construct));
+
+        // Create getMessage method
+        let mut error_get_message = CompiledFunction::new("Error::getMessage".to_string());
+        error_get_message.param_count = 0;
+        error_get_message.local_count = 1;
+        error_get_message.local_names = vec!["this".to_string()];
+        error_get_message.strings.push("message".to_string());
+        error_get_message.bytecode.push(Opcode::LoadThis);
+        error_get_message.bytecode.push(Opcode::LoadProperty(0));
+        error_get_message.bytecode.push(Opcode::Return);
+        error.methods.insert("getMessage".to_string(), Arc::new(error_get_message));
+
+        // Create getCode method
+        let mut error_get_code = CompiledFunction::new("Error::getCode".to_string());
+        error_get_code.param_count = 0;
+        error_get_code.local_count = 1;
+        error_get_code.local_names = vec!["this".to_string()];
+        error_get_code.strings.push("code".to_string());
+        error_get_code.bytecode.push(Opcode::LoadThis);
+        error_get_code.bytecode.push(Opcode::LoadProperty(0));
+        error_get_code.bytecode.push(Opcode::Return);
+        error.methods.insert("getCode".to_string(), Arc::new(error_get_code));
+
         self.classes.insert("Error".to_string(), Arc::new(error));
 
         // Register TypeError
@@ -114,6 +246,11 @@ impl<W: Write> VM<W> {
         let mut invalid_arg = CompiledClass::new("InvalidArgumentException".to_string());
         invalid_arg.parent = Some("Exception".to_string());
         self.classes.insert("InvalidArgumentException".to_string(), Arc::new(invalid_arg));
+
+        // Register UnhandledMatchError
+        let mut unhandled_match = CompiledClass::new("UnhandledMatchError".to_string());
+        unhandled_match.parent = Some("Error".to_string());
+        self.classes.insert("UnhandledMatchError".to_string(), Arc::new(unhandled_match));
     }
 
     /// Execute a compiled function
@@ -1498,13 +1635,89 @@ impl<W: Write> VM<W> {
             // ==================== Exception Handling ====================
             Opcode::Throw => {
                 let exception = self.stack.pop().ok_or("Stack underflow")?;
-                // For now, just return as error
-                return Err(format!("Uncaught exception: {:?}", exception));
+
+                // Search for exception handler in current frame
+                let current_ip = self.current_frame().ip;
+                let mut catch_offset: Option<usize> = None;
+
+                // Look for a handler that covers the current IP
+                // Search from end to beginning to find the innermost (most recent) handler
+                for handler in self.handlers.iter().rev() {
+                    // Handler is active if we're past try_start and either:
+                    // - try_end is 0 (haven't hit TryEnd yet), or
+                    // - we're before try_end
+                    let in_try_block = current_ip >= handler.try_start as usize
+                        && (handler.try_end == 0 || current_ip < handler.try_end as usize);
+
+                    if in_try_block {
+                        // Found a handler - remember the catch offset
+                        catch_offset = Some(handler.catch_offset as usize);
+                        break;
+                    }
+                }
+
+                if let Some(offset) = catch_offset {
+                    // Disable the handler by setting try_end to current IP
+                    // This prevents nested throws from catching in the same handler
+                    let current_ip_u32 = current_ip as u32;
+                    for handler in self.handlers.iter_mut().rev() {
+                        if handler.catch_offset == offset as u32 {
+                            if handler.try_end == 0 {
+                                handler.try_end = current_ip_u32;
+                            }
+                            break;
+                        }
+                    }
+
+                    // Jump to catch block with exception on stack
+                    self.stack.push(exception);
+                    self.current_frame_mut().jump_to(offset);
+                } else {
+                    // Format uncaught exception error
+                    let error_msg = if let Value::Object(ref obj) = exception {
+                        // Try to get the message property
+                        if let Some(msg_value) = obj.properties.get("message") {
+                            match msg_value {
+                                Value::String(s) if !s.is_empty() => s.clone(),
+                                _ => format!("Uncaught {}", obj.class_name),
+                            }
+                        } else {
+                            format!("Uncaught {}", obj.class_name)
+                        }
+                    } else {
+                        format!("Uncaught exception: {:?}", exception)
+                    };
+                    return Err(error_msg);
+                }
             }
 
-            Opcode::TryStart(_, _) | Opcode::TryEnd | Opcode::FinallyStart | Opcode::FinallyEnd => {
-                // Basic exception handling - just continue execution
-                // Full implementation would track exception handlers
+            Opcode::TryStart(catch_offset, finally_offset) => {
+                // Register exception handler
+                let try_start = self.current_frame().ip as u32;
+                self.handlers.push(ExceptionHandler {
+                    try_start,
+                    try_end: 0, // Will be set by TryEnd
+                    catch_offset,
+                    catch_class: String::new(), // For now, catch all exceptions
+                    catch_var: String::new(),
+                    finally_offset,
+                    stack_depth: self.stack.len(),
+                });
+            }
+
+            Opcode::TryEnd => {
+                // Mark the end of try block in the most recent handler
+                let current_ip = self.current_frame().ip as u32;
+                if let Some(handler) = self.handlers.last_mut() {
+                    handler.try_end = current_ip;
+                }
+                // Don't pop the handler here - it needs to remain active for exception handling
+                // The handler will be cleaned up when we exit the function
+            }
+
+            Opcode::FinallyStart | Opcode::FinallyEnd => {
+                // Finally blocks - for now, just continue execution
+                // Full implementation would run finally even on exception/return
             }
 
             // ==================== Closures ====================
