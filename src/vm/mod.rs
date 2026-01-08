@@ -918,7 +918,17 @@ impl<W: Write> VM<W> {
                                 let coerced_arg = if i < func.param_types.len() {
                                     if let Some(ref type_hint) = func.param_types[i] {
                                         if !self.requires_strict_type_check(type_hint) {
-                                            self.coerce_value_to_type(args[i].clone(), type_hint)
+                                            let coerced = self.coerce_value_to_type(args[i].clone(), type_hint);
+                                            // Validate that coercion succeeded (type matches)
+                                            if !self.value_matches_type(&coerced, type_hint) {
+                                                let type_name = self.format_type_hint(type_hint);
+                                                let given_type = self.get_value_type_name(&args[i]);
+                                                return Err(format!(
+                                                    "must be of type {}, {} given",
+                                                    type_name, given_type
+                                                ));
+                                            }
+                                            coerced
                                         } else {
                                             args[i].clone()
                                         }
@@ -946,7 +956,17 @@ impl<W: Write> VM<W> {
                                 let coerced_arg = if i < func.param_types.len() {
                                     if let Some(ref type_hint) = func.param_types[i] {
                                         if !self.requires_strict_type_check(type_hint) {
-                                            self.coerce_value_to_type(arg, type_hint)
+                                            let coerced = self.coerce_value_to_type(arg.clone(), type_hint);
+                                            // Validate that coercion succeeded (type matches)
+                                            if !self.value_matches_type(&coerced, type_hint) {
+                                                let type_name = self.format_type_hint(type_hint);
+                                                let given_type = self.get_value_type_name(&arg);
+                                                return Err(format!(
+                                                    "must be of type {}, {} given",
+                                                    type_name, given_type
+                                                ));
+                                            }
+                                            coerced
                                         } else {
                                             arg
                                         }
@@ -1644,7 +1664,17 @@ impl<W: Write> VM<W> {
                                     let coerced_arg = if i < frame.function.param_types.len() {
                                         if let Some(ref type_hint) = frame.function.param_types[i] {
                                             if !self.requires_strict_type_check(type_hint) {
-                                                self.coerce_value_to_type(arg, type_hint)
+                                                let coerced = self.coerce_value_to_type(arg.clone(), type_hint);
+                                                // Validate that coercion succeeded (type matches)
+                                                if !self.value_matches_type(&coerced, type_hint) {
+                                                    let type_name = self.format_type_hint(type_hint);
+                                                    let given_type = self.get_value_type_name(&arg);
+                                                    return Err(format!(
+                                                        "must be of type {}, {} given",
+                                                        type_name, given_type
+                                                    ));
+                                                }
+                                                coerced
                                             } else {
                                                 arg
                                             }
@@ -2301,8 +2331,9 @@ impl<W: Write> VM<W> {
                                     end_pos += 1;
                                 }
                                 if end_pos == 0 || (end_pos == 1 && (chars[0] == '+' || chars[0] == '-')) {
-                                    // No digits found
-                                    return Value::Integer(0);
+                                    // No digits found - PHP 8+ throws TypeError for non-numeric strings
+                                    // Return original value to trigger type error
+                                    return value;
                                 }
                                 // Parse the numeric part
                                 let numeric_part: String = chars[..end_pos].iter().collect();
