@@ -1505,7 +1505,9 @@ impl<W: Write> VM<W> {
 
             // ==================== OOP Opcodes ====================
             Opcode::NewObject(class_idx) => {
-                let class_name = self.current_frame().get_string(class_idx).to_string();
+                let class_name = Self::normalize_class_name(
+                    &self.current_frame().get_string(class_idx)
+                );
 
                 // Look up class definition
                 let class_def = self.classes.get(&class_name)
@@ -1820,7 +1822,9 @@ impl<W: Write> VM<W> {
             }
 
             Opcode::CallStaticMethod(class_idx, method_idx, arg_count) => {
-                let class_name = self.current_frame().get_string(class_idx).to_string();
+                let class_name = Self::normalize_class_name(
+                    &self.current_frame().get_string(class_idx)
+                );
                 let method_name = self.current_frame().get_string(method_idx).to_string();
 
                 // Pop arguments
@@ -1974,7 +1978,9 @@ impl<W: Write> VM<W> {
             }
 
             Opcode::LoadStaticProp(class_idx, prop_idx) => {
-                let class_name = self.current_frame().get_string(class_idx).to_string();
+                let class_name = Self::normalize_class_name(
+                    &self.current_frame().get_string(class_idx)
+                );
                 let prop_name = self.current_frame().get_string(prop_idx).to_string();
 
                 // Resolve self/static/parent keywords
@@ -1990,7 +1996,9 @@ impl<W: Write> VM<W> {
             }
 
             Opcode::StoreStaticProp(class_idx, prop_idx) => {
-                let class_name = self.current_frame().get_string(class_idx).to_string();
+                let class_name = Self::normalize_class_name(
+                    &self.current_frame().get_string(class_idx)
+                );
                 let prop_name = self.current_frame().get_string(prop_idx).to_string();
                 let value = self.stack.pop().ok_or("Stack underflow")?;
 
@@ -2023,7 +2031,9 @@ impl<W: Write> VM<W> {
             }
 
             Opcode::InstanceOf(class_idx) => {
-                let class_name = self.current_frame().get_string(class_idx).to_string();
+                let class_name = Self::normalize_class_name(
+                    &self.current_frame().get_string(class_idx)
+                );
                 let object = self.stack.pop().ok_or("Stack underflow")?;
 
                 let result = match object {
@@ -2051,7 +2061,9 @@ impl<W: Write> VM<W> {
             }
 
             Opcode::LoadEnumCase(enum_idx, case_idx) => {
-                let enum_name = self.current_frame().get_string(enum_idx).to_string();
+                let enum_name = Self::normalize_class_name(
+                    &self.current_frame().get_string(enum_idx)
+                );
                 let case_name = self.current_frame().get_string(case_idx).to_string();
 
                 // Look up the enum definition
@@ -2423,6 +2435,16 @@ impl<W: Write> VM<W> {
             Some(func_name[..pos].to_string())
         } else {
             None
+        }
+    }
+
+    /// Normalize a class name by removing the leading backslash if present
+    /// A leading backslash indicates a fully qualified name from the global namespace
+    fn normalize_class_name(name: &str) -> String {
+        if name.starts_with('\\') {
+            name[1..].to_string()
+        } else {
+            name.to_string()
         }
     }
 

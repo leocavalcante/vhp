@@ -50,6 +50,8 @@ pub struct Compiler {
     enums: HashMap<String, Arc<CompiledEnum>>,
     /// Whether strict_types=1 is active for this compilation unit
     strict_types: bool,
+    /// Current namespace (for prefixing class/function names)
+    current_namespace: Option<String>,
 }
 
 impl Compiler {
@@ -68,6 +70,7 @@ impl Compiler {
             traits: HashMap::new(),
             enums: HashMap::new(),
             strict_types: false,
+            current_namespace: None,
         }
     }
 
@@ -185,17 +188,24 @@ impl Compiler {
                     }
                 }
             }
-            Stmt::Namespace { name: _, body } => {
-                // For now, just compile the namespace body
-                // Full namespace support would require symbol table changes
+            Stmt::Namespace { name, body } => {
+                // Save the previous namespace
+                let prev_namespace = self.current_namespace.clone();
+
+                // Set current namespace
+                self.current_namespace = name.as_ref().and_then(|n| n.last().cloned());
+
+                // Compile namespace body
                 match body {
                     crate::ast::NamespaceBody::Braced(stmts) => {
                         for stmt in stmts {
                             self.compile_stmt(stmt)?;
                         }
+                        // Restore previous namespace after braced block
+                        self.current_namespace = prev_namespace;
                     }
                     crate::ast::NamespaceBody::Unbraced => {
-                        // Rest of file is in namespace - nothing to do here
+                        // Rest of file is in namespace - don't restore
                     }
                 }
             }
@@ -866,8 +876,10 @@ impl Compiler {
             }
             // OOP Expressions
             Expr::New { class_name, args } => {
+                // Qualify the class name with current namespace
+                let qualified_name = self.qualify_class_name(class_name);
                 // Emit new object opcode first (creates object with defaults)
-                let class_idx = self.intern_string(class_name.clone());
+                let class_idx = self.intern_string(qualified_name);
                 self.emit(Opcode::NewObject(class_idx));
 
                 // Compile arguments
@@ -1923,6 +1935,13 @@ impl Compiler {
         methods: &[Method],
         attributes: &[crate::ast::Attribute],
     ) -> Result<(), String> {
+        // Fully qualify the class name with current namespace
+        let qualified_name = if let Some(ref ns) = self.current_namespace {
+            format!("{}\\{}", ns, name)
+        } else {
+            name.to_string()
+        };
+
         // Check if parent class exists and is not final
         if let Some(parent_name) = parent.as_ref().and_then(|p| p.last()) {
             // Check if parent class exists (allow built-in classes)
@@ -1938,7 +1957,7 @@ impl Compiler {
             }
         }
 
-        let mut compiled_class = CompiledClass::new(name.to_string());
+        let mut compiled_class = CompiledClass::new(qualified_name.clone());
         compiled_class.is_abstract = is_abstract;
         compiled_class.is_final = is_final;
         compiled_class.readonly = readonly;
@@ -2109,7 +2128,7 @@ impl Compiler {
                 }
             }
 
-            let method_name = format!("{}::{}", name, method.name);
+            let method_name = format!("{}::{}", qualified_name, method.name);
             let mut method_compiler = Compiler::new(method_name.clone());
 
             // Add $this as first local for non-static methods
@@ -2239,7 +2258,7 @@ impl Compiler {
             }
         }
 
-        self.classes.insert(name.to_string(), Arc::new(compiled_class));
+        self.classes.insert(qualified_name, Arc::new(compiled_class));
         Ok(())
     }
 
@@ -2446,5 +2465,21 @@ impl Compiler {
 
         self.enums.insert(name.to_string(), Arc::new(compiled_enum));
         Ok(())
+    }
+
+    /// Qualify a class name with the current namespace if needed
+    /// - If name starts with \, it's fully qualified (remove the \)
+    /// - Otherwise, prefix with current namespace
+    fn qualify_class_name(&self, name: &str) -> String {
+        if name.starts_with('\\') {
+            // Fully qualified name - remove leading backslash
+            name[1..].to_string()
+        } else if let Some(ref ns) = self.current_namespace {
+            // Relative name - prefix with current namespace
+            format!("{}\\{}", ns, name)
+        } else {
+            // No namespace - use as-is
+            name.to_string()
+        }
     }
 }
