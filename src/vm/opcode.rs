@@ -191,6 +191,8 @@ pub enum Opcode {
     CallMethod(u32, u8),
     /// Call static method: class name index, method name index, arg count
     CallStaticMethod(u32, u32, u8),
+    /// Call static method with named arguments: class name index, method name index (stack: args_array -> result)
+    CallStaticMethodNamed(u32, u32),
     /// Load $this onto stack
     LoadThis,
     /// instanceof check: class name index (stack: object -> bool)
@@ -329,6 +331,7 @@ impl Opcode {
             Opcode::CallCallable(n) => -(*n as i32) - 1 + 1, // pops callable + args, pushes result
             Opcode::CallMethod(_, n) => -(*n as i32) - 1 + 1, // pops object + args, pushes result
             Opcode::CallStaticMethod(_, _, n) => -(*n as i32) + 1,
+            Opcode::CallStaticMethodNamed(_, _) => 0, // pops array, pushes result
             Opcode::CallConstructor(n) => -(*n as i32), // pops args, uses object in-place
             Opcode::CallConstructorNamed => -1, // pops args array, uses object in-place
 

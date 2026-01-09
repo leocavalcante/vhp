@@ -1977,6 +1977,87 @@ impl<W: Write> VM<W> {
                 }
             }
 
+            Opcode::CallStaticMethodNamed(class_idx, method_idx) => {
+                let class_name = Self::normalize_class_name(
+                    &self.current_frame().get_string(class_idx)
+                );
+                let method_name = self.current_frame().get_string(method_idx).to_string();
+
+                // Pop args array from stack
+                let args_array = self.stack.pop().ok_or("Stack underflow")?;
+
+                // Resolve self/static/parent keywords
+                let resolved_class = self.resolve_class_keyword(&class_name)?;
+
+                // Extract arguments from array (mixed positional and named)
+                let args_map = if let Value::Array(arr) = args_array {
+                    arr
+                } else {
+                    return Err("Named static method args must be an array".to_string());
+                };
+
+                // Separate positional (integer keys) from named (string keys)
+                let mut positional = Vec::new();
+                let mut named = std::collections::HashMap::new();
+
+                for (key, value) in args_map {
+                    match key {
+                        ArrayKey::Integer(idx) => {
+                            positional.push((idx as usize, value));
+                        }
+                        ArrayKey::String(name) => {
+                            named.insert(name, value);
+                        }
+                    }
+                }
+
+                // Sort positional by index
+                positional.sort_by_key(|(idx, _)| *idx);
+
+                // Find method through inheritance chain
+                if let Some((method, is_instance_method)) = self.find_static_method_in_chain(&resolved_class, &method_name) {
+                    // Build final args array by matching to parameters
+                    let param_count = method.param_count as usize;
+                    let mut final_args = vec![Value::Null; param_count];
+
+                    // First, fill in positional arguments
+                    for (i, (_, value)) in positional.into_iter().enumerate() {
+                        if i < param_count {
+                            final_args[i] = value;
+                        }
+                    }
+
+                    // Then, fill in named arguments by matching parameter names
+                    for (param_idx, param) in method.parameters.iter().enumerate() {
+                        if let Some(value) = named.get(&param.name) {
+                            if param_idx < param_count {
+                                final_args[param_idx] = value.clone();
+                            }
+                        }
+                    }
+
+                    // Create new call frame
+                    let stack_base = self.stack.len();
+                    let mut frame = CallFrame::new(method, stack_base);
+
+                    // Set called_class for late static binding
+                    frame.called_class = Some(resolved_class.clone());
+
+                    // Set up parameter locals
+                    let param_start = if is_instance_method { 1 } else { 0 };
+                    for (i, arg) in final_args.into_iter().enumerate() {
+                        let slot = param_start + i;
+                        if slot < frame.locals.len() {
+                            frame.locals[slot] = arg;
+                        }
+                    }
+
+                    self.frames.push(frame);
+                } else {
+                    return Err(format!("Static method '{}' not found on class '{}'", method_name, resolved_class));
+                }
+            }
+
             Opcode::LoadStaticProp(class_idx, prop_idx) => {
                 let class_name = Self::normalize_class_name(
                     &self.current_frame().get_string(class_idx)
