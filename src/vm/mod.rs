@@ -1441,15 +1441,28 @@ impl<W: Write> VM<W> {
                         // Closure call - depends on the closure body type
                         match &closure.body {
                             ClosureBody::FunctionRef(func_name) => {
-                                // First-class callable: strlen(...) (case-insensitive)
+                                // First-class callable or arrow function
                                 if let Some(func) = self.get_function(func_name) {
                                     let stack_base = self.stack.len();
                                     let mut frame = CallFrame::new(func, stack_base);
-                                    for (i, arg) in args.into_iter().enumerate() {
-                                        if i < frame.locals.len() {
-                                            frame.locals[i] = arg;
+
+                                    // First, populate captured variables
+                                    let mut next_slot = 0;
+                                    for (var_name, value) in &closure.captured_vars {
+                                        // Find the slot for this captured variable
+                                        if let Some(slot) = frame.function.local_names.iter().position(|n| n == var_name) {
+                                            frame.locals[slot] = value.clone();
+                                            next_slot = next_slot.max(slot + 1);
                                         }
                                     }
+
+                                    // Then set the arguments (after captured vars)
+                                    for (i, arg) in args.into_iter().enumerate() {
+                                        if i + next_slot < frame.locals.len() {
+                                            frame.locals[i + next_slot] = arg;
+                                        }
+                                    }
+
                                     self.frames.push(frame);
                                 } else if builtins::is_builtin(func_name) {
                                     let result = builtins::call_builtin(func_name, &args, &mut self.output)?;
@@ -2181,16 +2194,54 @@ impl<W: Write> VM<W> {
             }
 
             // ==================== Closures ====================
-            Opcode::CreateClosure(func_idx, _capture_count) => {
+            Opcode::CreateClosure(func_idx, capture_count) => {
                 let func_name = self.current_frame().get_string(func_idx).to_string();
+
+                // Pop captured variables from stack (in reverse order)
+                let mut captured_vars = std::collections::HashMap::new();
+                for _ in 0..capture_count {
+                    let value = self.stack.pop().ok_or("Stack underflow")?;
+                    let var_name = self.stack.pop().ok_or("Stack underflow")?;
+                    if let Value::String(name) = var_name {
+                        captured_vars.insert(name, value);
+                    } else {
+                        return Err("CaptureVar expects variable name as string".to_string());
+                    }
+                }
+
                 // Create a proper Closure value with FunctionRef
                 use crate::interpreter::Closure;
                 let closure = Closure {
                     params: Vec::new(), // Params are handled by the compiled function
                     body: ClosureBody::FunctionRef(func_name),
-                    captured_vars: std::collections::HashMap::new(),
+                    captured_vars,
                 };
                 self.stack.push(Value::Closure(Box::new(closure)));
+            }
+
+            Opcode::CaptureVar(var_idx) => {
+                let var_name = self.current_frame().get_string(var_idx).to_string();
+
+                // Load the variable value
+                let value = {
+                    let frame = self.current_frame();
+                    // Search for the variable in local_names to find its slot
+                    let slot = frame.function.local_names.iter()
+                        .position(|name| name == &var_name)
+                        .map(|i| i as u16);
+
+                    if let Some(slot) = slot {
+                        // It's a local variable
+                        frame.locals[slot as usize].clone()
+                    } else {
+                        // Try global scope
+                        self.globals.get(&var_name).cloned().unwrap_or(Value::Null)
+                    }
+                };
+
+                // Push variable name and value onto stack
+                self.stack.push(Value::String(var_name));
+                self.stack.push(value);
             }
 
             // ==================== Array Operations ====================

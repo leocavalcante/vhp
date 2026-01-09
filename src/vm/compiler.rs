@@ -1401,16 +1401,36 @@ impl Compiler {
         // Create a unique name for the arrow function
         let name = format!("__arrow_{}", self.functions.len());
 
+        // Find all variables used in the body that are NOT parameters
+        let param_names: std::collections::HashSet<_> = params.iter().map(|p| p.name.as_str()).collect();
+        let mut captured_vars = Vec::new();
+        self.find_captured_vars(body, &param_names, &mut captured_vars);
+
+        // Emit CaptureVar for each captured variable
+        for var_name in &captured_vars {
+            let var_idx = self.intern_string(var_name.clone());
+            self.emit(Opcode::CaptureVar(var_idx));
+        }
+
         // Create a new compiler for the closure
         let mut closure_compiler = Compiler::new(name.clone());
 
-        // Set up parameters as local variables
-        for (i, param) in params.iter().enumerate() {
-            closure_compiler.locals.insert(param.name.clone(), i as u16);
-            closure_compiler.function.local_names.push(param.name.clone());
+        // First N locals are captured variables
+        for (i, var_name) in captured_vars.iter().enumerate() {
+            closure_compiler.locals.insert(var_name.clone(), i as u16);
+            closure_compiler.function.local_names.push(var_name.clone());
         }
-        closure_compiler.next_local = params.len() as u16;
-        closure_compiler.function.local_count = params.len() as u16;
+        closure_compiler.next_local = captured_vars.len() as u16;
+
+        // Set up parameters as local variables (after captured vars)
+        for (i, param) in params.iter().enumerate() {
+            let slot = closure_compiler.next_local;
+            closure_compiler.locals.insert(param.name.clone(), slot);
+            closure_compiler.function.local_names.push(param.name.clone());
+            closure_compiler.next_local += 1;
+        }
+
+        closure_compiler.function.local_count = closure_compiler.next_local;
         closure_compiler.function.param_count = params.len() as u8;
         closure_compiler.function.required_param_count =
             params.iter().filter(|p| p.default.is_none() && !p.is_variadic).count() as u8;
@@ -1424,10 +1444,142 @@ impl Compiler {
         let func_idx = self.intern_string(name.clone());
         self.functions.insert(name, compiled);
 
-        // Emit closure creation opcode
-        self.emit(Opcode::CreateClosure(func_idx, 0)); // 0 captured vars for simple arrow functions
+        // Emit closure creation opcode with captured var count
+        self.emit(Opcode::CreateClosure(func_idx, captured_vars.len() as u8));
 
         Ok(())
+    }
+
+    /// Find all variables used in an expression that should be captured
+    fn find_captured_vars(
+        &self,
+        expr: &Expr,
+        param_names: &std::collections::HashSet<&str>,
+        captured: &mut Vec<String>,
+    ) {
+        match expr {
+            Expr::Variable(name) => {
+                // If it's not a parameter and not already captured, capture it
+                if !param_names.contains(name.as_str()) && !captured.contains(name) {
+                    // Check if it exists in current scope
+                    if self.locals.contains_key(name) || self.is_global_var(name) {
+                        captured.push(name.clone());
+                    }
+                }
+            }
+            Expr::Binary { left, right, .. } => {
+                self.find_captured_vars(left, param_names, captured);
+                self.find_captured_vars(right, param_names, captured);
+            }
+            Expr::Unary { expr, .. } => {
+                self.find_captured_vars(expr, param_names, captured);
+            }
+            Expr::Ternary { condition, then_expr, else_expr } => {
+                self.find_captured_vars(condition, param_names, captured);
+                self.find_captured_vars(then_expr, param_names, captured);
+                self.find_captured_vars(else_expr, param_names, captured);
+            }
+            Expr::FunctionCall { args, .. } => {
+                for arg in args {
+                    self.find_captured_vars(&arg.value, param_names, captured);
+                }
+            }
+            Expr::MethodCall { object, args, .. } => {
+                self.find_captured_vars(object, param_names, captured);
+                for arg in args {
+                    self.find_captured_vars(&arg.value, param_names, captured);
+                }
+            }
+            Expr::PropertyAccess { object, .. } => {
+                self.find_captured_vars(object, param_names, captured);
+            }
+            Expr::ArrayAccess { array, index } => {
+                self.find_captured_vars(array, param_names, captured);
+                self.find_captured_vars(index, param_names, captured);
+            }
+            Expr::Array(elements) => {
+                for elem in elements {
+                    if let Some(ref key) = elem.key {
+                        self.find_captured_vars(key, param_names, captured);
+                    }
+                    self.find_captured_vars(&elem.value, param_names, captured);
+                }
+            }
+            Expr::Grouped(inner) => {
+                self.find_captured_vars(inner, param_names, captured);
+            }
+            Expr::Spread(inner) => {
+                self.find_captured_vars(inner, param_names, captured);
+            }
+            Expr::CallableCall { callable, args } => {
+                self.find_captured_vars(callable, param_names, captured);
+                for arg in args {
+                    self.find_captured_vars(&arg.value, param_names, captured);
+                }
+            }
+            Expr::CallableFromMethod { object, .. } => {
+                self.find_captured_vars(object, param_names, captured);
+            }
+            Expr::Assign { value, .. } => {
+                self.find_captured_vars(value, param_names, captured);
+            }
+            Expr::ArrayAssign { array, index, value, .. } => {
+                self.find_captured_vars(array, param_names, captured);
+                if let Some(ref idx) = index {
+                    self.find_captured_vars(idx, param_names, captured);
+                }
+                self.find_captured_vars(value, param_names, captured);
+            }
+            Expr::PropertyAssign { object, value, .. } => {
+                self.find_captured_vars(object, param_names, captured);
+                self.find_captured_vars(value, param_names, captured);
+            }
+            Expr::StaticPropertyAssign { value, .. } => {
+                self.find_captured_vars(value, param_names, captured);
+            }
+            Expr::New { args, .. } => {
+                for arg in args {
+                    self.find_captured_vars(&arg.value, param_names, captured);
+                }
+            }
+            Expr::Throw(inner) => {
+                self.find_captured_vars(inner, param_names, captured);
+            }
+            Expr::Match { expr, arms, default } => {
+                self.find_captured_vars(expr, param_names, captured);
+                for arm in arms {
+                    for condition in &arm.conditions {
+                        self.find_captured_vars(condition, param_names, captured);
+                    }
+                    self.find_captured_vars(&arm.result, param_names, captured);
+                }
+                if let Some(ref def) = default {
+                    self.find_captured_vars(def, param_names, captured);
+                }
+            }
+            Expr::ArrowFunction { body, .. } => {
+                // Nested arrow function - we need to be careful here
+                // For now, just scan its body
+                self.find_captured_vars(body, param_names, captured);
+            }
+            Expr::Clone { object } => {
+                self.find_captured_vars(object, param_names, captured);
+            }
+            Expr::CloneWith { object, modifications } => {
+                self.find_captured_vars(object, param_names, captured);
+                for modification in modifications {
+                    self.find_captured_vars(&modification.value, param_names, captured);
+                }
+            }
+            // Literals and other expressions that don't contain variables
+            _ => {}
+        }
+    }
+
+    fn is_global_var(&self, name: &str) -> bool {
+        // For now, consider all non-local variables as potentially global
+        // In a more sophisticated implementation, we'd track actual global scope
+        !self.locals.contains_key(name)
     }
 
     /// Emit an opcode
