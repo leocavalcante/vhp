@@ -2154,6 +2154,94 @@ impl<W: Write> VM<W> {
                 }
             }
 
+            Opcode::CallConstructorNamed => {
+                // Pop args array
+                let args_array = self.stack.pop().ok_or("Stack underflow")?;
+                // Pop object (it's below the args on stack)
+                let object = self.stack.pop().ok_or("Stack underflow")?;
+
+                match object {
+                    Value::Object(instance) => {
+                        let class_name = instance.class_name.clone();
+
+                        // Find constructor in inheritance chain
+                        if let Some(constructor) = self.find_method_in_chain(&class_name, "__construct") {
+                            let constructor = constructor.clone();
+
+                            // Extract arguments from array (mixed positional and named)
+                            let args_map = if let Value::Array(arr) = args_array {
+                                arr
+                            } else {
+                                return Err("Named constructor args must be an array".to_string());
+                            };
+
+                            // Separate positional (integer keys) from named (string keys)
+                            let mut positional = Vec::new();
+                            let mut named = std::collections::HashMap::new();
+
+                            for (key, value) in args_map {
+                                match key {
+                                    ArrayKey::Integer(idx) => {
+                                        // Positional arg - store with index
+                                        positional.push((idx as usize, value));
+                                    }
+                                    ArrayKey::String(name) => {
+                                        // Named arg
+                                        named.insert(name, value);
+                                    }
+                                }
+                            }
+
+                            // Sort positional by index
+                            positional.sort_by_key(|(idx, _)| *idx);
+
+                            // Build final args array by matching to parameters
+                            let param_count = constructor.param_count as usize;
+                            let mut final_args = vec![Value::Null; param_count];
+
+                            // First, fill in positional arguments
+                            for (i, (_, value)) in positional.into_iter().enumerate() {
+                                if i < param_count {
+                                    final_args[i] = value;
+                                }
+                            }
+
+                            // Then, fill in named arguments by matching parameter names
+                            for (param_idx, param) in constructor.parameters.iter().enumerate() {
+                                if let Some(value) = named.get(&param.name) {
+                                    if param_idx < param_count {
+                                        final_args[param_idx] = value.clone();
+                                    }
+                                }
+                            }
+
+                            // Create call frame for constructor with $this as first local
+                            let stack_base = self.stack.len();
+                            let mut frame = CallFrame::new(constructor, stack_base);
+
+                            // Set $this (slot 0)
+                            frame.locals[0] = Value::Object(instance);
+
+                            // Set up parameter locals (starting from slot 1)
+                            for (i, arg) in final_args.into_iter().enumerate() {
+                                if i + 1 < frame.locals.len() {
+                                    frame.locals[i + 1] = arg;
+                                }
+                            }
+
+                            // Mark this as a constructor frame
+                            frame.is_constructor = true;
+
+                            self.frames.push(frame);
+                        } else {
+                            // No constructor, just push the object back
+                            self.stack.push(Value::Object(instance));
+                        }
+                    }
+                    _ => return Err("Cannot call constructor on non-object".to_string()),
+                }
+            }
+
             // ==================== Exception Handling ====================
             Opcode::Throw => {
                 let exception = self.stack.pop().ok_or("Stack underflow")?;

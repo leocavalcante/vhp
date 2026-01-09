@@ -882,13 +882,35 @@ impl Compiler {
                 let class_idx = self.intern_string(qualified_name);
                 self.emit(Opcode::NewObject(class_idx));
 
-                // Compile arguments
-                for arg in args {
-                    self.compile_expr(&arg.value)?;
-                }
+                // Check if we have named arguments
+                let has_named = args.iter().any(|arg| arg.name.is_some());
 
-                // Emit constructor call
-                self.emit(Opcode::CallConstructor(args.len() as u8));
+                if has_named {
+                    // Build associative array with positional and named args
+                    for (idx, arg) in args.iter().enumerate() {
+                        if let Some(ref param_name) = arg.name {
+                            // Named argument
+                            let name_idx = self.intern_string(param_name.clone());
+                            self.emit(Opcode::PushString(name_idx));
+                            self.compile_expr(&arg.value)?;
+                        } else {
+                            // Positional argument - use integer index
+                            self.emit(Opcode::PushInt(idx as i64));
+                            self.compile_expr(&arg.value)?;
+                        }
+                    }
+                    // Create array from pairs
+                    self.emit(Opcode::NewArray(args.len() as u16));
+                    // Emit CallConstructorNamed opcode
+                    self.emit(Opcode::CallConstructorNamed);
+                } else {
+                    // Regular positional arguments
+                    for arg in args {
+                        self.compile_expr(&arg.value)?;
+                    }
+                    // Emit constructor call
+                    self.emit(Opcode::CallConstructor(args.len() as u8));
+                }
             }
             Expr::PropertyAccess { object, property } => {
                 self.compile_expr(object)?;

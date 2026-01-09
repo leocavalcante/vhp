@@ -199,6 +199,8 @@ pub enum Opcode {
     Clone,
     /// Call constructor on object: arg count (stack: object, args... -> object)
     CallConstructor(u8),
+    /// Call constructor with named arguments (stack: object, args_array -> object)
+    CallConstructorNamed,
     /// Load enum case: enum name index, case name index
     LoadEnumCase(u32, u32),
 
@@ -328,6 +330,7 @@ impl Opcode {
             Opcode::CallMethod(_, n) => -(*n as i32) - 1 + 1, // pops object + args, pushes result
             Opcode::CallStaticMethod(_, _, n) => -(*n as i32) + 1,
             Opcode::CallConstructor(n) => -(*n as i32), // pops args, uses object in-place
+            Opcode::CallConstructorNamed => -1, // pops args array, uses object in-place
 
             // Object operations
             Opcode::NewObject(_) => 1,
