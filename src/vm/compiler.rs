@@ -618,6 +618,45 @@ impl Compiler {
                 self.compile_ternary(condition, then_expr, else_expr)?;
             }
             Expr::FunctionCall { name, args } => {
+                // Special handling for unset() - it's a language construct
+                if name.to_lowercase() == "unset" {
+                    // unset() can take multiple arguments
+                    for arg in args {
+                        match arg.value.as_ref() {
+                            Expr::PropertyAccess { object, property } => {
+                                // unset($obj->prop) - should call __unset if property doesn't exist
+                                self.compile_expr(object)?;
+                                let prop_idx = self.intern_string(property.clone());
+                                self.emit(Opcode::UnsetProperty(prop_idx));
+                            }
+                            Expr::Variable(var_name) => {
+                                // unset($var) - remove variable from scope
+                                if let Some(&slot) = self.locals.get(var_name) {
+                                    // Local variable - set to null (PHP doesn't truly remove locals)
+                                    self.emit(Opcode::PushNull);
+                                    self.emit(Opcode::StoreFast(slot));
+                                } else {
+                                    // Global variable
+                                    let idx = self.intern_string(var_name.clone());
+                                    self.emit(Opcode::UnsetVar(idx));
+                                }
+                            }
+                            Expr::ArrayAccess { array, index } => {
+                                // unset($arr[$key]) - remove array element
+                                self.compile_expr(array)?;
+                                self.compile_expr(index)?;
+                                self.emit(Opcode::UnsetArrayElement);
+                            }
+                            _ => {
+                                return Err(format!("Cannot unset expression: {:?}", arg.value));
+                            }
+                        }
+                    }
+                    // unset() doesn't return a value, push null
+                    self.emit(Opcode::PushNull);
+                    return Ok(());
+                }
+
                 // Check what kind of arguments we have
                 let has_spread = args.iter().any(|arg| matches!(arg.value.as_ref(), Expr::Spread(_)));
                 let has_named = args.iter().any(|arg| arg.name.is_some());

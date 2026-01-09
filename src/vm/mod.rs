@@ -1662,6 +1662,58 @@ impl<W: Write> VM<W> {
                 }
             }
 
+            Opcode::UnsetProperty(prop_idx) => {
+                let prop_name = self.current_frame().get_string(prop_idx).to_string();
+                let object = self.stack.pop().ok_or("Stack underflow")?;
+
+                match object {
+                    Value::Object(mut instance) => {
+                        // Try to remove the property directly first
+                        if instance.properties.contains_key(&prop_name) {
+                            instance.properties.remove(&prop_name);
+                            // Property removed successfully, we're done
+                        } else {
+                            // Property not found, try __unset magic method
+                            if let Some(unset_method) = self.find_method_in_chain(&instance.class_name, "__unset") {
+                                // Call __unset($name)
+                                self.stack.push(Value::String(prop_name));
+                                let stack_base = self.stack.len();
+                                let mut frame = CallFrame::new(unset_method, stack_base);
+                                frame.locals[0] = Value::Object(instance); // $this
+                                frame.locals[1] = self.stack.pop().unwrap(); // property name
+                                self.frames.push(frame);
+                            }
+                            // If no __unset method, silently do nothing (PHP behavior)
+                        }
+                    }
+                    _ => return Err("Cannot unset property on non-object".to_string()),
+                }
+            }
+
+            Opcode::UnsetVar(var_idx) => {
+                let var_name = self.current_frame().get_string(var_idx).to_string();
+                self.globals.remove(&var_name);
+            }
+
+            Opcode::UnsetArrayElement => {
+                let key = self.stack.pop().ok_or("Stack underflow")?;
+                let array = self.stack.pop().ok_or("Stack underflow")?;
+
+                match array {
+                    Value::Array(mut arr) => {
+                        let array_key = match key {
+                            Value::Integer(n) => ArrayKey::Integer(n),
+                            Value::String(s) => ArrayKey::String(s),
+                            _ => return Err(format!("Invalid array key type: {:?}", key)),
+                        };
+                        // Remove element with matching key
+                        arr.retain(|(k, _)| k != &array_key);
+                        // Note: We don't push anything back - unset doesn't return a value
+                    }
+                    _ => return Err("Cannot unset element of non-array".to_string()),
+                }
+            }
+
             Opcode::StoreThisProperty(prop_idx) => {
                 let prop_name = self.current_frame().get_string(prop_idx).to_string();
                 let value = self.stack.pop().ok_or("Stack underflow")?;

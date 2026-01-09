@@ -176,6 +176,13 @@ pub enum Opcode {
     StoreThisProperty(u32),
     /// Store property in clone with - validates property exists (stack: object, value -> object)
     StoreCloneProperty(u32),
+    /// Unset property: property name index (stack: object -> void)
+    /// Calls __unset magic method if property doesn't exist or can't be unset
+    UnsetProperty(u32),
+    /// Unset variable: variable name index (removes from global scope)
+    UnsetVar(u32),
+    /// Unset array element (stack: array, key -> void)
+    UnsetArrayElement,
     /// Load static property: class name index, property name index
     LoadStaticProp(u32, u32),
     /// Store static property: class name index, property name index
@@ -328,6 +335,9 @@ impl Opcode {
             Opcode::StoreProperty(_) => -1, // pops object and value, pushes object
             Opcode::StoreThisProperty(_) => 0, // pops value, modifies $this in slot 0, pushes value back
             Opcode::StoreCloneProperty(_) => -1, // pops object and value, pushes modified object
+            Opcode::UnsetProperty(_) => -1, // pops object
+            Opcode::UnsetVar(_) => 0, // no stack effect
+            Opcode::UnsetArrayElement => -2, // pops array and key
             Opcode::LoadStaticProp(_, _) => 1,
             Opcode::StoreStaticProp(_, _) => -1,
             Opcode::LoadEnumCase(_, _) => 1, // pushes enum case value

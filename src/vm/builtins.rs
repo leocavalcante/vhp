@@ -65,6 +65,7 @@ pub const BUILTIN_FUNCTIONS: &[&str] = &[
     "is_numeric",
     "isset",
     "empty",
+    "unset",
     // Array functions
     "count",
     "sizeof",
@@ -164,6 +165,7 @@ pub fn call_builtin<W: Write>(
         "is_numeric" => builtins::types::is_numeric(args),
         "isset" => builtins::types::isset(args),
         "empty" => builtins::types::empty(args),
+        "unset" => builtins::types::unset(args),
 
         // Array functions
         "count" | "sizeof" => builtins::array::count(args),

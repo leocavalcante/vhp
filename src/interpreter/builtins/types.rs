@@ -123,3 +123,12 @@ pub fn empty(args: &[Value]) -> Result<Value, String> {
         !args.first().map(|v| v.to_bool()).unwrap_or(false),
     ))
 }
+
+/// unset - Unset a given variable
+/// Note: This is a simplified implementation. In PHP, unset() is a language construct
+/// that removes variables from the symbol table. For now, this just returns null.
+/// The actual removal should be handled at the VM level.
+pub fn unset(_args: &[Value]) -> Result<Value, String> {
+    // unset() doesn't return a value in PHP, but for VM compatibility we return Null
+    Ok(Value::Null)
+}
