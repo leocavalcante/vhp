@@ -1473,6 +1473,7 @@ impl Compiler {
         closure_compiler.function.param_count = params.len() as u8;
         closure_compiler.function.required_param_count =
             params.iter().filter(|p| p.default.is_none() && !p.is_variadic).count() as u8;
+        closure_compiler.function.parameters = params.to_vec();
 
         // Arrow functions return their body expression
         closure_compiler.compile_expr(body)?;
