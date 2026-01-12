@@ -31,6 +31,8 @@ pub struct VM<W: Write> {
     loops: Vec<LoopContext>,
     /// Exception handlers for try/catch/finally
     handlers: Vec<ExceptionHandler>,
+    /// Pending return value (saved while executing finally block)
+    pending_return: Option<Value>,
     /// Output writer
     output: W,
     /// Reference to interpreter for built-in functions and classes
@@ -56,6 +58,7 @@ impl<W: Write> VM<W> {
             globals: HashMap::new(),
             loops: Vec::new(),
             handlers: Vec::new(),
+            pending_return: None,
             output,
             interpreter,
             functions: HashMap::new(),
@@ -333,6 +336,7 @@ impl<W: Write> VM<W> {
                         // Return from function
                         // Get the frame before popping to check if it's a constructor
                         let frame = self.frames.last().expect("No frame");
+                        let current_ip = frame.ip as u32;
                         let is_constructor = frame.is_constructor;
                         let this_source = frame.this_source.clone();
                         // Only get modified $this if this is a method call (has locals with $this in slot 0)
@@ -358,6 +362,29 @@ impl<W: Write> VM<W> {
                                 self.stack.pop().unwrap_or(Value::Null)
                             }
                         };
+
+                        // Check if there's a finally block to execute
+                        // Find an active handler for this frame with a finally block
+                        let finally_jump = self.handlers.iter().rev().find_map(|h| {
+                            if h.frame_depth == self.frames.len()
+                                && h.finally_offset > 0
+                                && current_ip > h.try_start
+                                && current_ip <= h.finally_offset
+                            {
+                                Some(h.finally_offset as usize)
+                            } else {
+                                None
+                            }
+                        });
+
+                        if let Some(finally_offset) = finally_jump {
+                            // Save the return value and jump to finally
+                            self.pending_return = Some(value);
+                            if let Some(frame) = self.frames.last_mut() {
+                                frame.jump_to(finally_offset);
+                            }
+                            continue;
+                        }
 
                         self.frames.pop();
 
@@ -413,6 +440,42 @@ impl<W: Write> VM<W> {
                             return Err(e);
                         }
                         return Err(e);
+                    } else if e == "__FINALLY_RETURN__" {
+                        // Complete a return that was delayed by finally block
+                        if let Some(value) = self.pending_return.take() {
+                            let frame = self.frames.last().expect("No frame");
+                            let this_source = frame.this_source.clone();
+                            let modified_this = if !matches!(this_source, ThisSource::None)
+                                && !frame.locals.is_empty()
+                            {
+                                Some(frame.locals[0].clone())
+                            } else {
+                                None
+                            };
+
+                            self.frames.pop();
+
+                            // Update the source variable with modified $this
+                            if let Some(modified) = modified_this {
+                                match this_source {
+                                    ThisSource::LocalSlot(slot) => {
+                                        if let Some(caller_frame) = self.frames.last_mut() {
+                                            caller_frame.set_local(slot, modified);
+                                        }
+                                    }
+                                    ThisSource::GlobalVar(var_name) => {
+                                        self.globals.insert(var_name, modified);
+                                    }
+                                    ThisSource::None | ThisSource::PropertySetHook => {}
+                                }
+                            }
+
+                            if self.frames.is_empty() {
+                                return Ok(value);
+                            }
+                            self.stack.push(value);
+                            continue;
+                        }
                     } else {
                         return Err(e);
                     }
@@ -1849,7 +1912,32 @@ impl<W: Write> VM<W> {
                             }
                         }
 
-                        // No hook, check readonly constraint
+                        // Check if property exists in class definition
+                        let prop_defined_in_class =
+                            if let Some(class) = self.classes.get(&instance.class_name) {
+                                class.properties.iter().any(|p| p.name == prop_name)
+                            } else {
+                                false
+                            };
+
+                        // If property is NOT defined in class, try __set magic method
+                        if !prop_defined_in_class && !instance.properties.contains_key(&prop_name) {
+                            if let Some(set_method) =
+                                self.find_method_in_chain(&instance.class_name, "__set")
+                            {
+                                // Call __set($name, $value)
+                                let stack_base = self.stack.len();
+                                let mut frame = CallFrame::new(set_method, stack_base);
+                                frame.locals[0] = Value::Object(instance); // $this
+                                frame.locals[1] = Value::String(prop_name); // property name
+                                frame.locals[2] = value; // value
+                                frame.this_source = ThisSource::PropertySetHook;
+                                self.frames.push(frame);
+                                return Ok(());
+                            }
+                        }
+
+                        // No __set magic method, check readonly constraint
                         let mut instance = instance;
                         if instance.readonly_properties.contains(&prop_name)
                             && instance.initialized_readonly.contains(&prop_name)
@@ -1904,27 +1992,272 @@ impl<W: Write> VM<W> {
 
                 match object {
                     Value::Object(mut instance) => {
-                        // Try to remove the property directly first
-                        if instance.properties.contains_key(&prop_name) {
-                            instance.properties.remove(&prop_name);
-                            // Property removed successfully, we're done
-                        } else {
-                            // Property not found, try __unset magic method
+                        // Check if property is defined in class definition
+                        let prop_defined_in_class =
+                            if let Some(class) = self.classes.get(&instance.class_name) {
+                                class.properties.iter().any(|p| p.name == prop_name)
+                            } else {
+                                false
+                            };
+
+                        // If property is NOT defined in class, try __unset magic method
+                        if !prop_defined_in_class {
                             if let Some(unset_method) =
                                 self.find_method_in_chain(&instance.class_name, "__unset")
                             {
                                 // Call __unset($name)
-                                self.stack.push(Value::String(prop_name));
                                 let stack_base = self.stack.len();
                                 let mut frame = CallFrame::new(unset_method, stack_base);
                                 frame.locals[0] = Value::Object(instance); // $this
-                                frame.locals[1] = self.stack.pop().unwrap(); // property name
+                                frame.locals[1] = Value::String(prop_name); // property name
+                                frame.this_source = ThisSource::PropertySetHook;
                                 self.frames.push(frame);
+                                return Ok(());
                             }
-                            // If no __unset method, silently do nothing (PHP behavior)
+                        }
+
+                        // No __unset or property is defined in class - try to remove directly
+                        if instance.properties.contains_key(&prop_name) {
+                            instance.properties.remove(&prop_name);
+                        }
+                        // If property doesn't exist and no __unset, silently do nothing (PHP behavior)
+                    }
+                    _ => return Err("Cannot unset property on non-object".to_string()),
+                }
+            }
+
+            Opcode::IssetProperty(prop_idx) => {
+                let prop_name = self.current_frame().get_string(prop_idx).to_string();
+                let object = self.stack.pop().ok_or("Stack underflow")?;
+
+                match object {
+                    Value::Object(instance) => {
+                        // Check if property is defined in class definition
+                        let prop_defined_in_class =
+                            if let Some(class) = self.classes.get(&instance.class_name) {
+                                class.properties.iter().any(|p| p.name == prop_name)
+                            } else {
+                                false
+                            };
+
+                        // First check if property exists directly on the object
+                        if let Some(value) = instance.properties.get(&prop_name) {
+                            // Property exists - check if it's not null
+                            let is_set = !matches!(value, Value::Null);
+                            self.stack.push(Value::Bool(is_set));
+                        } else if !prop_defined_in_class {
+                            // Property not defined in class, try __isset magic method
+                            if let Some(isset_method) =
+                                self.find_method_in_chain(&instance.class_name, "__isset")
+                            {
+                                // Call __isset($name) - it returns a bool
+                                let stack_base = self.stack.len();
+                                let mut frame = CallFrame::new(isset_method, stack_base);
+                                frame.locals[0] = Value::Object(instance); // $this
+                                frame.locals[1] = Value::String(prop_name); // property name
+                                self.frames.push(frame);
+                                // The return value of __isset will be pushed to stack
+                            } else {
+                                // No __isset method and property doesn't exist
+                                self.stack.push(Value::Bool(false));
+                            }
+                        } else {
+                            // Property defined in class but not set on instance
+                            self.stack.push(Value::Bool(false));
+                        }
+                    }
+                    Value::Null => {
+                        // isset on null is always false
+                        self.stack.push(Value::Bool(false));
+                    }
+                    _ => {
+                        // For non-objects, property access doesn't make sense
+                        self.stack.push(Value::Bool(false));
+                    }
+                }
+            }
+
+            Opcode::UnsetPropertyOnLocal(slot, prop_idx) => {
+                let prop_name = self.current_frame().get_string(prop_idx).to_string();
+                let object = self.current_frame().locals[slot as usize].clone();
+
+                match object {
+                    Value::Object(mut instance) => {
+                        // Check if property is defined in class definition
+                        let prop_defined_in_class =
+                            if let Some(class) = self.classes.get(&instance.class_name) {
+                                class.properties.iter().any(|p| p.name == prop_name)
+                            } else {
+                                false
+                            };
+
+                        // If property is NOT defined in class, try __unset magic method
+                        if !prop_defined_in_class {
+                            if let Some(unset_method) =
+                                self.find_method_in_chain(&instance.class_name, "__unset")
+                            {
+                                // Call __unset($name)
+                                let stack_base = self.stack.len();
+                                let mut frame = CallFrame::new(unset_method, stack_base);
+                                frame.locals[0] = Value::Object(instance); // $this
+                                frame.locals[1] = Value::String(prop_name); // property name
+                                frame.this_source = ThisSource::LocalSlot(slot);
+                                self.frames.push(frame);
+                                return Ok(());
+                            }
+                        }
+
+                        // No __unset or property is defined in class - try to remove directly
+                        if instance.properties.contains_key(&prop_name) {
+                            instance.properties.remove(&prop_name);
+                            // Update the local variable with the modified instance
+                            if let Some(frame) = self.frames.last_mut() {
+                                frame.set_local(slot, Value::Object(instance));
+                            }
                         }
                     }
                     _ => return Err("Cannot unset property on non-object".to_string()),
+                }
+            }
+
+            Opcode::UnsetPropertyOnGlobal(var_idx, prop_idx) => {
+                let var_name = self.current_frame().get_string(var_idx).to_string();
+                let prop_name = self.current_frame().get_string(prop_idx).to_string();
+                let object = self.globals.get(&var_name).cloned().unwrap_or(Value::Null);
+
+                match object {
+                    Value::Object(mut instance) => {
+                        // Check if property is defined in class definition
+                        let prop_defined_in_class =
+                            if let Some(class) = self.classes.get(&instance.class_name) {
+                                class.properties.iter().any(|p| p.name == prop_name)
+                            } else {
+                                false
+                            };
+
+                        // If property is NOT defined in class, try __unset magic method
+                        if !prop_defined_in_class {
+                            if let Some(unset_method) =
+                                self.find_method_in_chain(&instance.class_name, "__unset")
+                            {
+                                // Call __unset($name)
+                                let stack_base = self.stack.len();
+                                let mut frame = CallFrame::new(unset_method, stack_base);
+                                frame.locals[0] = Value::Object(instance); // $this
+                                frame.locals[1] = Value::String(prop_name); // property name
+                                frame.this_source = ThisSource::GlobalVar(var_name);
+                                self.frames.push(frame);
+                                return Ok(());
+                            }
+                        }
+
+                        // No __unset or property is defined in class - try to remove directly
+                        if instance.properties.contains_key(&prop_name) {
+                            instance.properties.remove(&prop_name);
+                            // Update the global variable with the modified instance
+                            self.globals.insert(var_name, Value::Object(instance));
+                        }
+                    }
+                    _ => return Err("Cannot unset property on non-object".to_string()),
+                }
+            }
+
+            Opcode::IssetPropertyOnLocal(slot, prop_idx) => {
+                let prop_name = self.current_frame().get_string(prop_idx).to_string();
+                let object = self.current_frame().locals[slot as usize].clone();
+
+                match object {
+                    Value::Object(instance) => {
+                        // Check if property is defined in class definition
+                        let prop_defined_in_class =
+                            if let Some(class) = self.classes.get(&instance.class_name) {
+                                class.properties.iter().any(|p| p.name == prop_name)
+                            } else {
+                                false
+                            };
+
+                        // First check if property exists directly on the object
+                        if let Some(value) = instance.properties.get(&prop_name) {
+                            // Property exists - check if it's not null
+                            let is_set = !matches!(value, Value::Null);
+                            self.stack.push(Value::Bool(is_set));
+                        } else if !prop_defined_in_class {
+                            // Property not defined in class, try __isset magic method
+                            if let Some(isset_method) =
+                                self.find_method_in_chain(&instance.class_name, "__isset")
+                            {
+                                // Call __isset($name) - it returns a bool
+                                let stack_base = self.stack.len();
+                                let mut frame = CallFrame::new(isset_method, stack_base);
+                                frame.locals[0] = Value::Object(instance); // $this
+                                frame.locals[1] = Value::String(prop_name); // property name
+                                frame.this_source = ThisSource::LocalSlot(slot);
+                                self.frames.push(frame);
+                            } else {
+                                // No __isset method and property doesn't exist
+                                self.stack.push(Value::Bool(false));
+                            }
+                        } else {
+                            // Property defined in class but not set on instance
+                            self.stack.push(Value::Bool(false));
+                        }
+                    }
+                    Value::Null => {
+                        self.stack.push(Value::Bool(false));
+                    }
+                    _ => {
+                        self.stack.push(Value::Bool(false));
+                    }
+                }
+            }
+
+            Opcode::IssetPropertyOnGlobal(var_idx, prop_idx) => {
+                let var_name = self.current_frame().get_string(var_idx).to_string();
+                let prop_name = self.current_frame().get_string(prop_idx).to_string();
+                let object = self.globals.get(&var_name).cloned().unwrap_or(Value::Null);
+
+                match object {
+                    Value::Object(instance) => {
+                        // Check if property is defined in class definition
+                        let prop_defined_in_class =
+                            if let Some(class) = self.classes.get(&instance.class_name) {
+                                class.properties.iter().any(|p| p.name == prop_name)
+                            } else {
+                                false
+                            };
+
+                        // First check if property exists directly on the object
+                        if let Some(value) = instance.properties.get(&prop_name) {
+                            // Property exists - check if it's not null
+                            let is_set = !matches!(value, Value::Null);
+                            self.stack.push(Value::Bool(is_set));
+                        } else if !prop_defined_in_class {
+                            // Property not defined in class, try __isset magic method
+                            if let Some(isset_method) =
+                                self.find_method_in_chain(&instance.class_name, "__isset")
+                            {
+                                // Call __isset($name) - it returns a bool
+                                let stack_base = self.stack.len();
+                                let mut frame = CallFrame::new(isset_method, stack_base);
+                                frame.locals[0] = Value::Object(instance); // $this
+                                frame.locals[1] = Value::String(prop_name); // property name
+                                frame.this_source = ThisSource::GlobalVar(var_name);
+                                self.frames.push(frame);
+                            } else {
+                                // No __isset method and property doesn't exist
+                                self.stack.push(Value::Bool(false));
+                            }
+                        } else {
+                            // Property defined in class but not set on instance
+                            self.stack.push(Value::Bool(false));
+                        }
+                    }
+                    Value::Null => {
+                        self.stack.push(Value::Bool(false));
+                    }
+                    _ => {
+                        self.stack.push(Value::Bool(false));
+                    }
                 }
             }
 
@@ -2691,10 +3024,8 @@ impl<W: Write> VM<W> {
                                     let coerced_arg = if i < frame.function.param_types.len() {
                                         if let Some(ref type_hint) = frame.function.param_types[i] {
                                             if !self.requires_strict_type_check(type_hint) {
-                                                let coerced = self
-                                                    .coerce_value_to_type(arg.clone(), type_hint);
-                                                // Validate that coercion succeeded (type matches)
-                                                if !self.value_matches_type(&coerced, type_hint) {
+                                                // First check if the original value CAN be coerced
+                                                if !self.value_matches_type(&arg, type_hint) {
                                                     let type_name =
                                                         self.format_type_hint(type_hint);
                                                     let given_type = self.get_value_type_name(&arg);
@@ -2703,8 +3034,20 @@ impl<W: Write> VM<W> {
                                                         type_name, given_type
                                                     ));
                                                 }
-                                                coerced
+                                                // Then coerce
+                                                self.coerce_value_to_type(arg, type_hint)
                                             } else {
+                                                // Strict mode - validate without coercion
+                                                if !self.value_matches_type_strict(&arg, type_hint)
+                                                {
+                                                    let type_name =
+                                                        self.format_type_hint(type_hint);
+                                                    let given_type = self.get_value_type_name(&arg);
+                                                    return Err(format!(
+                                                        "must be of type {}, {} given",
+                                                        type_name, given_type
+                                                    ));
+                                                }
                                                 arg
                                             }
                                         } else {
@@ -2922,9 +3265,19 @@ impl<W: Write> VM<W> {
                 // The handler will be cleaned up when we exit the function
             }
 
-            Opcode::FinallyStart | Opcode::FinallyEnd => {
-                // Finally blocks - for now, just continue execution
-                // Full implementation would run finally even on exception/return
+            Opcode::FinallyStart => {
+                // Mark that we're inside a finally block
+                // Nothing special needed here
+            }
+
+            Opcode::FinallyEnd => {
+                // Check if there's a pending return to complete
+                if self.pending_return.is_some() {
+                    // Signal to the main loop that we need to complete the return
+                    // The return value is stored in pending_return
+                    return Err("__FINALLY_RETURN__".to_string());
+                }
+                // Otherwise, just continue normal execution
             }
 
             // ==================== Closures ====================
@@ -3463,8 +3816,8 @@ impl<W: Write> VM<W> {
             ("int", Value::Integer(_)) => true,
             // Coercive mode: float can be coerced to int
             ("int", Value::Float(_)) => true,
-            // Coercive mode: strings can be coerced to int (will extract leading digits or become 0)
-            ("int", Value::String(_)) => true,
+            // Coercive mode: only numeric strings can be coerced to int
+            ("int", Value::String(s)) => self.is_numeric_string(s),
             // Coercive mode: bool can be coerced to int
             ("int", Value::Bool(_)) => true,
             ("string", Value::String(_)) => true,
@@ -3474,8 +3827,8 @@ impl<W: Write> VM<W> {
             ("string", Value::Bool(_)) => true,
             ("float", Value::Float(_)) => true,
             ("float", Value::Integer(_)) => true, // int is compatible with float
-            // Coercive mode: strings can be coerced to float
-            ("float", Value::String(_)) => true,
+            // Coercive mode: only numeric strings can be coerced to float
+            ("float", Value::String(s)) => self.is_numeric_string(s),
             ("bool", Value::Bool(_)) => true,
             // Coercive mode: any scalar can be coerced to bool
             ("bool", Value::Integer(_)) => true,
@@ -3496,6 +3849,23 @@ impl<W: Write> VM<W> {
             ("true", Value::Bool(true)) => true,
             _ => false,
         }
+    }
+
+    /// Check if a string is numeric (can be coerced to int/float)
+    fn is_numeric_string(&self, s: &str) -> bool {
+        let trimmed = s.trim();
+        if trimmed.is_empty() {
+            return false;
+        }
+        // Try to parse as a number - must be a valid numeric string
+        // PHP considers strings like "123", "123.45", "1e5", "-42" as numeric
+        if trimmed.parse::<i64>().is_ok() {
+            return true;
+        }
+        if trimmed.parse::<f64>().is_ok() {
+            return true;
+        }
+        false
     }
 
     /// Check if a class is an instance of another class (including interfaces and parents)

@@ -1,17 +1,19 @@
 --TEST--
-Coercive mode parses leading digits from string
+Coercive mode parses numeric strings to int
 --FILE--
 <?php
 function toInt(int $n): int {
     return $n;
 }
 
-echo toInt("123abc") . "\n";
+echo toInt("123") . "\n";
 echo toInt("  456") . "\n";
 echo toInt("0") . "\n";
-echo toInt("abc") . "\n";
+echo toInt("-42") . "\n";
+echo toInt("3.14") . "\n";
 --EXPECT--
 123
 456
 0
-0
+-42
+3

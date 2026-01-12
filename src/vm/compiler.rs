@@ -697,9 +697,23 @@ impl Compiler {
                         match arg.value.as_ref() {
                             Expr::PropertyAccess { object, property } => {
                                 // unset($obj->prop) - should call __unset if property doesn't exist
-                                self.compile_expr(object)?;
                                 let prop_idx = self.intern_string(property.clone());
-                                self.emit(Opcode::UnsetProperty(prop_idx));
+
+                                // Check if object is a variable to track source
+                                if let Expr::Variable(var_name) = object.as_ref() {
+                                    if let Some(&slot) = self.locals.get(var_name) {
+                                        // Local variable - use tracking opcode
+                                        self.emit(Opcode::UnsetPropertyOnLocal(slot, prop_idx));
+                                    } else {
+                                        // Global variable - use tracking opcode
+                                        let var_idx = self.intern_string(var_name.clone());
+                                        self.emit(Opcode::UnsetPropertyOnGlobal(var_idx, prop_idx));
+                                    }
+                                } else {
+                                    // Complex expression - use regular UnsetProperty
+                                    self.compile_expr(object)?;
+                                    self.emit(Opcode::UnsetProperty(prop_idx));
+                                }
                             }
                             Expr::Variable(var_name) => {
                                 // unset($var) - remove variable from scope
@@ -727,6 +741,34 @@ impl Compiler {
                     // unset() doesn't return a value, push null
                     self.emit(Opcode::PushNull);
                     return Ok(());
+                }
+
+                // Special handling for isset() - it's a language construct
+                // isset($obj->prop) should call __isset magic method
+                if name.to_lowercase() == "isset" {
+                    if args.len() == 1 {
+                        if let Expr::PropertyAccess { object, property } = args[0].value.as_ref() {
+                            let prop_idx = self.intern_string(property.clone());
+
+                            // Check if object is a variable to track source
+                            if let Expr::Variable(var_name) = object.as_ref() {
+                                if let Some(&slot) = self.locals.get(var_name) {
+                                    // Local variable - use tracking opcode
+                                    self.emit(Opcode::IssetPropertyOnLocal(slot, prop_idx));
+                                } else {
+                                    // Global variable - use tracking opcode
+                                    let var_idx = self.intern_string(var_name.clone());
+                                    self.emit(Opcode::IssetPropertyOnGlobal(var_idx, prop_idx));
+                                }
+                            } else {
+                                // Complex expression - use regular IssetProperty
+                                self.compile_expr(object)?;
+                                self.emit(Opcode::IssetProperty(prop_idx));
+                            }
+                            return Ok(());
+                        }
+                    }
+                    // For other cases (variables, array access), use normal isset builtin
                 }
 
                 // Check what kind of arguments we have
@@ -865,6 +907,9 @@ impl Compiler {
                         // Property array access: $obj->prop[$key] = $value
                         // We need to: load prop, set array element, store prop back
 
+                        // Check if this is $this->prop[$key] = value
+                        let is_this = matches!(object.as_ref(), Expr::This);
+
                         // Load the property (which is an array)
                         self.compile_expr(object)?;
                         let prop_idx = self.intern_string(property.clone());
@@ -892,18 +937,24 @@ impl Compiler {
 
                         // Now we have the modified array on stack
                         // We need to store it back to the property
-                        // Load object again, swap with array, then store property
-                        self.compile_expr(object)?;
-                        self.emit(Opcode::Swap); // array, object -> object, array
-                        self.emit(Opcode::StoreProperty(prop_idx));
+                        if is_this {
+                            // For $this->prop[$key] = value, use StoreThisProperty
+                            // which updates slot 0 and pushes the value back
+                            self.emit(Opcode::StoreThisProperty(prop_idx));
+                        } else {
+                            // Load object again, swap with array, then store property
+                            self.compile_expr(object)?;
+                            self.emit(Opcode::Swap); // array, object -> object, array
+                            self.emit(Opcode::StoreProperty(prop_idx));
 
-                        // For variables, also store back to the variable if it's a simple var
-                        if let Expr::Variable(var_name) = object.as_ref() {
-                            if let Some(&slot) = self.locals.get(var_name) {
-                                self.emit(Opcode::StoreFast(slot));
-                            } else {
-                                let idx = self.intern_string(var_name.clone());
-                                self.emit(Opcode::StoreVar(idx));
+                            // For variables, also store back to the variable if it's a simple var
+                            if let Expr::Variable(var_name) = object.as_ref() {
+                                if let Some(&slot) = self.locals.get(var_name) {
+                                    self.emit(Opcode::StoreFast(slot));
+                                } else {
+                                    let idx = self.intern_string(var_name.clone());
+                                    self.emit(Opcode::StoreVar(idx));
+                                }
                             }
                         }
                     }
@@ -2180,7 +2231,7 @@ impl Compiler {
 
         self.emit(Opcode::TryEnd);
 
-        // Jump past catch blocks if no exception
+        // Jump past catch blocks AND finally to end
         let skip_catch = self.emit_jump(Opcode::Jump(0));
 
         // Patch try start with catch offset
@@ -2203,16 +2254,15 @@ impl Compiler {
                 self.compile_stmt(stmt)?;
             }
 
-            // After catch body executes, jump to end (skip remaining catches)
-            // Don't emit jump for the last catch clause (no more to skip)
+            // After catch body executes, jump to finally (or end if no finally)
+            // Don't emit jump for the last catch clause
             if i < catch_clauses.len() - 1 {
                 let jump_to_end = self.emit_jump(Opcode::Jump(0));
                 end_catch_jumps.push(jump_to_end);
             }
         }
 
-        // Patch skip_catch and all end_catch jumps to point here (after all catches)
-        let after_catches = self.current_offset();
+        // Patch skip_catch and all end_catch jumps to point here (before finally)
         self.patch_jump(skip_catch);
         for jump in end_catch_jumps {
             self.patch_jump(jump);
@@ -2220,6 +2270,12 @@ impl Compiler {
 
         // Compile finally body if present
         if let Some(finally) = finally_body {
+            // Patch TryStart with finally offset BEFORE emitting FinallyStart
+            let finally_offset = self.current_offset() as u32;
+            if let Opcode::TryStart(_, ref mut f) = self.function.bytecode[try_start] {
+                *f = finally_offset;
+            }
+
             self.emit(Opcode::FinallyStart);
             for stmt in finally {
                 self.compile_stmt(stmt)?;

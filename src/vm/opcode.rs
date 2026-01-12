@@ -179,6 +179,21 @@ pub enum Opcode {
     /// Unset property: property name index (stack: object -> void)
     /// Calls __unset magic method if property doesn't exist or can't be unset
     UnsetProperty(u32),
+    /// Unset property on a local variable: var slot, property name index
+    /// Tracks source variable so __unset modifications persist
+    UnsetPropertyOnLocal(u16, u32),
+    /// Unset property on a global variable: var name index, property name index
+    /// Tracks source variable so __unset modifications persist
+    UnsetPropertyOnGlobal(u32, u32),
+    /// Check if property is set: property name index (stack: object -> bool)
+    /// Calls __isset magic method if property doesn't exist on object
+    IssetProperty(u32),
+    /// Check if property is set on local variable: var slot, property name index
+    /// Tracks source so __isset can be called with proper context
+    IssetPropertyOnLocal(u16, u32),
+    /// Check if property is set on global variable: var name index, property name index
+    /// Tracks source so __isset can be called with proper context
+    IssetPropertyOnGlobal(u32, u32),
     /// Unset variable: variable name index (removes from global scope)
     UnsetVar(u32),
     /// Unset array element (stack: array, key -> void)
@@ -401,6 +416,11 @@ impl Opcode {
             Opcode::StoreThisProperty(_) => 0, // pops value, modifies $this in slot 0, pushes value back
             Opcode::StoreCloneProperty(_) => -1, // pops object and value, pushes modified object
             Opcode::UnsetProperty(_) => -1,    // pops object
+            Opcode::UnsetPropertyOnLocal(_, _) => 0, // reads from local, no stack change
+            Opcode::UnsetPropertyOnGlobal(_, _) => 0, // reads from global, no stack change
+            Opcode::IssetProperty(_) => 0,     // pops object, pushes bool
+            Opcode::IssetPropertyOnLocal(_, _) => 1, // reads from local, pushes bool
+            Opcode::IssetPropertyOnGlobal(_, _) => 1, // reads from global, pushes bool
             Opcode::UnsetVar(_) => 0,          // no stack effect
             Opcode::UnsetArrayElement => -2,   // pops array and key
             Opcode::LoadStaticProp(_, _) => 1,
