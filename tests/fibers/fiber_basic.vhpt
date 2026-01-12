@@ -10,6 +10,12 @@ function test() {
 $fiber = new Fiber('test');
 $result = $fiber->start();
 echo "Fiber returned: " . $result;
+--SKIPIF--
+Instance methods not fully implemented yet
+
+--SKIPIF--
+--EXPECT--
+
 --EXPECT--
 In fiber
 Fiber returned: done

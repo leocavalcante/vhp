@@ -391,19 +391,19 @@ impl<W: Write> VM<W> {
         // Mark as started and terminated (synchronous execution)
         start.strings.push("__started".to_string());
         start.bytecode.push(Opcode::PushTrue);
-        start.bytecode.push(Opcode::LoadThis);
+start.strings.push("__started".to_string());        start.bytecode.push(Opcode::LoadThis);
         start.bytecode.push(Opcode::StoreProperty(0)); // $this->__started = true
 
         start.strings.push("__terminated".to_string());
         start.bytecode.push(Opcode::PushTrue);
-        start.bytecode.push(Opcode::LoadThis);
+start.strings.push("__terminated".to_string());        start.bytecode.push(Opcode::LoadThis);
         start.bytecode.push(Opcode::StoreProperty(1)); // $this->__terminated = true
 
         // Load and call the callback
         start.strings.push("__callback".to_string());
         start.bytecode.push(Opcode::LoadThis);
         start.bytecode.push(Opcode::LoadProperty(2)); // Load $this->__callback
-        start.bytecode.push(Opcode::CallCallable(0)); // Call the callback with 0 args
+start.strings.push("__callback".to_string());        start.bytecode.push(Opcode::CallCallable(0)); // Call the callback with 0 args
                                                       // Stack now: [$this, result]
 
         // Store the return value - use local to preserve $this
@@ -412,7 +412,7 @@ impl<W: Write> VM<W> {
 
         start.strings.push("__return_value".to_string());
         start.bytecode.push(Opcode::Swap); // Swap to get: [$this, $this, result]
-                                           // Stack now: [$this, result]
+start.strings.push("__return_value".to_string());                                           // Stack now: [$this, result]
 
         start.bytecode.push(Opcode::StoreProperty(3)); // $this->__return_value = result
                                                        // Stack now: [$this]
@@ -420,7 +420,7 @@ impl<W: Write> VM<W> {
         // Return the result - load it and return
         start.strings.push("__return_value".to_string());
         start.bytecode.push(Opcode::LoadProperty(3));
-        start.bytecode.push(Opcode::Return);
+start.strings.push("__return_value".to_string());        start.bytecode.push(Opcode::Return);
 
         fiber.methods.insert("start".to_string(), Arc::new(start));
 
