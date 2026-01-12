@@ -63,6 +63,18 @@ pub struct CallFrame {
     pub current_statement: usize,
 }
 
+/// Generator instance representation
+#[derive(Debug, Clone)]
+pub struct GeneratorInstance {
+    pub id: usize,
+    pub position: usize,                   // Current position in the generator
+    pub values: Vec<Value>,                // Values yielded so far
+    pub statements: Vec<crate::ast::Stmt>, // Generator body statements
+    pub current_statement: usize,          // Current statement position
+    pub variables: HashMap<String, Value>, // Generator's local variables
+    pub finished: bool,                    // Whether the generator has finished
+}
+
 /// Array key type - PHP arrays support both integer and string keys
 #[derive(Debug, Clone)]
 pub enum ArrayKey {
@@ -126,6 +138,7 @@ impl ArrayKey {
             Value::Object(obj) => ArrayKey::String(format!("Object({})", obj.class_name)),
             Value::Fiber(fiber) => ArrayKey::String(format!("Object(Fiber#{:06})", fiber.id)),
             Value::Closure(_) => ArrayKey::String("Object(Closure)".to_string()),
+            Value::Generator(gen) => ArrayKey::String(format!("Object(Generator#{:06})", gen.id)),
             Value::EnumCase {
                 enum_name,
                 case_name,
@@ -166,8 +179,9 @@ pub enum Value {
     String(String),
     Array(Vec<(ArrayKey, Value)>),
     Object(ObjectInstance),
-    Fiber(Box<FiberInstance>), // Add Fiber support
-    Closure(Box<Closure>),     // Arrow function or closure
+    Fiber(Box<FiberInstance>),         // Add Fiber support
+    Closure(Box<Closure>),             // Arrow function or closure
+    Generator(Box<GeneratorInstance>), // Generator (PHP 5.5+)
     EnumCase {
         enum_name: String,
         case_name: String,
@@ -269,6 +283,7 @@ impl Value {
             Value::Object(obj) => format!("Object({})", obj.class_name),
             Value::Fiber(fiber) => format!("Object(Fiber#{:06})", fiber.id),
             Value::Closure(_) => "Object(Closure)".to_string(),
+            Value::Generator(gen) => format!("Object(Generator#{:06})", gen.id),
             Value::EnumCase {
                 enum_name,
                 case_name,
@@ -290,6 +305,7 @@ impl Value {
             Value::Object(_) => true,       // Objects are always truthy
             Value::Fiber(_) => true,        // Fibers are always truthy
             Value::Closure(_) => true,      // Closures are always truthy
+            Value::Generator(_) => true,    // Generators are always truthy
             Value::EnumCase { .. } => true, // Enum cases are always truthy
             Value::Exception(_) => true,    // Exceptions are always truthy
         }
@@ -319,6 +335,7 @@ impl Value {
             Value::Object(_) => 1,
             Value::Fiber(_) => 0,        // Fibers convert to 0
             Value::Closure(_) => 1,      // Closures convert to 1
+            Value::Generator(_) => 0,    // Generators convert to 0
             Value::EnumCase { .. } => 1, // Enum cases convert to 1
             Value::Exception(_) => 1,    // Exceptions convert to 1
         }
@@ -348,6 +365,7 @@ impl Value {
             Value::Object(_) => 1.0,
             Value::Fiber(_) => 0.0,        // Fibers convert to 0.0
             Value::Closure(_) => 1.0,      // Closures convert to 1.0
+            Value::Generator(_) => 0.0,    // Generators convert to 0.0
             Value::EnumCase { .. } => 1.0, // Enum cases convert to 1.0
             Value::Exception(_) => 1.0,    // Exceptions convert to 1.0
         }
@@ -377,6 +395,7 @@ impl Value {
             Value::Object(obj) => format!("Object({})", obj.class_name),
             Value::Fiber(_) => "Object(Fiber)".to_string(),
             Value::Closure(_) => "Object(Closure)".to_string(),
+            Value::Generator(_) => "Object(Generator)".to_string(),
             Value::EnumCase {
                 enum_name,
                 case_name,
@@ -433,6 +452,10 @@ impl Value {
             (Value::Closure(_), Value::Closure(_)) => {
                 // Closures are never strictly equal (even to themselves in this comparison)
                 false
+            }
+            (Value::Generator(a), Value::Generator(b)) => {
+                // Generators are equal if they have the same ID
+                a.id == b.id
             }
             (
                 Value::EnumCase {
@@ -505,6 +528,7 @@ impl Value {
             (Value::Closure(_), Value::Closure(_)) => {
                 false // Closures are never loosely equal
             }
+            (Value::Generator(a), Value::Generator(b)) => a.id == b.id,
             // Enum case comparisons
             (
                 Value::EnumCase {
@@ -538,6 +562,7 @@ impl Value {
             Value::Object(_) => "object",
             Value::Fiber(_) => "object", // Fibers are treated as objects for type purposes
             Value::Closure(_) => "object", // Closures are treated as objects for type purposes
+            Value::Generator(_) => "object", // Generators are treated as objects for type purposes
             Value::EnumCase { .. } => "object", // Enum cases are treated as objects for type purposes
             Value::Exception(_) => "object", // Exceptions are treated as objects for type purposes
         }
@@ -556,6 +581,7 @@ impl Value {
             Value::Object(obj) => Box::leak(obj.class_name.clone().into_boxed_str()),
             Value::Fiber(_) => "Fiber",
             Value::Closure(_) => "Closure",
+            Value::Generator(_) => "Generator",
             Value::EnumCase { enum_name, .. } => Box::leak(enum_name.clone().into_boxed_str()),
             Value::Exception(exc) => Box::leak(exc.class_name.clone().into_boxed_str()),
         }
