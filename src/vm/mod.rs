@@ -1784,11 +1784,44 @@ impl<W: Write> VM<W> {
 
                 match object {
                     Value::Object(instance) => {
-                        // Check for property hooks (PHP 8.4)
+                        // Check for property hooks and visibility (PHP 8.4)
                         if let Some(class) = self.classes.get(&instance.class_name).cloned() {
                             if let Some(prop_def) =
                                 class.properties.iter().find(|p| p.name == prop_name)
                             {
+                                // Check asymmetric write visibility (PHP 8.4)
+                                if let Some(write_vis) = &prop_def.write_visibility {
+                                    let current_class = self.get_current_class();
+                                    let can_write = match write_vis {
+                                        crate::ast::Visibility::Private => {
+                                            // Only same class can write
+                                            current_class.as_ref() == Some(&instance.class_name)
+                                        }
+                                        crate::ast::Visibility::Protected => {
+                                            // Same class or subclass can write
+                                            if let Some(ref curr) = current_class {
+                                                curr == &instance.class_name
+                                                    || self
+                                                        .is_subclass_of(curr, &instance.class_name)
+                                            } else {
+                                                false
+                                            }
+                                        }
+                                        crate::ast::Visibility::Public => true,
+                                    };
+                                    if !can_write {
+                                        let vis_str = match write_vis {
+                                            crate::ast::Visibility::Private => "private",
+                                            crate::ast::Visibility::Protected => "protected",
+                                            crate::ast::Visibility::Public => "public",
+                                        };
+                                        return Err(format!(
+                                            "Cannot modify {} property {}",
+                                            vis_str, prop_name
+                                        ));
+                                    }
+                                }
+
                                 // Check if property has a get hook but no set hook (read-only computed property)
                                 if prop_def.get_hook.is_some() && prop_def.set_hook.is_none() {
                                     return Err(format!(
@@ -2494,13 +2527,50 @@ impl<W: Write> VM<W> {
                 // Resolve self/static/parent keywords
                 let resolved_class = self.resolve_class_keyword(&class_name)?;
 
-                // Check if static property is readonly
+                // Check visibility and readonly constraints
                 if let Some(class_def) = self.classes.get(&resolved_class) {
+                    // Check readonly
                     if class_def.readonly_static_properties.contains(&prop_name) {
                         return Err(format!(
                             "Cannot modify readonly property {}::${}",
                             resolved_class, prop_name
                         ));
+                    }
+
+                    // Check asymmetric write visibility
+                    if let Some(prop_def) = class_def
+                        .properties
+                        .iter()
+                        .find(|p| p.name == prop_name && p.is_static)
+                    {
+                        if let Some(write_vis) = &prop_def.write_visibility {
+                            let current_class = self.get_current_class();
+                            let can_write = match write_vis {
+                                crate::ast::Visibility::Private => {
+                                    current_class.as_ref() == Some(&resolved_class)
+                                }
+                                crate::ast::Visibility::Protected => {
+                                    if let Some(ref curr) = current_class {
+                                        curr == &resolved_class
+                                            || self.is_subclass_of(curr, &resolved_class)
+                                    } else {
+                                        false
+                                    }
+                                }
+                                crate::ast::Visibility::Public => true,
+                            };
+                            if !can_write {
+                                let vis_str = match write_vis {
+                                    crate::ast::Visibility::Private => "private",
+                                    crate::ast::Visibility::Protected => "protected",
+                                    crate::ast::Visibility::Public => "public",
+                                };
+                                return Err(format!(
+                                    "Cannot modify {} property {}::${}",
+                                    vis_str, resolved_class, prop_name
+                                ));
+                            }
+                        }
                     }
                 }
 
@@ -3040,6 +3110,22 @@ impl<W: Write> VM<W> {
         } else {
             None
         }
+    }
+
+    /// Check if a class is a subclass of another class
+    fn is_subclass_of(&self, child: &str, parent: &str) -> bool {
+        let mut current = child.to_string();
+        while let Some(class) = self.classes.get(&current) {
+            if let Some(ref parent_name) = class.parent {
+                if parent_name == parent {
+                    return true;
+                }
+                current = parent_name.clone();
+            } else {
+                return false;
+            }
+        }
+        false
     }
 
     /// Normalize a class name by removing the leading backslash if present
