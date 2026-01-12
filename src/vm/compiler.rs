@@ -1473,10 +1473,16 @@ impl Compiler {
                     }
                     Expr::CallableFromFunction(func_name) => {
                         // First-class callable: func(...)
-                        // Call the function with left as the only argument
-                        self.compile_expr(left)?;
+                        // Check if this is a built-in function
+                        use crate::vm::builtins;
+                        let is_builtin = builtins::is_builtin(&func_name);
                         let func_idx = self.intern_string(func_name.clone());
-                        self.emit(Opcode::Call(func_idx, 1)); // 1 arg (the piped value)
+                        self.compile_expr(left)?;
+                        self.emit(if is_builtin {
+                            Opcode::CallBuiltin(func_idx, 1) // 1 arg (the piped value)
+                        } else {
+                            Opcode::Call(func_idx, 1) // 1 arg (the piped value)
+                        });
                     }
                     _ => {
                         return Err(

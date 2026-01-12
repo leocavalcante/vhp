@@ -361,3 +361,159 @@ pub fn array_last(args: &[Value]) -> Result<Value, String> {
         _ => Err("array_last() expects parameter 1 to be array".to_string()),
     }
 }
+
+/// array_map - Applies the callback to the elements of the given arrays
+pub fn array_map(args: &[Value]) -> Result<Value, String> {
+    if args.len() < 2 {
+        return Err("array_map() expects at least 2 parameters".to_string());
+    }
+
+    let array = match &args[0] {
+        Value::Array(arr) => arr.clone(),
+        _ => return Err("array_map() expects parameter 1 to be array".to_string()),
+    };
+
+    let callback = &args[1];
+
+    let mut result: Vec<(ArrayKey, Value)> = Vec::new();
+
+    for (_, value) in &array {
+        // Call callback with value
+        let mapped = call_callback(callback, &[value.clone()])?;
+
+        result.push((ArrayKey::Integer(result.len() as i64), mapped));
+    }
+
+    Ok(Value::Array(result))
+}
+
+/// array_filter - Filters elements of an array using a callback function
+pub fn array_filter(args: &[Value]) -> Result<Value, String> {
+    if args.len() < 2 {
+        return Err("array_filter() expects at least 2 parameters".to_string());
+    }
+
+    let array = match &args[0] {
+        Value::Array(arr) => arr.clone(),
+        _ => return Err("array_filter() expects parameter 1 to be array".to_string()),
+    };
+
+    let callback = &args[1];
+
+    let mut result: Vec<(ArrayKey, Value)> = Vec::new();
+
+    for (key, value) in &array {
+        // Call callback with value
+        let filtered = call_callback(callback, &[value.clone()])?;
+
+        // Keep if callback returns truthy
+        if filtered.to_bool() {
+            result.push((key.clone(), value.clone()));
+        }
+    }
+
+    Ok(Value::Array(result))
+}
+
+/// array_reduce - Iteratively reduce the array to a single value using a callback function
+pub fn array_reduce(args: &[Value]) -> Result<Value, String> {
+    if args.len() < 2 {
+        return Err("array_reduce() expects at least 2 parameters".to_string());
+    }
+
+    let array = match &args[0] {
+        Value::Array(arr) => arr.clone(),
+        _ => return Err("array_reduce() expects parameter 1 to be array".to_string()),
+    };
+
+    let callback = &args[1];
+
+    let initial = if args.len() > 2 { Some(&args[2]) } else { None };
+
+    let mut result = match initial {
+        Some(v) => v.clone(),
+        None => {
+            if array.is_empty() {
+                return Ok(Value::Null);
+            }
+            let (_, first) = &array[0];
+            first.clone()
+        }
+    };
+
+    for (_, value) in &array {
+        let args_slice = &[result.clone(), value.clone()];
+        result = call_callback(callback, args_slice)?;
+    }
+
+    Ok(result)
+}
+
+/// array_sum - Calculate the sum of values in an array
+pub fn array_sum(args: &[Value]) -> Result<Value, String> {
+    if args.is_empty() {
+        return Err("array_sum() expects exactly 1 parameter, 0 given".to_string());
+    }
+
+    match &args[0] {
+        Value::Array(arr) => {
+            let mut sum: f64 = 0.0;
+            for (_, value) in arr {
+                sum += value.to_float();
+            }
+            if sum.fract() == 0.0 {
+                Ok(Value::Integer(sum as i64))
+            } else {
+                Ok(Value::Float(sum))
+            }
+        }
+        _ => Err("array_sum() expects parameter 1 to be array".to_string()),
+    }
+}
+
+/// array_unique - Removes duplicate values from an array
+pub fn array_unique(args: &[Value]) -> Result<Value, String> {
+    if args.is_empty() {
+        return Err("array_unique() expects exactly 1 parameter, 0 given".to_string());
+    }
+
+    match &args[0] {
+        Value::Array(arr) => {
+            let mut result: Vec<(ArrayKey, Value)> = Vec::new();
+            let mut seen: Vec<String> = Vec::new();
+
+            for (_, value) in arr {
+                let value_str = match value {
+                    Value::Integer(n) => n.to_string(),
+                    Value::Float(f) => {
+                        if f.fract() == 0.0 && f.abs() < 1e15 {
+                            format!("{:.0}", f)
+                        } else {
+                            f.to_string()
+                        }
+                    }
+                    Value::String(s) => s.clone(),
+                    Value::Bool(b) => b.to_string(),
+                    Value::Null => "null".to_string(),
+                    _ => continue,
+                };
+
+                if !seen.contains(&value_str) {
+                    seen.push(value_str);
+                    result.push((ArrayKey::Integer(result.len() as i64), value.clone()));
+                }
+            }
+
+            Ok(Value::Array(result))
+        }
+        _ => Err("array_unique() expects parameter 1 to be array".to_string()),
+    }
+}
+
+// Helper function to call a callback value (closure or function name)
+// This is a simplified version - a full implementation would need to handle named arguments
+fn call_callback(_callback: &Value, _args: &[Value]) -> Result<Value, String> {
+    // For closures and function names, we'd need to execute them through the VM
+    // This is a limitation - callbacks from array functions not yet fully implemented
+    Err("Callbacks not yet fully supported".to_string())
+}
