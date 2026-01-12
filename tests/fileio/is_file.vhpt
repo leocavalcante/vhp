@@ -1,0 +1,10 @@
+--TEST--
+is_file - check if path is a file
+--FILE--
+<?php
+file_put_contents("/tmp/test_file.txt", "test");
+var_dump(is_file("/tmp/test_file.txt"));
+var_dump(is_file("/tmp"));
+--EXPECT--
+bool(true)
+bool(false)

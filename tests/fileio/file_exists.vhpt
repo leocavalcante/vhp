@@ -1,0 +1,10 @@
+--TEST--
+file_exists - check if file exists
+--FILE--
+<?php
+file_put_contents("/tmp/test_file.txt", "test");
+var_dump(file_exists("/tmp/test_file.txt"));
+var_dump(file_exists("/tmp/nonexistent.txt"));
+--EXPECT--
+bool(true)
+bool(false)

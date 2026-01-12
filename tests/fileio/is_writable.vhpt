@@ -1,0 +1,10 @@
+--TEST--
+is_writable - check if file is writable
+--FILE--
+<?php
+file_put_contents("/tmp/writable_test.txt", "test");
+var_dump(is_writable("/tmp/writable_test.txt"));
+var_dump(is_writable("/tmp/nonexistent.txt"));
+--EXPECT--
+bool(true)
+bool(false)

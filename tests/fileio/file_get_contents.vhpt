@@ -1,0 +1,9 @@
+--TEST--
+file_get_contents - read file into string
+--FILE--
+<?php
+file_put_contents("/tmp/test.txt", "Hello, World!");
+$content = file_get_contents("/tmp/test.txt");
+echo $content;
+--EXPECT--
+Hello, World!

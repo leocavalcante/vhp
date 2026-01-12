@@ -1,0 +1,9 @@
+--TEST--
+filesize - get file size
+--FILE--
+<?php
+file_put_contents("/tmp/size_test.txt", "Hello, World!");
+$size = filesize("/tmp/size_test.txt");
+var_dump($size);
+--EXPECT--
+int(13)

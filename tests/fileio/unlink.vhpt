@@ -1,0 +1,10 @@
+--TEST--
+unlink - delete a file
+--FILE--
+<?php
+file_put_contents("/tmp/unlink_test.txt", "test");
+var_dump(unlink("/tmp/unlink_test.txt"));
+var_dump(file_exists("/tmp/unlink_test.txt"));
+--EXPECT--
+bool(true)
+bool(false)

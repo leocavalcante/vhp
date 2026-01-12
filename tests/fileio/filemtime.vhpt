@@ -1,0 +1,12 @@
+--TEST--
+filemtime - get file modification time
+--FILE--
+<?php
+file_put_contents("/tmp/mtime_test.txt", "test");
+unlink("/tmp/mtime_test.txt");
+$mt = filemtime("/tmp/mtime_test.txt");
+if ($mt !== false) {
+    echo "Error: filemtime should return false for non-existent file\n";
+}
+--EXPECT--
+Error: filemtime should return false for non-existent file

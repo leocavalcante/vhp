@@ -1,0 +1,10 @@
+--TEST--
+is_dir - check if path is a directory
+--FILE--
+<?php
+file_put_contents("/tmp/test_dir", "test");
+var_dump(is_dir("/tmp/test_dir"));
+var_dump(is_dir("/tmp/nonexistent"));
+--EXPECT--
+bool(true)
+bool(false)

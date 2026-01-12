@@ -1,0 +1,10 @@
+--TEST--
+is_readable - check if file is readable
+--FILE--
+<?php
+file_put_contents("/tmp/readable_test.txt", "test");
+var_dump(is_readable("/tmp/readable_test.txt"));
+var_dump(is_readable("/tmp/nonexistent.txt"));
+--EXPECT--
+bool(true)
+bool(false)
