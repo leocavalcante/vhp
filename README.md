@@ -43,7 +43,7 @@ Every. Single. Line. Written through prompts to AI agents. Zero manual coding.
 - **🎯 Zero Dependencies** — Pure standard library, no external crates, no bloat
 - **✨ PHP 8.x Compatible** — Run your WordPress, Laravel, Drupal — *unchanged*
 - **🔮 Modern Features** — Arrow functions, match expressions, fibers, attributes, pipe operator
-- **📈 Battle-Tested** — 490 comprehensive tests and counting
+- **📈 Battle-Tested** — 509 comprehensive tests and counting
 
 ## ⚡ Get Started in 60 Seconds
 
@@ -168,16 +168,18 @@ $fiber->resume(); // Non-blocking concurrent execution
 
 ## 🔥 What Makes VHP Special
 
-### 73+ Built-in Functions and Growing
+### 99+ Built-in Functions and Growing
 
 From string manipulation to array operations, math to type checking — we've got the essentials:
 
-- **String Functions:** strlen, substr, trim, explode, implode, str_replace, strtoupper, strtolower
-- **Array Functions:** count, array_push, array_pop, array_shift, array_keys, array_values, in_array, array_merge
-- **Math Functions:** abs, ceil, floor, round, max, min, sqrt, pow
-- **Type Functions:** intval, floatval, strval, is_string, is_int, is_array, gettype
-- **Output Functions:** echo, print, var_dump
-- **Reflection API:** Get attributes, analyze classes, introspect your code
+- **String Functions (23):** strlen, substr, trim, ltrim, rtrim, explode, implode, str_replace, strtoupper, strtolower, str_repeat, strpos, strrev, ucfirst, lcfirst, ucwords, str_starts_with, str_ends_with, str_contains, str_pad, sprintf, chr, ord
+- **Array Functions (21):** count, array_push, array_pop, array_shift, array_unshift, array_keys, array_values, in_array, array_search, array_reverse, array_merge, array_key_exists, range, array_first, array_last, array_map, array_filter, array_reduce, array_sum, array_unique
+- **Math Functions (9):** abs, ceil, floor, round, max, min, pow, sqrt, rand/mt_rand
+- **Type Functions (14):** intval, floatval, strval, boolval, gettype, is_null, is_bool, is_int, is_float, is_string, is_array, is_numeric, isset, empty
+- **Output Functions (4):** print, var_dump, print_r, printf
+- **Reflection API (8):** get_class_attributes, get_method_attributes, get_property_attributes, get_function_attributes, get_parameter_attributes, get_method_parameter_attributes, get_interface_attributes, get_trait_attributes
+- **JSON Functions (2):** json_encode, json_decode
+- **File I/O Functions (10):** file_get_contents, file_put_contents, file_exists, is_file, is_dir, filemtime, filesize, unlink, is_readable, is_writable
 
 ### Run Real Codebases, Today
 
@@ -231,6 +233,7 @@ That's the difference between a tool and an ecosystem.
 - ✅ Enums - pure and backed (PHP 8.1)
 - ✅ Pipe operator (PHP 8.5)
 - ✅ Fibers for concurrency (PHP 8.1)
+- ✅ Generators with yield/yield from (PHP 5.5/7.0)
 
 **Object-Oriented Programming:**
 - ✅ Classes & Objects (properties, methods, constructors, $this)
@@ -273,23 +276,25 @@ That's the difference between a tool and an ecosystem.
 - ✅ Throw expressions (PHP 8.0)
 - ✅ Multi-catch blocks
 
-**Built-in Functions (73+):**
-- ✅ String functions
-- ✅ Math functions
-- ✅ Array functions
-- ✅ Type functions
-- ✅ Output functions
-- ✅ Reflection API
+**Built-in Functions (95+):**
+- ✅ String functions (23)
+- ✅ Math functions (9)
+- ✅ Array functions (21)
+- ✅ Type functions (14)
+- ✅ Output functions (4)
+- ✅ Reflection API (8)
+- ✅ JSON functions (2)
+- ✅ File I/O functions (10)
 
 **[→ See complete feature documentation](https://leocavalcante.github.io/vhp/features)**
 
 ## 🎯 What's Next
 
-We're just getting started. Check out the [roadmap](https://leocavalcante.github.io/vhp/roadmap) to see what's coming:
+We're just getting started. Check out [roadmap](https://leocavalcante.github.io/vhp/roadmap) to see what's coming:
 
-- More built-in functions (file I/O, JSON, date/time)
-- Advanced OOP features (asymmetric visibility)
-- Generators (yield/yield from)
+- More built-in functions (date/time, regex/PCRE, advanced math)
+- Advanced OOP features
+- Full generator execution with send/throw/return methods
 - Composer compatibility
 - Performance optimizations
 - And much more...
