@@ -9,6 +9,7 @@ pub mod class;
 pub mod compiler;
 pub mod frame;
 pub mod methods;
+pub mod objects;
 pub mod opcode;
 pub mod reflection;
 
