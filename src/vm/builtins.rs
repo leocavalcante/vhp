@@ -37,6 +37,17 @@ pub const BUILTIN_FUNCTIONS: &[&str] = &[
     // JSON functions
     "json_encode",
     "json_decode",
+    // File I/O functions
+    "file_get_contents",
+    "file_put_contents",
+    "file_exists",
+    "is_file",
+    "is_dir",
+    "filemtime",
+    "filesize",
+    "unlink",
+    "is_readable",
+    "is_writable",
     // Math functions
     "abs",
     "ceil",
@@ -141,6 +152,18 @@ pub fn call_builtin<W: Write>(name: &str, args: &[Value], output: &mut W) -> Res
         // JSON functions
         "json_encode" => builtins::json_encode(args),
         "json_decode" => builtins::json_decode(args),
+
+        // File I/O functions
+        "file_get_contents" => builtins::fileio::file_get_contents(args),
+        "file_put_contents" => builtins::fileio::file_put_contents(args, output),
+        "file_exists" => builtins::fileio::file_exists(args),
+        "is_file" => builtins::fileio::is_file(args),
+        "is_dir" => builtins::fileio::is_dir(args),
+        "filemtime" => builtins::fileio::filemtime(args),
+        "filesize" => builtins::fileio::filesize(args),
+        "unlink" => builtins::fileio::unlink(args),
+        "is_readable" => builtins::fileio::is_readable(args),
+        "is_writable" => builtins::fileio::is_writable(args),
 
         // Math functions
         "abs" => builtins::math::abs(args),
