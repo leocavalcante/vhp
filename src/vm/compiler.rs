@@ -54,6 +54,8 @@ pub struct Compiler {
     strict_types: bool,
     /// Current namespace (for prefixing class/function names)
     current_namespace: Option<String>,
+    /// Use aliases: short name -> fully qualified name
+    use_aliases: HashMap<String, String>,
 }
 
 impl Compiler {
@@ -73,6 +75,7 @@ impl Compiler {
             enums: HashMap::new(),
             strict_types: false,
             current_namespace: None,
+            use_aliases: HashMap::new(),
         }
     }
 
@@ -195,11 +198,15 @@ impl Compiler {
                 }
             }
             Stmt::Namespace { name, body } => {
-                // Save the previous namespace
+                // Save the previous namespace and use aliases
                 let prev_namespace = self.current_namespace.clone();
+                let prev_use_aliases = self.use_aliases.clone();
 
-                // Set current namespace
-                self.current_namespace = name.as_ref().and_then(|n| n.last().cloned());
+                // Set current namespace (using the full qualified name)
+                self.current_namespace = name.as_ref().map(|n| n.parts.join("\\"));
+
+                // Clear use aliases when entering new namespace
+                self.use_aliases.clear();
 
                 // Compile namespace body
                 match body {
@@ -207,17 +214,42 @@ impl Compiler {
                         for stmt in stmts {
                             self.compile_stmt(stmt)?;
                         }
-                        // Restore previous namespace after braced block
+                        // Restore previous namespace and use aliases after braced block
                         self.current_namespace = prev_namespace;
+                        self.use_aliases = prev_use_aliases;
                     }
                     crate::ast::NamespaceBody::Unbraced => {
                         // Rest of file is in namespace - don't restore
+                        // But keep prev_use_aliases cleared
                     }
                 }
             }
-            Stmt::Use(_) | Stmt::GroupUse(_) => {
-                // Use statements are handled at parse/resolution time
-                // Nothing to emit at runtime
+            Stmt::Use(use_clauses) => {
+                // Register use aliases
+                for clause in use_clauses {
+                    let full_name = clause.name.parts.join("\\");
+                    let alias = clause.alias.clone().unwrap_or_else(|| {
+                        // Use last part of name as alias
+                        clause.name.last().cloned().unwrap_or_default()
+                    });
+                    self.use_aliases.insert(alias, full_name);
+                }
+            }
+            Stmt::GroupUse(group_use) => {
+                // Register group use aliases (e.g., use Foo\{Bar, Baz})
+                let prefix = group_use.prefix.parts.join("\\");
+                for clause in &group_use.items {
+                    let full_name = if prefix.is_empty() {
+                        clause.name.parts.join("\\")
+                    } else {
+                        format!("{}\\{}", prefix, clause.name.parts.join("\\"))
+                    };
+                    let alias = clause.alias.clone().unwrap_or_else(|| {
+                        // Use last part of name as alias
+                        clause.name.last().cloned().unwrap_or_default()
+                    });
+                    self.use_aliases.insert(alias, full_name);
+                }
             }
             Stmt::Throw(expr) => {
                 self.compile_expr(expr)?;
@@ -2308,8 +2340,11 @@ impl Compiler {
             name.to_string()
         };
 
+        // Resolve parent class name through use aliases
+        let resolved_parent = parent.as_ref().map(|p| self.resolve_qualified_name(p));
+
         // Check if parent class exists and is not final
-        if let Some(parent_name) = parent.as_ref().and_then(|p| p.last()) {
+        if let Some(ref parent_name) = resolved_parent {
             // Check if parent class exists (allow built-in classes)
             let is_builtin = matches!(
                 parent_name.as_str(),
@@ -2329,24 +2364,25 @@ impl Compiler {
             }
         }
 
+        // Resolve interface names through use aliases
+        let resolved_interfaces: Vec<String> = interfaces
+            .iter()
+            .map(|i| self.resolve_qualified_name(i))
+            .collect();
+
         let mut compiled_class = CompiledClass::new(qualified_name.clone());
         compiled_class.is_abstract = is_abstract;
         compiled_class.is_final = is_final;
         compiled_class.readonly = readonly;
-        compiled_class.parent = parent.as_ref().and_then(|p| p.last().cloned());
-        compiled_class.interfaces = interfaces
-            .iter()
-            .filter_map(|i| i.last().cloned())
-            .collect();
+        compiled_class.parent = resolved_parent;
+        compiled_class.interfaces = resolved_interfaces.clone();
         compiled_class.traits = trait_uses.iter().flat_map(|t| t.traits.clone()).collect();
         compiled_class.attributes = attributes.to_vec();
 
         // Verify interfaces exist
-        for interface in interfaces {
-            if let Some(iface_name) = interface.last() {
-                if !self.interfaces.contains_key(iface_name) {
-                    return Err(format!("Interface '{}' not found", iface_name));
-                }
+        for iface_name in &resolved_interfaces {
+            if !self.interfaces.contains_key(iface_name) {
+                return Err(format!("Interface '{}' not found", iface_name));
             }
         }
 
@@ -2777,8 +2813,19 @@ impl Compiler {
         constants: &[crate::ast::InterfaceConstant],
         attributes: &[crate::ast::Attribute],
     ) -> Result<(), String> {
-        let mut compiled_interface = CompiledInterface::new(name.to_string());
-        compiled_interface.parents = parents.iter().filter_map(|p| p.last().cloned()).collect();
+        // Qualify the interface name with current namespace
+        let qualified_name = if let Some(ref ns) = self.current_namespace {
+            format!("{}\\{}", ns, name)
+        } else {
+            name.to_string()
+        };
+
+        let mut compiled_interface = CompiledInterface::new(qualified_name.clone());
+        // Resolve parent interface names through use aliases
+        compiled_interface.parents = parents
+            .iter()
+            .map(|p| self.resolve_qualified_name(p))
+            .collect();
         compiled_interface.attributes = attributes.to_vec();
 
         // Store method signatures (name, param_count)
@@ -2795,7 +2842,7 @@ impl Compiler {
         }
 
         self.interfaces
-            .insert(name.to_string(), Arc::new(compiled_interface));
+            .insert(qualified_name, Arc::new(compiled_interface));
         Ok(())
     }
 
@@ -3011,13 +3058,50 @@ impl Compiler {
         Ok(())
     }
 
+    /// Resolve a QualifiedName to a fully qualified class name string
+    fn resolve_qualified_name(&self, qname: &crate::ast::QualifiedName) -> String {
+        if qname.is_fully_qualified {
+            // Already fully qualified - just join the parts
+            qname.parts.join("\\")
+        } else {
+            // Join parts and use qualify_class_name for resolution
+            let name = qname.parts.join("\\");
+            self.qualify_class_name(&name)
+        }
+    }
+
     /// Qualify a class name with the current namespace if needed
     /// - If name starts with \, it's fully qualified (remove the \)
+    /// - If name matches a use alias, return the aliased fully qualified name
+    /// - If name contains \, it's a qualified name (resolve first segment as alias)
     /// - Otherwise, prefix with current namespace
     fn qualify_class_name(&self, name: &str) -> String {
         if name.starts_with('\\') {
             // Fully qualified name - remove leading backslash
             name[1..].to_string()
+        } else if name.contains('\\') {
+            // Qualified name like Foo\Bar - check if first segment is aliased
+            let parts: Vec<&str> = name.splitn(2, '\\').collect();
+            let first_segment = parts[0];
+            let rest = parts.get(1).unwrap_or(&"");
+
+            if let Some(aliased) = self.use_aliases.get(first_segment) {
+                // First segment is aliased, combine with rest
+                if rest.is_empty() {
+                    aliased.clone()
+                } else {
+                    format!("{}\\{}", aliased, rest)
+                }
+            } else if let Some(ref ns) = self.current_namespace {
+                // Not aliased - prefix with current namespace
+                format!("{}\\{}", ns, name)
+            } else {
+                // No namespace - use as-is
+                name.to_string()
+            }
+        } else if let Some(aliased) = self.use_aliases.get(name) {
+            // Simple name matches a use alias
+            aliased.clone()
         } else if let Some(ref ns) = self.current_namespace {
             // Relative name - prefix with current namespace
             format!("{}\\{}", ns, name)

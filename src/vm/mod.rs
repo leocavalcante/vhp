@@ -1386,7 +1386,7 @@ impl<W: Write> VM<W> {
                     for (name, _) in &named_args {
                         if !func.parameters.iter().any(|p| &p.name == name) {
                             return Err(format!(
-                                "Unknown parameter '{}' for function {}()",
+                                "Unknown named parameter '{}' for function {}()",
                                 name, func.name
                             ));
                         }
