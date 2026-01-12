@@ -1224,6 +1224,23 @@ impl Compiler {
                 self.compile_expr(inner)?;
                 self.emit(Opcode::Throw);
             }
+            Expr::Yield { key, value } => {
+                // Yield: yield $key => $value or yield $value
+                if let Some(k) = key {
+                    // Compile key
+                    self.compile_expr(k)?;
+                }
+                if let Some(v) = value {
+                    // Compile value
+                    self.compile_expr(v)?;
+                }
+                self.emit(Opcode::Yield);
+            }
+            Expr::YieldFrom(inner) => {
+                // yield from $iterable
+                self.compile_expr(inner)?;
+                self.emit(Opcode::YieldFrom);
+            }
             Expr::Spread(inner) => {
                 self.compile_expr(inner)?;
                 self.emit(Opcode::ArrayUnpack);
