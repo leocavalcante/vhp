@@ -975,6 +975,38 @@ impl<W: Write> VM<W> {
                 }
                 return Err("__RETURN__".to_string());
             }
+            Opcode::Yield => {
+                // For now, generators are not fully implemented in execution
+                // Create a placeholder generator object
+                let value = self.stack.pop().unwrap_or(Value::Null);
+                let gen = crate::runtime::GeneratorInstance {
+                    id: 0,
+                    position: 0,
+                    values: vec![value.clone()],
+                    statements: vec![],
+                    current_statement: 0,
+                    variables: std::collections::HashMap::new(),
+                    finished: false,
+                };
+                self.stack.push(Value::Generator(Box::new(gen)));
+                return Err("__GENERATOR__".to_string());
+            }
+            Opcode::YieldFrom => {
+                // For now, generators are not fully implemented in execution
+                // Create a placeholder generator object
+                let value = self.stack.pop().unwrap_or(Value::Null);
+                let gen = crate::runtime::GeneratorInstance {
+                    id: 0,
+                    position: 0,
+                    values: vec![value.clone()],
+                    statements: vec![],
+                    current_statement: 0,
+                    variables: std::collections::HashMap::new(),
+                    finished: false,
+                };
+                self.stack.push(Value::Generator(Box::new(gen)));
+                return Err("__GENERATOR__".to_string());
+            }
             Opcode::ReturnNull => {
                 // Validate return type if present
                 if let Some(ref return_type) = self.current_frame().function.return_type.clone() {
@@ -3921,6 +3953,16 @@ impl<W: Write> VM<W> {
                     }
                     self.stack.push(Value::Null);
                 }
+                Err(e) if e == "__GENERATOR__" => {
+                    // Generator yield - return generator object
+                    let generator = self.stack.pop().unwrap_or(Value::Null);
+                    self.frames.pop();
+
+                    if self.frames.len() <= initial_frame_count {
+                        return Ok(generator);
+                    }
+                    self.stack.push(generator);
+                }
                 Err(e) => return Err(e),
             }
         }
@@ -4216,6 +4258,7 @@ impl<W: Write> VM<W> {
             Value::Object(_) => "object",
             Value::Closure(_) => "Closure",
             Value::Fiber(_) => "Fiber",
+            Value::Generator(_) => "Generator",
             Value::EnumCase { .. } => "enum",
             Value::Exception(_) => "Exception",
         }
