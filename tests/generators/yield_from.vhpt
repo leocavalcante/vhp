@@ -1,0 +1,14 @@
+--TEST--
+Yield from expression parsing
+--FILE--
+<?php
+function gen() {
+    yield from [1, 2, 3];
+}
+$g = gen();
+var_dump($g);
+?>
+--DESCRIPTION--
+Generators parse and create generator objects (execution not yet fully implemented)
+--EXPECT_ERROR--
+VM error: __GENERATOR__

@@ -1,0 +1,16 @@
+--TEST--
+Yield with key syntax
+--FILE--
+<?php
+function gen() {
+    yield 'a' => 1;
+    yield 'b' => 2;
+    yield 'c' => 3;
+}
+$g = gen();
+var_dump($g);
+?>
+--DESCRIPTION--
+Generators parse and create generator objects (execution not yet fully implemented)
+--EXPECT_ERROR--
+VM error: __GENERATOR__

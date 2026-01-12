@@ -1,0 +1,14 @@
+--TEST--
+Yield without value
+--FILE--
+<?php
+function gen() {
+    yield;
+}
+$g = gen();
+var_dump($g);
+?>
+--DESCRIPTION--
+Generators parse and create generator objects (execution not yet fully implemented)
+--EXPECT_ERROR--
+VM error: __GENERATOR__
