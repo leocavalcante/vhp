@@ -1359,11 +1359,10 @@ impl Compiler {
                 self.emit(Opcode::CallConstructor(arg_count as u8));
             }
             Expr::NewFiber { callback } => {
-                // Fiber support - for now, just compile to null placeholder
-                // Full fiber support requires runtime integration
+                // Compile callback expression
                 self.compile_expr(callback)?;
-                self.emit(Opcode::Pop);
-                self.emit(Opcode::PushNull);
+                // Emit NewFiber opcode
+                self.emit(Opcode::NewFiber);
             }
             Expr::FiberSuspend { value } => {
                 // Fiber::suspend() - compile value or null

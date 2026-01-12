@@ -168,6 +168,8 @@ pub enum Opcode {
     // ==================== Objects ====================
     /// Create new object: class name index
     NewObject(u32),
+    /// Create new Fiber with callback (stack: callback -> Fiber object)
+    NewFiber,
     /// Load property: property name index (stack: object -> value)
     LoadProperty(u32),
     /// Store property: property name index (stack: object, value -> object)
@@ -411,7 +413,8 @@ impl Opcode {
 
             // Object operations
             Opcode::NewObject(_) => 1,
-            Opcode::LoadProperty(_) => 0,   // pops object, pushes value
+            Opcode::NewFiber => 0,        // pops callback, pushes Fiber object
+            Opcode::LoadProperty(_) => 0, // pops object, pushes value
             Opcode::StoreProperty(_) => -1, // pops object and value, pushes object
             Opcode::StoreThisProperty(_) => 0, // pops value, modifies $this in slot 0, pushes value back
             Opcode::StoreCloneProperty(_) => -1, // pops object and value, pushes modified object
