@@ -79,6 +79,15 @@ fn var_dump_value<W: Write>(output: &mut W, value: &Value, indent: usize) -> Res
             writeln!(output, "{}object(Closure)#1 {{", prefix).map_err(|e| e.to_string())?;
             writeln!(output, "{}}}", prefix).map_err(|e| e.to_string())?;
         }
+        Value::Generator(gen) => {
+            writeln!(output, "{}object(Generator)#{:06} {{", prefix, gen.id)
+                .map_err(|e| e.to_string())?;
+            writeln!(output, "{}  position: {}", prefix, gen.position)
+                .map_err(|e| e.to_string())?;
+            writeln!(output, "{}  values: {}", prefix, gen.values.len())
+                .map_err(|e| e.to_string())?;
+            writeln!(output, "{}}}", prefix).map_err(|e| e.to_string())?;
+        }
         Value::EnumCase {
             enum_name,
             case_name,

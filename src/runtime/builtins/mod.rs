@@ -17,6 +17,10 @@ pub use array::{
     array_unique, array_unshift, array_values, count, in_array, range,
 };
 
+pub use math::{
+    abs, ceil, cos, exp, floor, log, log10, max, min, pi, pow, rand, round, sin, sqrt, tan,
+};
+
 pub use fileio::{
     file_exists, file_get_contents, file_put_contents, filemtime, filesize, is_dir, is_file,
     is_readable, is_writable, unlink,
