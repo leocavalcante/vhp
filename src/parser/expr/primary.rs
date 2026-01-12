@@ -662,6 +662,31 @@ impl<'a> ExprParser<'a> {
                 let expr = self.parse_unary()?;
                 Ok(Expr::Throw(Box::new(expr)))
             }
+            TokenKind::Yield => {
+                self.advance(); // consume 'yield'
+                let mut key: Option<Box<Expr>> = None;
+                let mut value: Option<Box<Expr>> = None;
+
+                // Check for yield from: yield from $expr
+                if self.check(&TokenKind::From) {
+                    self.advance(); // consume 'from'
+                    let expr = self.parse_unary()?;
+                    return Ok(Expr::YieldFrom(Box::new(expr)));
+                }
+
+                // Check for yield $key => $value syntax
+                // We need to parse an expression, check if it's followed by '=>'
+                let first_expr = self.parse_unary()?;
+                if self.check(&TokenKind::DoubleArrow) {
+                    self.advance(); // consume '=>'
+                    key = Some(Box::new(first_expr));
+                    value = Some(Box::new(self.parse_unary()?));
+                } else {
+                    value = Some(Box::new(first_expr));
+                }
+
+                Ok(Expr::Yield { key, value })
+            }
             _ => Err(format!(
                 "Expected expression but found {:?} at line {}, column {}",
                 token.kind, token.line, token.column

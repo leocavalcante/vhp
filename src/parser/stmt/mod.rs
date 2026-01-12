@@ -1051,6 +1051,47 @@ impl<'a> StmtParser<'a> {
             TokenKind::Return => Ok(Some(self.parse_return()?)),
             TokenKind::Try => Ok(Some(self.parse_try()?)),
             TokenKind::Throw => Ok(Some(self.parse_throw_statement()?)),
+            TokenKind::Yield => {
+                // Yield as a statement: yield $value, yield $key => $value, yield from, or yield;
+                self.advance(); // consume 'yield'
+
+                // Check for yield from $iterable
+                if self.check(&TokenKind::From) {
+                    self.advance(); // consume 'from'
+                    let expr = self.parse_expression(Precedence::None)?;
+                    if self.check(&TokenKind::Semicolon) {
+                        self.advance();
+                    }
+                    let yield_from_expr = Expr::YieldFrom(Box::new(expr));
+                    return Ok(Some(Stmt::Expression(yield_from_expr)));
+                }
+
+                // Check if this is "yield;" or "yield $expr;"
+                let (key, value) = if self.check(&TokenKind::Semicolon) {
+                    // yield; (yields NULL)
+                    (None, None)
+                } else {
+                    // yield $expr or yield $key => $value
+                    let key_expr = self.parse_expression(Precedence::None)?;
+
+                    if self.check(&TokenKind::DoubleArrow) {
+                        // yield $key => $value
+                        self.advance(); // consume '=>'
+                        let val_expr = self.parse_expression(Precedence::None)?;
+                        (Some(Box::new(key_expr)), Some(Box::new(val_expr)))
+                    } else {
+                        // yield $expr
+                        (None, Some(Box::new(key_expr)))
+                    }
+                };
+
+                let yield_expr = Expr::Yield { key, value };
+
+                if self.check(&TokenKind::Semicolon) {
+                    self.advance();
+                }
+                Ok(Some(Stmt::Expression(yield_expr)))
+            }
             TokenKind::Namespace => Ok(Some(self.parse_namespace()?)),
             TokenKind::Use => {
                 // Distinguish between use statements (at top level) and trait use (in class)
