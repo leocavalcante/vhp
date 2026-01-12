@@ -116,12 +116,8 @@ impl<W: Write> Interpreter<W> {
 
             // Validate type hint if present
             if let Some(ref type_hint) = param.type_hint {
-                let validated_value = self.validate_argument_type(
-                    type_hint,
-                    &value,
-                    &param.name,
-                    arg_idx + 1,
-                )?;
+                let validated_value =
+                    self.validate_argument_type(type_hint, &value, &param.name, arg_idx + 1)?;
                 self.variables.insert(param.name.clone(), validated_value);
                 continue;
             }

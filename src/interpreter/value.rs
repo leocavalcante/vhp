@@ -185,8 +185,8 @@ pub struct ObjectInstance {
     pub properties: HashMap<String, Value>,
     pub readonly_properties: std::collections::HashSet<String>, // Track readonly property names (PHP 8.1)
     pub initialized_readonly: std::collections::HashSet<String>, // Track which readonly props are initialized
-    pub parent_class: Option<String>,    // Parent class name (for inheritance checking)
-    pub interfaces: Vec<String>,         // Implemented interfaces (for DNF type checking)
+    pub parent_class: Option<String>, // Parent class name (for inheritance checking)
+    pub interfaces: Vec<String>,      // Implemented interfaces (for DNF type checking)
 }
 
 impl ObjectInstance {
@@ -202,7 +202,11 @@ impl ObjectInstance {
         }
     }
 
-    pub fn with_hierarchy(class_name: String, parent: Option<String>, interfaces: Vec<String>) -> Self {
+    pub fn with_hierarchy(
+        class_name: String,
+        parent: Option<String>,
+        interfaces: Vec<String>,
+    ) -> Self {
         Self {
             class_name,
             properties: HashMap::new(),

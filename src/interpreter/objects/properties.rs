@@ -6,9 +6,9 @@
 //! - Readonly property enforcement (PHP 8.1+)
 //! - Enum case properties (name and value)
 
+use crate::ast::Visibility;
 use crate::interpreter::Interpreter;
 use crate::interpreter::Value;
-use crate::ast::Visibility;
 use std::io::Write;
 
 impl<W: Write> Interpreter<W> {
@@ -29,11 +29,7 @@ impl<W: Write> Interpreter<W> {
     }
 
     /// Check if write access is allowed for a property based on asymmetric visibility
-    fn can_write_property(
-        &self,
-        class_name: &str,
-        property: &str,
-    ) -> Result<(), String> {
+    fn can_write_property(&self, class_name: &str, property: &str) -> Result<(), String> {
         // Search for property definition in class hierarchy
         let mut current_search = class_name.to_lowercase();
         let mut property_class = None;
@@ -216,7 +212,9 @@ impl<W: Write> Interpreter<W> {
                 // Check for property hooks first (hooks bypass visibility checks)
                 let class = self.classes.get(&class_name.to_lowercase()).cloned();
                 let has_hooks = if let Some(ref class) = class {
-                    class.properties.iter()
+                    class
+                        .properties
+                        .iter()
                         .find(|p| p.name == property)
                         .map(|p| !p.hooks.is_empty())
                         .unwrap_or(false)
@@ -328,19 +326,22 @@ impl<W: Write> Interpreter<W> {
                 let val = self.eval_expr(value)?;
 
                 // Get class name for visibility check
-                let class_name = if let Some(Value::Object(ref instance)) = self.variables.get(var_name) {
-                    instance.class_name.clone()
-                } else {
-                    return Err(format!(
-                        "Cannot access property on non-object variable ${}",
-                        var_name
-                    ));
-                };
+                let class_name =
+                    if let Some(Value::Object(ref instance)) = self.variables.get(var_name) {
+                        instance.class_name.clone()
+                    } else {
+                        return Err(format!(
+                            "Cannot access property on non-object variable ${}",
+                            var_name
+                        ));
+                    };
 
                 // Check for property hooks first (hooks bypass visibility checks)
                 let class = self.classes.get(&class_name.to_lowercase()).cloned();
                 let has_hooks = if let Some(ref class) = class {
-                    class.properties.iter()
+                    class
+                        .properties
+                        .iter()
                         .find(|p| p.name == property)
                         .map(|p| !p.hooks.is_empty())
                         .unwrap_or(false)

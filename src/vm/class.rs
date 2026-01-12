@@ -79,6 +79,10 @@ pub struct CompiledProperty {
     pub is_static: bool,
     pub type_hint: Option<TypeHint>,
     pub attributes: Vec<Attribute>,
+    /// Compiled get hook method name (if any)
+    pub get_hook: Option<String>,
+    /// Compiled set hook method name (if any)
+    pub set_hook: Option<String>,
 }
 
 impl CompiledProperty {
@@ -107,6 +111,8 @@ impl CompiledProperty {
             is_static: prop.is_static,
             type_hint: None, // Would need to be extracted from AST
             attributes: prop.attributes.clone(),
+            get_hook: None, // Will be set by compiler if property has hooks
+            set_hook: None,
         }
     }
 }

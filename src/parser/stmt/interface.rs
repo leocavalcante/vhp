@@ -51,7 +51,10 @@ impl<'a> StmtParser<'a> {
             let attributes = self.parse_attributes()?;
 
             // Skip optional visibility modifier (interface methods are always public)
-            if self.check(&TokenKind::Public) || self.check(&TokenKind::Protected) || self.check(&TokenKind::Private) {
+            if self.check(&TokenKind::Public)
+                || self.check(&TokenKind::Protected)
+                || self.check(&TokenKind::Private)
+            {
                 self.advance();
             }
 

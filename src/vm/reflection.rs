@@ -20,27 +20,29 @@ fn attribute_to_value(attr: &Attribute) -> Value {
     ));
 
     // Convert arguments
-    let args: Vec<(ArrayKey, Value)> = attr.arguments.iter().enumerate().map(|(i, arg)| {
-        let mut arg_entries = Vec::new();
+    let args: Vec<(ArrayKey, Value)> = attr
+        .arguments
+        .iter()
+        .enumerate()
+        .map(|(i, arg)| {
+            let mut arg_entries = Vec::new();
 
-        // Add argument name if it's a named argument
-        if let Some(name) = &arg.name {
-            arg_entries.push((
-                ArrayKey::String("name".to_string()),
-                Value::String(name.clone()),
-            ));
-        }
+            // Add argument name if it's a named argument
+            if let Some(name) = &arg.name {
+                arg_entries.push((
+                    ArrayKey::String("name".to_string()),
+                    Value::String(name.clone()),
+                ));
+            }
 
-        // Convert the argument value expression to a Value
-        // For now, we support simple literal expressions
-        let value = expr_to_value(&arg.value);
-        arg_entries.push((
-            ArrayKey::String("value".to_string()),
-            value,
-        ));
+            // Convert the argument value expression to a Value
+            // For now, we support simple literal expressions
+            let value = expr_to_value(&arg.value);
+            arg_entries.push((ArrayKey::String("value".to_string()), value));
 
-        (ArrayKey::Integer(i as i64), Value::Array(arg_entries))
-    }).collect();
+            (ArrayKey::Integer(i as i64), Value::Array(arg_entries))
+        })
+        .collect();
 
     entries.push((
         ArrayKey::String("arguments".to_string()),
@@ -61,7 +63,9 @@ fn expr_to_value(expr: &crate::ast::Expr) -> Value {
         Expr::Bool(b) => Value::Bool(*b),
         Expr::Null => Value::Null,
         Expr::Array(elements) => {
-            let values: Vec<(ArrayKey, Value)> = elements.iter().enumerate()
+            let values: Vec<(ArrayKey, Value)> = elements
+                .iter()
+                .enumerate()
                 .map(|(i, elem)| (ArrayKey::Integer(i as i64), expr_to_value(&elem.value)))
                 .collect();
             Value::Array(values)
@@ -79,7 +83,10 @@ pub fn get_class_attributes(
         .get(class_name)
         .ok_or_else(|| format!("Class '{}' not found", class_name))?;
 
-    let attrs: Vec<(ArrayKey, Value)> = class.attributes.iter().enumerate()
+    let attrs: Vec<(ArrayKey, Value)> = class
+        .attributes
+        .iter()
+        .enumerate()
         .map(|(i, attr)| (ArrayKey::Integer(i as i64), attribute_to_value(attr)))
         .collect();
     Ok(Value::Array(attrs))
@@ -95,11 +102,21 @@ pub fn get_property_attributes(
         .get(class_name)
         .ok_or_else(|| format!("Class '{}' not found", class_name))?;
 
-    let prop = class.properties.iter()
+    let prop = class
+        .properties
+        .iter()
         .find(|p| p.name == property_name)
-        .ok_or_else(|| format!("Property '{}' not found in class '{}'", property_name, class_name))?;
+        .ok_or_else(|| {
+            format!(
+                "Property '{}' not found in class '{}'",
+                property_name, class_name
+            )
+        })?;
 
-    let attrs: Vec<(ArrayKey, Value)> = prop.attributes.iter().enumerate()
+    let attrs: Vec<(ArrayKey, Value)> = prop
+        .attributes
+        .iter()
+        .enumerate()
         .map(|(i, attr)| (ArrayKey::Integer(i as i64), attribute_to_value(attr)))
         .collect();
     Ok(Value::Array(attrs))
@@ -115,11 +132,21 @@ pub fn get_method_attributes(
         .get(class_name)
         .ok_or_else(|| format!("Class '{}' not found", class_name))?;
 
-    let method = class.methods.get(method_name)
+    let method = class
+        .methods
+        .get(method_name)
         .or_else(|| class.static_methods.get(method_name))
-        .ok_or_else(|| format!("Method '{}' not found in class '{}'", method_name, class_name))?;
+        .ok_or_else(|| {
+            format!(
+                "Method '{}' not found in class '{}'",
+                method_name, class_name
+            )
+        })?;
 
-    let attrs: Vec<(ArrayKey, Value)> = method.attributes.iter().enumerate()
+    let attrs: Vec<(ArrayKey, Value)> = method
+        .attributes
+        .iter()
+        .enumerate()
         .map(|(i, attr)| (ArrayKey::Integer(i as i64), attribute_to_value(attr)))
         .collect();
     Ok(Value::Array(attrs))
@@ -136,15 +163,32 @@ pub fn get_method_parameter_attributes(
         .get(class_name)
         .ok_or_else(|| format!("Class '{}' not found", class_name))?;
 
-    let method = class.methods.get(method_name)
+    let method = class
+        .methods
+        .get(method_name)
         .or_else(|| class.static_methods.get(method_name))
-        .ok_or_else(|| format!("Method '{}' not found in class '{}'", method_name, class_name))?;
+        .ok_or_else(|| {
+            format!(
+                "Method '{}' not found in class '{}'",
+                method_name, class_name
+            )
+        })?;
 
-    let param = method.parameters.iter()
+    let param = method
+        .parameters
+        .iter()
         .find(|p| p.name == parameter_name)
-        .ok_or_else(|| format!("Parameter '{}' not found in method '{}'", parameter_name, method_name))?;
+        .ok_or_else(|| {
+            format!(
+                "Parameter '{}' not found in method '{}'",
+                parameter_name, method_name
+            )
+        })?;
 
-    let attrs: Vec<(ArrayKey, Value)> = param.attributes.iter().enumerate()
+    let attrs: Vec<(ArrayKey, Value)> = param
+        .attributes
+        .iter()
+        .enumerate()
         .map(|(i, attr)| (ArrayKey::Integer(i as i64), attribute_to_value(attr)))
         .collect();
     Ok(Value::Array(attrs))
@@ -159,7 +203,10 @@ pub fn get_function_attributes(
         .get(function_name)
         .ok_or_else(|| format!("Function '{}' not found", function_name))?;
 
-    let attrs: Vec<(ArrayKey, Value)> = func.attributes.iter().enumerate()
+    let attrs: Vec<(ArrayKey, Value)> = func
+        .attributes
+        .iter()
+        .enumerate()
         .map(|(i, attr)| (ArrayKey::Integer(i as i64), attribute_to_value(attr)))
         .collect();
     Ok(Value::Array(attrs))
@@ -175,11 +222,21 @@ pub fn get_parameter_attributes(
         .get(function_name)
         .ok_or_else(|| format!("Function '{}' not found", function_name))?;
 
-    let param = func.parameters.iter()
+    let param = func
+        .parameters
+        .iter()
         .find(|p| p.name == parameter_name)
-        .ok_or_else(|| format!("Parameter '{}' not found in function '{}'", parameter_name, function_name))?;
+        .ok_or_else(|| {
+            format!(
+                "Parameter '{}' not found in function '{}'",
+                parameter_name, function_name
+            )
+        })?;
 
-    let attrs: Vec<(ArrayKey, Value)> = param.attributes.iter().enumerate()
+    let attrs: Vec<(ArrayKey, Value)> = param
+        .attributes
+        .iter()
+        .enumerate()
         .map(|(i, attr)| (ArrayKey::Integer(i as i64), attribute_to_value(attr)))
         .collect();
     Ok(Value::Array(attrs))
@@ -194,7 +251,10 @@ pub fn get_interface_attributes(
         .get(interface_name)
         .ok_or_else(|| format!("Interface '{}' not found", interface_name))?;
 
-    let attrs: Vec<(ArrayKey, Value)> = interface.attributes.iter().enumerate()
+    let attrs: Vec<(ArrayKey, Value)> = interface
+        .attributes
+        .iter()
+        .enumerate()
         .map(|(i, attr)| (ArrayKey::Integer(i as i64), attribute_to_value(attr)))
         .collect();
     Ok(Value::Array(attrs))
@@ -209,7 +269,10 @@ pub fn get_trait_attributes(
         .get(trait_name)
         .ok_or_else(|| format!("Trait '{}' not found", trait_name))?;
 
-    let attrs: Vec<(ArrayKey, Value)> = trait_def.attributes.iter().enumerate()
+    let attrs: Vec<(ArrayKey, Value)> = trait_def
+        .attributes
+        .iter()
+        .enumerate()
         .map(|(i, attr)| (ArrayKey::Integer(i as i64), attribute_to_value(attr)))
         .collect();
     Ok(Value::Array(attrs))

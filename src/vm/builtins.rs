@@ -107,11 +107,7 @@ pub fn is_builtin(name: &str) -> bool {
 
 /// Call a built-in function with the given arguments
 /// Returns the result value or an error message
-pub fn call_builtin<W: Write>(
-    name: &str,
-    args: &[Value],
-    output: &mut W,
-) -> Result<Value, String> {
+pub fn call_builtin<W: Write>(name: &str, args: &[Value], output: &mut W) -> Result<Value, String> {
     let lower_name = name.to_lowercase();
     match lower_name.as_str() {
         // String functions

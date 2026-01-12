@@ -229,106 +229,98 @@ impl<W: Write> Interpreter<W> {
                 let val = self.eval_expr(expr)?;
                 Ok(Value::Bool(!val.to_bool()))
             }
-            UnaryOp::PreInc => {
-                match expr {
-                    Expr::Variable(name) => {
-                        let val = self.variables.get(name).cloned().unwrap_or(Value::Null);
-                        let new_val = match val {
-                            Value::Integer(n) => Value::Integer(n + 1),
-                            Value::Float(n) => Value::Float(n + 1.0),
-                            _ => Value::Integer(val.to_int() + 1),
-                        };
-                        self.variables.insert(name.clone(), new_val.clone());
-                        Ok(new_val)
-                    }
-                    Expr::StaticPropertyAccess { class, property } => {
-                        let val = self.get_static_property(class, property)?;
-                        let new_val = match val {
-                            Value::Integer(n) => Value::Integer(n + 1),
-                            Value::Float(n) => Value::Float(n + 1.0),
-                            _ => Value::Integer(val.to_int() + 1),
-                        };
-                        self.set_static_property(class, property, new_val.clone())?;
-                        Ok(new_val)
-                    }
-                    _ => Err("Pre-increment requires a variable or static property".to_string()),
+            UnaryOp::PreInc => match expr {
+                Expr::Variable(name) => {
+                    let val = self.variables.get(name).cloned().unwrap_or(Value::Null);
+                    let new_val = match val {
+                        Value::Integer(n) => Value::Integer(n + 1),
+                        Value::Float(n) => Value::Float(n + 1.0),
+                        _ => Value::Integer(val.to_int() + 1),
+                    };
+                    self.variables.insert(name.clone(), new_val.clone());
+                    Ok(new_val)
                 }
-            }
-            UnaryOp::PreDec => {
-                match expr {
-                    Expr::Variable(name) => {
-                        let val = self.variables.get(name).cloned().unwrap_or(Value::Null);
-                        let new_val = match val {
-                            Value::Integer(n) => Value::Integer(n - 1),
-                            Value::Float(n) => Value::Float(n - 1.0),
-                            _ => Value::Integer(val.to_int() - 1),
-                        };
-                        self.variables.insert(name.clone(), new_val.clone());
-                        Ok(new_val)
-                    }
-                    Expr::StaticPropertyAccess { class, property } => {
-                        let val = self.get_static_property(class, property)?;
-                        let new_val = match val {
-                            Value::Integer(n) => Value::Integer(n - 1),
-                            Value::Float(n) => Value::Float(n - 1.0),
-                            _ => Value::Integer(val.to_int() - 1),
-                        };
-                        self.set_static_property(class, property, new_val.clone())?;
-                        Ok(new_val)
-                    }
-                    _ => Err("Pre-decrement requires a variable or static property".to_string()),
+                Expr::StaticPropertyAccess { class, property } => {
+                    let val = self.get_static_property(class, property)?;
+                    let new_val = match val {
+                        Value::Integer(n) => Value::Integer(n + 1),
+                        Value::Float(n) => Value::Float(n + 1.0),
+                        _ => Value::Integer(val.to_int() + 1),
+                    };
+                    self.set_static_property(class, property, new_val.clone())?;
+                    Ok(new_val)
                 }
-            }
-            UnaryOp::PostInc => {
-                match expr {
-                    Expr::Variable(name) => {
-                        let val = self.variables.get(name).cloned().unwrap_or(Value::Null);
-                        let new_val = match &val {
-                            Value::Integer(n) => Value::Integer(n + 1),
-                            Value::Float(n) => Value::Float(n + 1.0),
-                            _ => Value::Integer(val.to_int() + 1),
-                        };
-                        self.variables.insert(name.clone(), new_val);
-                        Ok(val)
-                    }
-                    Expr::StaticPropertyAccess { class, property } => {
-                        let val = self.get_static_property(class, property)?;
-                        let new_val = match &val {
-                            Value::Integer(n) => Value::Integer(n + 1),
-                            Value::Float(n) => Value::Float(n + 1.0),
-                            _ => Value::Integer(val.to_int() + 1),
-                        };
-                        self.set_static_property(class, property, new_val)?;
-                        Ok(val)
-                    }
-                    _ => Err("Post-increment requires a variable or static property".to_string()),
+                _ => Err("Pre-increment requires a variable or static property".to_string()),
+            },
+            UnaryOp::PreDec => match expr {
+                Expr::Variable(name) => {
+                    let val = self.variables.get(name).cloned().unwrap_or(Value::Null);
+                    let new_val = match val {
+                        Value::Integer(n) => Value::Integer(n - 1),
+                        Value::Float(n) => Value::Float(n - 1.0),
+                        _ => Value::Integer(val.to_int() - 1),
+                    };
+                    self.variables.insert(name.clone(), new_val.clone());
+                    Ok(new_val)
                 }
-            }
-            UnaryOp::PostDec => {
-                match expr {
-                    Expr::Variable(name) => {
-                        let val = self.variables.get(name).cloned().unwrap_or(Value::Null);
-                        let new_val = match &val {
-                            Value::Integer(n) => Value::Integer(n - 1),
-                            Value::Float(n) => Value::Float(n - 1.0),
-                            _ => Value::Integer(val.to_int() - 1),
-                        };
-                        self.variables.insert(name.clone(), new_val);
-                        Ok(val)
-                    }
-                    Expr::StaticPropertyAccess { class, property } => {
-                        let val = self.get_static_property(class, property)?;
-                        let new_val = match &val {
-                            Value::Integer(n) => Value::Integer(n - 1),
-                            Value::Float(n) => Value::Float(n - 1.0),
-                            _ => Value::Integer(val.to_int() - 1),
-                        };
-                        self.set_static_property(class, property, new_val)?;
-                        Ok(val)
-                    }
-                    _ => Err("Post-decrement requires a variable or static property".to_string()),
+                Expr::StaticPropertyAccess { class, property } => {
+                    let val = self.get_static_property(class, property)?;
+                    let new_val = match val {
+                        Value::Integer(n) => Value::Integer(n - 1),
+                        Value::Float(n) => Value::Float(n - 1.0),
+                        _ => Value::Integer(val.to_int() - 1),
+                    };
+                    self.set_static_property(class, property, new_val.clone())?;
+                    Ok(new_val)
                 }
-            }
+                _ => Err("Pre-decrement requires a variable or static property".to_string()),
+            },
+            UnaryOp::PostInc => match expr {
+                Expr::Variable(name) => {
+                    let val = self.variables.get(name).cloned().unwrap_or(Value::Null);
+                    let new_val = match &val {
+                        Value::Integer(n) => Value::Integer(n + 1),
+                        Value::Float(n) => Value::Float(n + 1.0),
+                        _ => Value::Integer(val.to_int() + 1),
+                    };
+                    self.variables.insert(name.clone(), new_val);
+                    Ok(val)
+                }
+                Expr::StaticPropertyAccess { class, property } => {
+                    let val = self.get_static_property(class, property)?;
+                    let new_val = match &val {
+                        Value::Integer(n) => Value::Integer(n + 1),
+                        Value::Float(n) => Value::Float(n + 1.0),
+                        _ => Value::Integer(val.to_int() + 1),
+                    };
+                    self.set_static_property(class, property, new_val)?;
+                    Ok(val)
+                }
+                _ => Err("Post-increment requires a variable or static property".to_string()),
+            },
+            UnaryOp::PostDec => match expr {
+                Expr::Variable(name) => {
+                    let val = self.variables.get(name).cloned().unwrap_or(Value::Null);
+                    let new_val = match &val {
+                        Value::Integer(n) => Value::Integer(n - 1),
+                        Value::Float(n) => Value::Float(n - 1.0),
+                        _ => Value::Integer(val.to_int() - 1),
+                    };
+                    self.variables.insert(name.clone(), new_val);
+                    Ok(val)
+                }
+                Expr::StaticPropertyAccess { class, property } => {
+                    let val = self.get_static_property(class, property)?;
+                    let new_val = match &val {
+                        Value::Integer(n) => Value::Integer(n - 1),
+                        Value::Float(n) => Value::Float(n - 1.0),
+                        _ => Value::Integer(val.to_int() - 1),
+                    };
+                    self.set_static_property(class, property, new_val)?;
+                    Ok(val)
+                }
+                _ => Err("Post-decrement requires a variable or static property".to_string()),
+            },
         }
     }
 

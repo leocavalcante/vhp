@@ -470,7 +470,7 @@ impl<'a> StmtParser<'a> {
                 name,
                 visibility,
                 write_visibility: None, // Hooks and asymmetric visibility are incompatible
-                default: None, // Properties with hooks cannot have default values
+                default: None,          // Properties with hooks cannot have default values
                 readonly: false,
                 is_static: false,
                 attributes: Vec::new(),
@@ -1258,7 +1258,10 @@ impl<'a> StmtParser<'a> {
             self.advance();
         }
 
-        self.consume(TokenKind::RightParen, "Expected ')' after declare directives")?;
+        self.consume(
+            TokenKind::RightParen,
+            "Expected ')' after declare directives",
+        )?;
 
         // Check for block syntax: declare(...) { ... }
         let body = if self.check(&TokenKind::LeftBrace) {

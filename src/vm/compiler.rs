@@ -3,7 +3,9 @@
 //! This module compiles PHP AST into bytecode for the VM to execute.
 
 use crate::ast::{BinaryOp, Expr, FunctionParam, Method, Program, Stmt, UnaryOp};
-use crate::vm::class::{CompiledClass, CompiledEnum, CompiledInterface, CompiledProperty, CompiledTrait};
+use crate::vm::class::{
+    CompiledClass, CompiledEnum, CompiledInterface, CompiledProperty, CompiledTrait,
+};
 use crate::vm::opcode::{CompiledFunction, Opcode};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -160,7 +162,11 @@ impl Compiler {
             } => {
                 self.compile_function(name, params, return_type, body, attributes)?;
             }
-            Stmt::Switch { expr, cases, default } => {
+            Stmt::Switch {
+                expr,
+                cases,
+                default,
+            } => {
                 self.compile_switch(expr, cases, default)?;
             }
             Stmt::Html(content) => {
@@ -217,19 +223,63 @@ impl Compiler {
                 self.compile_expr(expr)?;
                 self.emit(Opcode::Throw);
             }
-            Stmt::TryCatch { try_body, catch_clauses, finally_body } => {
+            Stmt::TryCatch {
+                try_body,
+                catch_clauses,
+                finally_body,
+            } => {
                 self.compile_try_catch(try_body, catch_clauses, finally_body)?;
             }
-            Stmt::Class { name, is_abstract, is_final, readonly, parent, interfaces, trait_uses, properties, methods, attributes } => {
-                self.compile_class(name, *is_abstract, *is_final, *readonly, parent, interfaces, trait_uses, properties, methods, attributes)?;
+            Stmt::Class {
+                name,
+                is_abstract,
+                is_final,
+                readonly,
+                parent,
+                interfaces,
+                trait_uses,
+                properties,
+                methods,
+                attributes,
+            } => {
+                self.compile_class(
+                    name,
+                    *is_abstract,
+                    *is_final,
+                    *readonly,
+                    parent,
+                    interfaces,
+                    trait_uses,
+                    properties,
+                    methods,
+                    attributes,
+                )?;
             }
-            Stmt::Interface { name, parents, methods, constants, attributes } => {
+            Stmt::Interface {
+                name,
+                parents,
+                methods,
+                constants,
+                attributes,
+            } => {
                 self.compile_interface(name, parents, methods, constants, attributes)?;
             }
-            Stmt::Trait { name, uses, properties, methods, attributes } => {
+            Stmt::Trait {
+                name,
+                uses,
+                properties,
+                methods,
+                attributes,
+            } => {
                 self.compile_trait(name, uses, properties, methods, attributes)?;
             }
-            Stmt::Enum { name, backing_type, cases, methods, attributes } => {
+            Stmt::Enum {
+                name,
+                backing_type,
+                cases,
+                methods,
+                attributes,
+            } => {
                 self.compile_enum(name, backing_type, cases, methods, attributes)?;
             }
         }
@@ -566,13 +616,25 @@ impl Compiler {
 
                 // Apply compound operation if needed
                 match op {
-                    AssignOp::Assign => {},
-                    AssignOp::AddAssign => {self.emit(Opcode::Add);},
-                    AssignOp::SubAssign => {self.emit(Opcode::Sub);},
-                    AssignOp::MulAssign => {self.emit(Opcode::Mul);},
-                    AssignOp::DivAssign => {self.emit(Opcode::Div);},
-                    AssignOp::ModAssign => {self.emit(Opcode::Mod);},
-                    AssignOp::ConcatAssign => {self.emit(Opcode::Concat);},
+                    AssignOp::Assign => {}
+                    AssignOp::AddAssign => {
+                        self.emit(Opcode::Add);
+                    }
+                    AssignOp::SubAssign => {
+                        self.emit(Opcode::Sub);
+                    }
+                    AssignOp::MulAssign => {
+                        self.emit(Opcode::Mul);
+                    }
+                    AssignOp::DivAssign => {
+                        self.emit(Opcode::Div);
+                    }
+                    AssignOp::ModAssign => {
+                        self.emit(Opcode::Mod);
+                    }
+                    AssignOp::ConcatAssign => {
+                        self.emit(Opcode::Concat);
+                    }
                 };
 
                 // Check if we need to create a local slot
@@ -668,7 +730,9 @@ impl Compiler {
                 }
 
                 // Check what kind of arguments we have
-                let has_spread = args.iter().any(|arg| matches!(arg.value.as_ref(), Expr::Spread(_)));
+                let has_spread = args
+                    .iter()
+                    .any(|arg| matches!(arg.value.as_ref(), Expr::Spread(_)));
                 let has_named = args.iter().any(|arg| arg.name.is_some());
 
                 if has_spread {
@@ -737,7 +801,12 @@ impl Compiler {
                     self.emit(Opcode::Call(name_idx, args.len() as u8));
                 }
             }
-            Expr::ArrayAssign { array, index, op, value } => {
+            Expr::ArrayAssign {
+                array,
+                index,
+                op,
+                value,
+            } => {
                 // Array assignment: $arr[$key] = $value or $obj->prop[$key] = $value
                 // This is complex because we need to update the array in place
                 use crate::ast::AssignOp;
@@ -777,8 +846,8 @@ impl Compiler {
                             // For append ($arr[] = value):
                             // Stack is: array, null, value
                             // We need: array, value for ArrayAppend
-                            self.emit(Opcode::Swap);  // array, value, null
-                            self.emit(Opcode::Pop);   // array, value
+                            self.emit(Opcode::Swap); // array, value, null
+                            self.emit(Opcode::Pop); // array, value
                             self.emit(Opcode::ArrayAppend);
                         }
 
@@ -816,8 +885,8 @@ impl Compiler {
                             self.emit(Opcode::ArraySet);
                         } else {
                             // Stack: array, null, value -> need array, value
-                            self.emit(Opcode::Swap);  // array, value, null
-                            self.emit(Opcode::Pop);   // array, value
+                            self.emit(Opcode::Swap); // array, value, null
+                            self.emit(Opcode::Pop); // array, value
                             self.emit(Opcode::ArrayAppend);
                         }
 
@@ -860,8 +929,8 @@ impl Compiler {
                             self.emit(Opcode::ArraySet);
                         } else {
                             // Stack: array, null, value -> need array, value
-                            self.emit(Opcode::Swap);  // array, value, null
-                            self.emit(Opcode::Pop);   // array, value
+                            self.emit(Opcode::Swap); // array, value, null
+                            self.emit(Opcode::Pop); // array, value
                             self.emit(Opcode::ArrayAppend);
                         }
 
@@ -917,7 +986,11 @@ impl Compiler {
                 let prop_idx = self.intern_string(property.clone());
                 self.emit(Opcode::LoadProperty(prop_idx));
             }
-            Expr::PropertyAssign { object, property, value } => {
+            Expr::PropertyAssign {
+                object,
+                property,
+                value,
+            } => {
                 // Check if we're assigning to $this->property
                 if matches!(object.as_ref(), Expr::This) {
                     // Use optimized StoreThisProperty that updates slot 0
@@ -945,15 +1018,53 @@ impl Compiler {
                     self.emit(Opcode::StoreProperty(prop_idx));
                 }
             }
-            Expr::MethodCall { object, method, args } => {
-                self.compile_expr(object)?;
-                for arg in args {
-                    self.compile_expr(&arg.value)?;
-                }
+            Expr::MethodCall {
+                object,
+                method,
+                args,
+            } => {
                 let method_idx = self.intern_string(method.clone());
-                self.emit(Opcode::CallMethod(method_idx, args.len() as u8));
+
+                // Check if we're calling on a variable - use special opcode to track source
+                match object.as_ref() {
+                    Expr::Variable(var_name) => {
+                        // Compile arguments
+                        for arg in args {
+                            self.compile_expr(&arg.value)?;
+                        }
+
+                        if let Some(&slot) = self.locals.get(var_name) {
+                            // Local variable - use CallMethodOnLocal
+                            self.emit(Opcode::CallMethodOnLocal(
+                                slot,
+                                method_idx,
+                                args.len() as u8,
+                            ));
+                        } else {
+                            // Global variable - use CallMethodOnGlobal
+                            let var_idx = self.intern_string(var_name.clone());
+                            self.emit(Opcode::CallMethodOnGlobal(
+                                var_idx,
+                                method_idx,
+                                args.len() as u8,
+                            ));
+                        }
+                    }
+                    _ => {
+                        // Non-variable object - compile object first, then args
+                        self.compile_expr(object)?;
+                        for arg in args {
+                            self.compile_expr(&arg.value)?;
+                        }
+                        self.emit(Opcode::CallMethod(method_idx, args.len() as u8));
+                    }
+                }
             }
-            Expr::StaticMethodCall { class_name, method, args } => {
+            Expr::StaticMethodCall {
+                class_name,
+                method,
+                args,
+            } => {
                 // Check if we have named arguments
                 let has_named = args.iter().any(|arg| arg.name.is_some());
 
@@ -983,7 +1094,11 @@ impl Compiler {
                     }
                     let class_idx = self.intern_string(class_name.clone());
                     let method_idx = self.intern_string(method.clone());
-                    self.emit(Opcode::CallStaticMethod(class_idx, method_idx, args.len() as u8));
+                    self.emit(Opcode::CallStaticMethod(
+                        class_idx,
+                        method_idx,
+                        args.len() as u8,
+                    ));
                 }
             }
             Expr::StaticPropertyAccess { class, property } => {
@@ -991,7 +1106,11 @@ impl Compiler {
                 let prop_idx = self.intern_string(property.clone());
                 self.emit(Opcode::LoadStaticProp(class_idx, prop_idx));
             }
-            Expr::StaticPropertyAssign { class, property, value } => {
+            Expr::StaticPropertyAssign {
+                class,
+                property,
+                value,
+            } => {
                 self.compile_expr(value)?;
                 let class_idx = self.intern_string(class.clone());
                 let prop_idx = self.intern_string(property.clone());
@@ -1004,10 +1123,17 @@ impl Compiler {
                 self.compile_expr(object)?;
                 self.emit(Opcode::Clone);
             }
-            Expr::Match { expr, arms, default } => {
+            Expr::Match {
+                expr,
+                arms,
+                default,
+            } => {
                 self.compile_match(expr, arms, default)?;
             }
-            Expr::EnumCase { enum_name, case_name } => {
+            Expr::EnumCase {
+                enum_name,
+                case_name,
+            } => {
                 // Load enum case as a proper enum value
                 let enum_idx = self.intern_string(enum_name.clone());
                 let case_idx = self.intern_string(case_name.clone());
@@ -1051,7 +1177,14 @@ impl Compiler {
                 self.emit(Opcode::PushString(class_idx));
                 self.emit(Opcode::PushString(method_idx));
             }
-            Expr::NewAnonymousClass { constructor_args, parent, interfaces: _, traits: _, properties, methods } => {
+            Expr::NewAnonymousClass {
+                constructor_args,
+                parent,
+                interfaces: _,
+                traits: _,
+                properties,
+                methods,
+            } => {
                 // Create anonymous class name
                 let anon_name = format!("__anon_class_{}", self.classes.len());
 
@@ -1074,7 +1207,10 @@ impl Compiler {
 
                     if !method.is_static {
                         method_compiler.locals.insert("this".to_string(), 0);
-                        method_compiler.function.local_names.push("this".to_string());
+                        method_compiler
+                            .function
+                            .local_names
+                            .push("this".to_string());
                         method_compiler.next_local = 1;
                     }
 
@@ -1082,13 +1218,20 @@ impl Compiler {
                     for (i, param) in method.params.iter().enumerate() {
                         let slot = param_start + i as u16;
                         method_compiler.locals.insert(param.name.clone(), slot);
-                        method_compiler.function.local_names.push(param.name.clone());
+                        method_compiler
+                            .function
+                            .local_names
+                            .push(param.name.clone());
                     }
                     method_compiler.next_local = param_start + method.params.len() as u16;
                     method_compiler.function.local_count = method_compiler.next_local;
                     method_compiler.function.param_count = method.params.len() as u8;
-                    method_compiler.function.required_param_count =
-                        method.params.iter().filter(|p| p.default.is_none() && !p.is_variadic).count() as u8;
+                    method_compiler.function.required_param_count = method
+                        .params
+                        .iter()
+                        .filter(|p| p.default.is_none() && !p.is_variadic)
+                        .count()
+                        as u8;
 
                     // Store parameters and attributes for reflection
                     method_compiler.function.parameters = method.params.clone();
@@ -1096,13 +1239,21 @@ impl Compiler {
 
                     // Store parameter types for validation
                     for param in &method.params {
-                        method_compiler.function.param_types.push(param.type_hint.clone());
+                        method_compiler
+                            .function
+                            .param_types
+                            .push(param.type_hint.clone());
                     }
 
                     for stmt in &method.body {
                         method_compiler.compile_stmt(stmt)?;
                     }
                     method_compiler.emit(Opcode::ReturnNull);
+
+                    // Merge any nested functions/closures from the method compiler
+                    for (inner_name, inner_func) in method_compiler.functions.drain() {
+                        self.functions.insert(inner_name, inner_func);
+                    }
 
                     let compiled = Arc::new(method_compiler.function);
                     anon_class.methods.insert(method.name.clone(), compiled);
@@ -1143,7 +1294,10 @@ impl Compiler {
                 // Fiber::getCurrent() - not supported in VM yet
                 self.emit(Opcode::PushNull);
             }
-            Expr::CloneWith { object, modifications } => {
+            Expr::CloneWith {
+                object,
+                modifications,
+            } => {
                 // Clone with modifications (PHP 8.4)
                 self.compile_expr(object)?;
                 self.emit(Opcode::Clone);
@@ -1167,7 +1321,12 @@ impl Compiler {
     }
 
     /// Compile a binary operation
-    fn compile_binary_op(&mut self, left: &Expr, op: &BinaryOp, right: &Expr) -> Result<(), String> {
+    fn compile_binary_op(
+        &mut self,
+        left: &Expr,
+        op: &BinaryOp,
+        right: &Expr,
+    ) -> Result<(), String> {
         // For short-circuit operators, handle specially
         match op {
             BinaryOp::And => {
@@ -1200,27 +1359,53 @@ impl Compiler {
             BinaryOp::Pipe => {
                 // Pipe operator: $left |> func(...)
                 // The right side should be a function call (or first-class callable)
-                // We pass $left as the first argument
-                self.compile_expr(left)?;
+                // We pass $left as the first argument (or at placeholder position)
 
                 // Right side should be a call or first-class callable
                 match right {
                     Expr::FunctionCall { name, args } => {
-                        // Push additional args after the piped value
-                        for arg in args {
-                            self.compile_expr(&arg.value)?;
+                        // Find placeholder position
+                        let placeholder_pos = args
+                            .iter()
+                            .position(|arg| matches!(&*arg.value, Expr::Placeholder));
+
+                        if let Some(pos) = placeholder_pos {
+                            // Placeholder found: insert piped value at that position
+                            for (i, arg) in args.iter().enumerate() {
+                                if i == pos {
+                                    // Compile the left (piped) value at placeholder position
+                                    self.compile_expr(left)?;
+                                } else {
+                                    self.compile_expr(&arg.value)?;
+                                }
+                            }
+                            // Call with same arg count as original
+                            let func_idx = self.intern_string(name.clone());
+                            self.emit(Opcode::Call(func_idx, args.len() as u8));
+                        } else {
+                            // No placeholder: insert piped value as first argument
+                            self.compile_expr(left)?;
+                            // Push additional args after the piped value
+                            for arg in args {
+                                self.compile_expr(&arg.value)?;
+                            }
+                            // Call with left as first arg (1 + args.len())
+                            let func_idx = self.intern_string(name.clone());
+                            self.emit(Opcode::Call(func_idx, (1 + args.len()) as u8));
                         }
-                        // Call with left as first arg (1 + args.len())
-                        let func_idx = self.intern_string(name.clone());
-                        self.emit(Opcode::Call(func_idx, (1 + args.len()) as u8));
                     }
                     Expr::CallableFromFunction(func_name) => {
                         // First-class callable: func(...)
                         // Call the function with left as the only argument
+                        self.compile_expr(left)?;
                         let func_idx = self.intern_string(func_name.clone());
                         self.emit(Opcode::Call(func_idx, 1)); // 1 arg (the piped value)
                     }
-                    _ => return Err("Pipe operator right-hand side must be a function call".to_string()),
+                    _ => {
+                        return Err(
+                            "Pipe operator right-hand side must be a function call".to_string()
+                        )
+                    }
                 }
                 return Ok(());
             }
@@ -1496,11 +1681,15 @@ impl Compiler {
         params: &[FunctionParam],
         body: &Expr,
     ) -> Result<(), String> {
-        // Create a unique name for the arrow function
-        let name = format!("__arrow_{}", self.functions.len());
+        // Create a unique name for the arrow function using a global counter
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        static ARROW_COUNTER: AtomicUsize = AtomicUsize::new(0);
+        let id = ARROW_COUNTER.fetch_add(1, Ordering::SeqCst);
+        let name = format!("__arrow_{}", id);
 
         // Find all variables used in the body that are NOT parameters
-        let param_names: std::collections::HashSet<_> = params.iter().map(|p| p.name.as_str()).collect();
+        let param_names: std::collections::HashSet<_> =
+            params.iter().map(|p| p.name.as_str()).collect();
         let mut captured_vars = Vec::new();
         self.find_captured_vars(body, &param_names, &mut captured_vars);
 
@@ -1524,19 +1713,55 @@ impl Compiler {
         for (i, param) in params.iter().enumerate() {
             let slot = closure_compiler.next_local;
             closure_compiler.locals.insert(param.name.clone(), slot);
-            closure_compiler.function.local_names.push(param.name.clone());
+            closure_compiler
+                .function
+                .local_names
+                .push(param.name.clone());
             closure_compiler.next_local += 1;
         }
 
         closure_compiler.function.local_count = closure_compiler.next_local;
         closure_compiler.function.param_count = params.len() as u8;
-        closure_compiler.function.required_param_count =
-            params.iter().filter(|p| p.default.is_none() && !p.is_variadic).count() as u8;
+        closure_compiler.function.required_param_count = params
+            .iter()
+            .filter(|p| p.default.is_none() && !p.is_variadic)
+            .count() as u8;
         closure_compiler.function.parameters = params.to_vec();
+
+        // Emit default value initialization for parameters with defaults
+        // The parameter slots start after captured variables
+        let captured_count = captured_vars.len();
+        for (i, param) in params.iter().enumerate() {
+            if let Some(default_expr) = &param.default {
+                let slot = (captured_count + i) as u16;
+                // Load param value
+                closure_compiler.emit(Opcode::LoadFast(slot));
+                // If not null, skip default assignment
+                let skip_jump = closure_compiler.emit_jump(Opcode::JumpIfNotNull(0));
+                // Pop the null value from the check
+                closure_compiler.emit(Opcode::Pop);
+                // Evaluate and store default
+                closure_compiler.compile_expr(default_expr)?;
+                closure_compiler.emit(Opcode::StoreFast(slot));
+                // Jump past the Pop that handles the not-null case
+                let end_jump = closure_compiler.emit_jump(Opcode::Jump(0));
+                // Patch skip_jump to here - this is where not-null lands
+                closure_compiler.patch_jump(skip_jump);
+                // Pop the non-null value we checked
+                closure_compiler.emit(Opcode::Pop);
+                // Patch end_jump to here
+                closure_compiler.patch_jump(end_jump);
+            }
+        }
 
         // Arrow functions return their body expression
         closure_compiler.compile_expr(body)?;
         closure_compiler.emit(Opcode::Return);
+
+        // Merge any nested functions/closures from the inner compiler
+        for (inner_name, inner_func) in closure_compiler.functions.drain() {
+            self.functions.insert(inner_name, inner_func);
+        }
 
         // Store the compiled closure
         let compiled = Arc::new(closure_compiler.function);
@@ -1573,7 +1798,11 @@ impl Compiler {
             Expr::Unary { expr, .. } => {
                 self.find_captured_vars(expr, param_names, captured);
             }
-            Expr::Ternary { condition, then_expr, else_expr } => {
+            Expr::Ternary {
+                condition,
+                then_expr,
+                else_expr,
+            } => {
                 self.find_captured_vars(condition, param_names, captured);
                 self.find_captured_vars(then_expr, param_names, captured);
                 self.find_captured_vars(else_expr, param_names, captured);
@@ -1622,7 +1851,12 @@ impl Compiler {
             Expr::Assign { value, .. } => {
                 self.find_captured_vars(value, param_names, captured);
             }
-            Expr::ArrayAssign { array, index, value, .. } => {
+            Expr::ArrayAssign {
+                array,
+                index,
+                value,
+                ..
+            } => {
                 self.find_captured_vars(array, param_names, captured);
                 if let Some(ref idx) = index {
                     self.find_captured_vars(idx, param_names, captured);
@@ -1644,7 +1878,11 @@ impl Compiler {
             Expr::Throw(inner) => {
                 self.find_captured_vars(inner, param_names, captured);
             }
-            Expr::Match { expr, arms, default } => {
+            Expr::Match {
+                expr,
+                arms,
+                default,
+            } => {
                 self.find_captured_vars(expr, param_names, captured);
                 for arm in arms {
                     for condition in &arm.conditions {
@@ -1656,15 +1894,30 @@ impl Compiler {
                     self.find_captured_vars(def, param_names, captured);
                 }
             }
-            Expr::ArrowFunction { body, .. } => {
-                // Nested arrow function - we need to be careful here
-                // For now, just scan its body
-                self.find_captured_vars(body, param_names, captured);
+            Expr::ArrowFunction {
+                params: inner_params,
+                body,
+            } => {
+                // Nested arrow function - we need to scan its body to find variables
+                // that the inner might need from OUR enclosing scope.
+                // We exclude:
+                // - Our params (the outer arrow's params)
+                // - The inner arrow's params
+                // Variables found that aren't in either set need to be captured by us
+                // so we can pass them to the inner when it's created.
+                let mut combined_params: std::collections::HashSet<&str> = param_names.clone();
+                for p in inner_params {
+                    combined_params.insert(&p.name);
+                }
+                self.find_captured_vars(body, &combined_params, captured);
             }
             Expr::Clone { object } => {
                 self.find_captured_vars(object, param_names, captured);
             }
-            Expr::CloneWith { object, modifications } => {
+            Expr::CloneWith {
+                object,
+                modifications,
+            } => {
                 self.find_captured_vars(object, param_names, captured);
                 for modification in modifications {
                     self.find_captured_vars(&modification.value, param_names, captured);
@@ -1781,14 +2034,19 @@ impl Compiler {
         func_compiler.next_local = params.len() as u16;
         func_compiler.function.local_count = params.len() as u16;
         func_compiler.function.param_count = params.len() as u8;
-        func_compiler.function.required_param_count =
-            params.iter().filter(|p| p.default.is_none() && !p.is_variadic).count() as u8;
+        func_compiler.function.required_param_count = params
+            .iter()
+            .filter(|p| p.default.is_none() && !p.is_variadic)
+            .count() as u8;
         func_compiler.function.return_type = return_type.clone();
         func_compiler.function.is_variadic = params.iter().any(|p| p.is_variadic);
 
         // Store parameter types for validation
         for param in params {
-            func_compiler.function.param_types.push(param.type_hint.clone());
+            func_compiler
+                .function
+                .param_types
+                .push(param.type_hint.clone());
         }
 
         // Emit default value initialization for parameters with defaults
@@ -1822,6 +2080,11 @@ impl Compiler {
 
         // Add implicit return null if no return statement
         func_compiler.emit(Opcode::ReturnNull);
+
+        // Merge any nested functions/closures from the inner compiler
+        for (inner_name, inner_func) in func_compiler.functions.drain() {
+            self.functions.insert(inner_name, inner_func);
+        }
 
         // Store compiled function
         let compiled = Arc::new(func_compiler.function);
@@ -1992,8 +2255,14 @@ impl Compiler {
         // Check if parent class exists and is not final
         if let Some(parent_name) = parent.as_ref().and_then(|p| p.last()) {
             // Check if parent class exists (allow built-in classes)
-            let is_builtin = matches!(parent_name.as_str(),
-                "Exception" | "Error" | "TypeError" | "InvalidArgumentException" | "UnhandledMatchError");
+            let is_builtin = matches!(
+                parent_name.as_str(),
+                "Exception"
+                    | "Error"
+                    | "TypeError"
+                    | "InvalidArgumentException"
+                    | "UnhandledMatchError"
+            );
 
             if let Some(parent_class) = self.classes.get(parent_name) {
                 if parent_class.is_final {
@@ -2009,7 +2278,10 @@ impl Compiler {
         compiled_class.is_final = is_final;
         compiled_class.readonly = readonly;
         compiled_class.parent = parent.as_ref().and_then(|p| p.last().cloned());
-        compiled_class.interfaces = interfaces.iter().filter_map(|i| i.last().cloned()).collect();
+        compiled_class.interfaces = interfaces
+            .iter()
+            .filter_map(|i| i.last().cloned())
+            .collect();
         compiled_class.traits = trait_uses.iter().flat_map(|t| t.traits.clone()).collect();
         compiled_class.attributes = attributes.to_vec();
 
@@ -2024,18 +2296,97 @@ impl Compiler {
 
         // Compile properties
         for prop in properties {
-            let compiled_prop = CompiledProperty::from_ast(prop, readonly);
+            let mut compiled_prop = CompiledProperty::from_ast(prop, readonly);
+
+            // Compile property hooks (PHP 8.4)
+            for hook in &prop.hooks {
+                let hook_method_name = match hook.hook_type {
+                    crate::ast::PropertyHookType::Get => {
+                        format!("{}::__prop_get_{}", qualified_name, prop.name)
+                    }
+                    crate::ast::PropertyHookType::Set => {
+                        format!("{}::__prop_set_{}", qualified_name, prop.name)
+                    }
+                };
+
+                let mut hook_compiler = Compiler::new(hook_method_name.clone());
+
+                // Add $this as first local
+                hook_compiler.locals.insert("this".to_string(), 0);
+                hook_compiler.function.local_names.push("this".to_string());
+                hook_compiler.next_local = 1;
+
+                // For set hooks, add $value parameter
+                if matches!(hook.hook_type, crate::ast::PropertyHookType::Set) {
+                    hook_compiler.locals.insert("value".to_string(), 1);
+                    hook_compiler.function.local_names.push("value".to_string());
+                    hook_compiler.next_local = 2;
+                    hook_compiler.function.param_count = 1;
+                    hook_compiler.function.required_param_count = 1;
+                }
+
+                hook_compiler.function.local_count = hook_compiler.next_local;
+
+                // Compile hook body
+                match &hook.body {
+                    crate::ast::PropertyHookBody::Expression(expr) => {
+                        // For get hooks: return the expression
+                        // For set hooks: evaluate expression (for side effects)
+                        hook_compiler.compile_expr(expr)?;
+                        if matches!(hook.hook_type, crate::ast::PropertyHookType::Get) {
+                            hook_compiler.emit(Opcode::Return);
+                        } else {
+                            hook_compiler.emit(Opcode::Pop);
+                            hook_compiler.emit(Opcode::ReturnNull);
+                        }
+                    }
+                    crate::ast::PropertyHookBody::Block(stmts) => {
+                        for stmt in stmts {
+                            hook_compiler.compile_stmt(stmt)?;
+                        }
+                        hook_compiler.emit(Opcode::ReturnNull);
+                    }
+                }
+
+                // Merge any nested functions from the hook compiler
+                for (inner_name, inner_func) in hook_compiler.functions.drain() {
+                    self.functions.insert(inner_name, inner_func);
+                }
+
+                let compiled_hook = Arc::new(hook_compiler.function);
+
+                // Store hook method in class and update property reference
+                match hook.hook_type {
+                    crate::ast::PropertyHookType::Get => {
+                        compiled_prop.get_hook = Some(format!("__prop_get_{}", prop.name));
+                        compiled_class
+                            .methods
+                            .insert(format!("__prop_get_{}", prop.name), compiled_hook);
+                    }
+                    crate::ast::PropertyHookType::Set => {
+                        compiled_prop.set_hook = Some(format!("__prop_set_{}", prop.name));
+                        compiled_class
+                            .methods
+                            .insert(format!("__prop_set_{}", prop.name), compiled_hook);
+                    }
+                }
+            }
+
             if prop.is_static {
                 // Static properties go in a different map
                 // Use the compiled default value if available
-                let default_value = compiled_prop.default.clone().unwrap_or(crate::interpreter::Value::Null);
-                compiled_class.static_properties.insert(
-                    prop.name.clone(),
-                    default_value,
-                );
+                let default_value = compiled_prop
+                    .default
+                    .clone()
+                    .unwrap_or(crate::interpreter::Value::Null);
+                compiled_class
+                    .static_properties
+                    .insert(prop.name.clone(), default_value);
                 // Track if static property is readonly
                 if prop.readonly || readonly {
-                    compiled_class.readonly_static_properties.insert(prop.name.clone());
+                    compiled_class
+                        .readonly_static_properties
+                        .insert(prop.name.clone());
                 }
             }
             compiled_class.properties.push(compiled_prop);
@@ -2057,6 +2408,8 @@ impl Compiler {
                             is_static: false,
                             type_hint: None,
                             attributes: param.attributes.clone(),
+                            get_hook: None,
+                            set_hook: None,
                         };
                         compiled_class.properties.push(promoted_prop);
                     }
@@ -2069,7 +2422,11 @@ impl Compiler {
             if let Some(trait_def) = self.traits.get(trait_name) {
                 for trait_prop in &trait_def.properties {
                     // Add trait property to class if not already defined
-                    if !compiled_class.properties.iter().any(|p| p.name == trait_prop.name) {
+                    if !compiled_class
+                        .properties
+                        .iter()
+                        .any(|p| p.name == trait_prop.name)
+                    {
                         compiled_class.properties.push(trait_prop.clone());
                     }
                 }
@@ -2078,11 +2435,13 @@ impl Compiler {
 
         // Check for trait method conflicts
         // Build a map of method names to the traits that define them
-        let mut trait_methods: std::collections::HashMap<String, Vec<String>> = std::collections::HashMap::new();
+        let mut trait_methods: std::collections::HashMap<String, Vec<String>> =
+            std::collections::HashMap::new();
         for trait_name in &compiled_class.traits {
             if let Some(trait_def) = self.traits.get(trait_name) {
                 for method_name in trait_def.methods.keys() {
-                    trait_methods.entry(method_name.clone())
+                    trait_methods
+                        .entry(method_name.clone())
                         .or_insert_with(Vec::new)
                         .push(trait_name.clone());
                 }
@@ -2108,9 +2467,10 @@ impl Compiler {
         // Compile methods
         for method in methods {
             // Check if method has #[\Override] attribute
-            let has_override_attr = method.attributes.iter().any(|attr| {
-                attr.name == "Override" || attr.name == "\\Override"
-            });
+            let has_override_attr = method
+                .attributes
+                .iter()
+                .any(|attr| attr.name == "Override" || attr.name == "\\Override");
 
             // If method has #[\Override], verify parent/interface/trait method exists
             if has_override_attr {
@@ -2121,7 +2481,8 @@ impl Compiler {
                 while let Some(parent_name) = current_parent {
                     if let Some(parent_class) = self.classes.get(&parent_name) {
                         if parent_class.methods.contains_key(&method.name)
-                            || parent_class.static_methods.contains_key(&method.name) {
+                            || parent_class.static_methods.contains_key(&method.name)
+                        {
                             found_parent_method = true;
                             break;
                         }
@@ -2135,7 +2496,11 @@ impl Compiler {
                 if !found_parent_method {
                     for iface_name in &compiled_class.interfaces {
                         if let Some(iface_def) = self.interfaces.get(iface_name) {
-                            if iface_def.method_signatures.iter().any(|(name, _)| name == &method.name) {
+                            if iface_def
+                                .method_signatures
+                                .iter()
+                                .any(|(name, _)| name == &method.name)
+                            {
                                 found_parent_method = true;
                                 break;
                             }
@@ -2156,8 +2521,10 @@ impl Compiler {
                 }
 
                 if !found_parent_method {
-                    return Err(format!("{}::{} has #[\\Override] attribute, but no matching parent method exists",
-                        name, method.name));
+                    return Err(format!(
+                        "{}::{} has #[\\Override] attribute, but no matching parent method exists",
+                        name, method.name
+                    ));
                 }
             }
 
@@ -2168,8 +2535,16 @@ impl Compiler {
                     let has_method = parent_class.methods.contains_key(&method.name)
                         || parent_class.static_methods.contains_key(&method.name);
                     if has_method {
-                        if parent_class.method_finals.get(&method.name).copied().unwrap_or(false) {
-                            return Err(format!("Cannot override final method {}::{}", parent_name, method.name));
+                        if parent_class
+                            .method_finals
+                            .get(&method.name)
+                            .copied()
+                            .unwrap_or(false)
+                        {
+                            return Err(format!(
+                                "Cannot override final method {}::{}",
+                                parent_name, method.name
+                            ));
                         }
                     }
                 }
@@ -2181,7 +2556,10 @@ impl Compiler {
             // Add $this as first local for non-static methods
             if !method.is_static {
                 method_compiler.locals.insert("this".to_string(), 0);
-                method_compiler.function.local_names.push("this".to_string());
+                method_compiler
+                    .function
+                    .local_names
+                    .push("this".to_string());
                 method_compiler.next_local = 1;
             }
 
@@ -2190,13 +2568,19 @@ impl Compiler {
             for (i, param) in method.params.iter().enumerate() {
                 let slot = param_start + i as u16;
                 method_compiler.locals.insert(param.name.clone(), slot);
-                method_compiler.function.local_names.push(param.name.clone());
+                method_compiler
+                    .function
+                    .local_names
+                    .push(param.name.clone());
             }
             method_compiler.next_local = param_start + method.params.len() as u16;
             method_compiler.function.local_count = method_compiler.next_local;
             method_compiler.function.param_count = method.params.len() as u8;
-            method_compiler.function.required_param_count =
-                method.params.iter().filter(|p| p.default.is_none() && !p.is_variadic).count() as u8;
+            method_compiler.function.required_param_count = method
+                .params
+                .iter()
+                .filter(|p| p.default.is_none() && !p.is_variadic)
+                .count() as u8;
             method_compiler.function.return_type = method.return_type.clone();
             method_compiler.function.is_variadic = method.params.iter().any(|p| p.is_variadic);
 
@@ -2206,7 +2590,10 @@ impl Compiler {
 
             // Store parameter types for validation
             for param in &method.params {
-                method_compiler.function.param_types.push(param.type_hint.clone());
+                method_compiler
+                    .function
+                    .param_types
+                    .push(param.type_hint.clone());
             }
 
             // Emit default value initialization for parameters with defaults
@@ -2257,13 +2644,26 @@ impl Compiler {
             // Add implicit return null
             method_compiler.emit(Opcode::ReturnNull);
 
+            // Merge any nested functions/closures from the method compiler
+            for (inner_name, inner_func) in method_compiler.functions.drain() {
+                self.functions.insert(inner_name, inner_func);
+            }
+
             let compiled = Arc::new(method_compiler.function);
-            compiled_class.method_visibility.insert(method.name.clone(), method.visibility);
-            compiled_class.method_finals.insert(method.name.clone(), method.is_final);
-            compiled_class.method_abstracts.insert(method.name.clone(), method.is_abstract);
+            compiled_class
+                .method_visibility
+                .insert(method.name.clone(), method.visibility);
+            compiled_class
+                .method_finals
+                .insert(method.name.clone(), method.is_final);
+            compiled_class
+                .method_abstracts
+                .insert(method.name.clone(), method.is_abstract);
 
             if method.is_static {
-                compiled_class.static_methods.insert(method.name.clone(), compiled);
+                compiled_class
+                    .static_methods
+                    .insert(method.name.clone(), compiled);
             } else {
                 compiled_class.methods.insert(method.name.clone(), compiled);
             }
@@ -2296,8 +2696,10 @@ impl Compiler {
                             let has_method = compiled_class.methods.contains_key(method_name)
                                 || compiled_class.static_methods.contains_key(method_name);
                             if !has_method {
-                                return Err(format!("Class '{}' does not implement method '{}' from interface '{}'",
-                                    name, method_name, iface_name));
+                                return Err(format!(
+                                    "Class '{}' does not implement method '{}' from interface '{}'",
+                                    name, method_name, iface_name
+                                ));
                             }
                         }
                     }
@@ -2305,7 +2707,8 @@ impl Compiler {
             }
         }
 
-        self.classes.insert(qualified_name, Arc::new(compiled_class));
+        self.classes
+            .insert(qualified_name, Arc::new(compiled_class));
         Ok(())
     }
 
@@ -2324,10 +2727,9 @@ impl Compiler {
 
         // Store method signatures (name, param_count)
         for method in methods {
-            compiled_interface.method_signatures.push((
-                method.name.clone(),
-                method.params.len() as u8,
-            ));
+            compiled_interface
+                .method_signatures
+                .push((method.name.clone(), method.params.len() as u8));
         }
 
         // Store constants (would need to evaluate at compile time)
@@ -2336,7 +2738,8 @@ impl Compiler {
             let _ = constant;
         }
 
-        self.interfaces.insert(name.to_string(), Arc::new(compiled_interface));
+        self.interfaces
+            .insert(name.to_string(), Arc::new(compiled_interface));
         Ok(())
     }
 
@@ -2367,7 +2770,10 @@ impl Compiler {
             // Add $this as first local
             if !method.is_static {
                 method_compiler.locals.insert("this".to_string(), 0);
-                method_compiler.function.local_names.push("this".to_string());
+                method_compiler
+                    .function
+                    .local_names
+                    .push("this".to_string());
                 method_compiler.next_local = 1;
             }
 
@@ -2376,13 +2782,19 @@ impl Compiler {
             for (i, param) in method.params.iter().enumerate() {
                 let slot = param_start + i as u16;
                 method_compiler.locals.insert(param.name.clone(), slot);
-                method_compiler.function.local_names.push(param.name.clone());
+                method_compiler
+                    .function
+                    .local_names
+                    .push(param.name.clone());
             }
             method_compiler.next_local = param_start + method.params.len() as u16;
             method_compiler.function.local_count = method_compiler.next_local;
             method_compiler.function.param_count = method.params.len() as u8;
-            method_compiler.function.required_param_count =
-                method.params.iter().filter(|p| p.default.is_none() && !p.is_variadic).count() as u8;
+            method_compiler.function.required_param_count = method
+                .params
+                .iter()
+                .filter(|p| p.default.is_none() && !p.is_variadic)
+                .count() as u8;
             method_compiler.function.return_type = method.return_type.clone();
 
             // Store parameters and attributes for reflection
@@ -2391,7 +2803,10 @@ impl Compiler {
 
             // Store parameter types for validation
             for param in &method.params {
-                method_compiler.function.param_types.push(param.type_hint.clone());
+                method_compiler
+                    .function
+                    .param_types
+                    .push(param.type_hint.clone());
             }
 
             // Compile method body
@@ -2401,11 +2816,17 @@ impl Compiler {
 
             method_compiler.emit(Opcode::ReturnNull);
 
+            // Merge any nested functions/closures from the method compiler
+            for (inner_name, inner_func) in method_compiler.functions.drain() {
+                self.functions.insert(inner_name, inner_func);
+            }
+
             let compiled = Arc::new(method_compiler.function);
             compiled_trait.methods.insert(method.name.clone(), compiled);
         }
 
-        self.traits.insert(name.to_string(), Arc::new(compiled_trait));
+        self.traits
+            .insert(name.to_string(), Arc::new(compiled_trait));
         Ok(())
     }
 
@@ -2452,7 +2873,10 @@ impl Compiler {
                         EnumBackingType::String => "string",
                         EnumBackingType::None => "none",
                     };
-                    return Err(format!("Enum case '{}::{}' must have {} backing value", name, case.name, expected_type));
+                    return Err(format!(
+                        "Enum case '{}::{}' must have {} backing value",
+                        name, case.name, expected_type
+                    ));
                 }
 
                 // Check for duplicate backing values in backed enums
@@ -2474,7 +2898,10 @@ impl Compiler {
             // Add $this as first local
             if !method.is_static {
                 method_compiler.locals.insert("this".to_string(), 0);
-                method_compiler.function.local_names.push("this".to_string());
+                method_compiler
+                    .function
+                    .local_names
+                    .push("this".to_string());
                 method_compiler.next_local = 1;
             }
 
@@ -2482,13 +2909,19 @@ impl Compiler {
             for (i, param) in method.params.iter().enumerate() {
                 let slot = param_start + i as u16;
                 method_compiler.locals.insert(param.name.clone(), slot);
-                method_compiler.function.local_names.push(param.name.clone());
+                method_compiler
+                    .function
+                    .local_names
+                    .push(param.name.clone());
             }
             method_compiler.next_local = param_start + method.params.len() as u16;
             method_compiler.function.local_count = method_compiler.next_local;
             method_compiler.function.param_count = method.params.len() as u8;
-            method_compiler.function.required_param_count =
-                method.params.iter().filter(|p| p.default.is_none() && !p.is_variadic).count() as u8;
+            method_compiler.function.required_param_count = method
+                .params
+                .iter()
+                .filter(|p| p.default.is_none() && !p.is_variadic)
+                .count() as u8;
             method_compiler.function.return_type = method.return_type.clone();
 
             // Store parameters and attributes for reflection
@@ -2497,7 +2930,10 @@ impl Compiler {
 
             // Store parameter types for validation
             for param in &method.params {
-                method_compiler.function.param_types.push(param.type_hint.clone());
+                method_compiler
+                    .function
+                    .param_types
+                    .push(param.type_hint.clone());
             }
 
             for stmt in &method.body {
@@ -2505,6 +2941,11 @@ impl Compiler {
             }
 
             method_compiler.emit(Opcode::ReturnNull);
+
+            // Merge any nested functions/closures from the method compiler
+            for (inner_name, inner_func) in method_compiler.functions.drain() {
+                self.functions.insert(inner_name, inner_func);
+            }
 
             let compiled = Arc::new(method_compiler.function);
             compiled_enum.methods.insert(method.name.clone(), compiled);

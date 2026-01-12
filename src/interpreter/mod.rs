@@ -216,8 +216,8 @@ pub struct Interpreter<W: Write> {
     anonymous_class_counter: usize, // For generating unique class names
 
     // Strict types mode (PHP 7.0+)
-    strict_types: bool,              // Current strict_types mode
-    strict_types_stack: Vec<bool>,   // Stack for block-scoped declare
+    strict_types: bool,            // Current strict_types mode
+    strict_types_stack: Vec<bool>, // Stack for block-scoped declare
 }
 
 impl<W: Write> Interpreter<W> {

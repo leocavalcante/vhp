@@ -572,9 +572,10 @@ impl<W: Write> Interpreter<W> {
         trait_uses: &[crate::ast::TraitUse],
     ) -> Result<(), String> {
         // Check if method has #[\Override] attribute (case-insensitive)
-        let has_override = method.attributes.iter().any(|attr| {
-            attr.name.eq_ignore_ascii_case("Override")
-        });
+        let has_override = method
+            .attributes
+            .iter()
+            .any(|attr| attr.name.eq_ignore_ascii_case("Override"));
 
         if !has_override {
             return Ok(()); // No validation needed
@@ -637,7 +638,9 @@ impl<W: Write> Interpreter<W> {
     fn class_has_method(&self, class_name: &str, method_name: &str) -> Result<bool, String> {
         let class_key = class_name.to_lowercase();
 
-        let class_def = self.classes.get(&class_key)
+        let class_def = self
+            .classes
+            .get(&class_key)
             .ok_or_else(|| format!("Class '{}' not found", class_name))?;
 
         // Check if method exists in this class
@@ -654,14 +657,24 @@ impl<W: Write> Interpreter<W> {
     }
 
     /// Check if an interface (including parent interfaces) has a method
-    fn interface_has_method(&self, interface_name: &str, method_name: &str) -> Result<bool, String> {
+    fn interface_has_method(
+        &self,
+        interface_name: &str,
+        method_name: &str,
+    ) -> Result<bool, String> {
         let interface_key = interface_name.to_lowercase();
 
-        let interface_def = self.interfaces.get(&interface_key)
+        let interface_def = self
+            .interfaces
+            .get(&interface_key)
             .ok_or_else(|| format!("Interface '{}' not found", interface_name))?;
 
         // Check if method exists in this interface
-        if interface_def.methods.iter().any(|(name, _)| name.to_lowercase() == method_name) {
+        if interface_def
+            .methods
+            .iter()
+            .any(|(name, _)| name.to_lowercase() == method_name)
+        {
             return Ok(true);
         }
 
@@ -679,7 +692,9 @@ impl<W: Write> Interpreter<W> {
     fn trait_has_method(&self, trait_name: &str, method_name: &str) -> Result<bool, String> {
         let trait_key = trait_name.to_lowercase();
 
-        let trait_def = self.traits.get(&trait_key)
+        let trait_def = self
+            .traits
+            .get(&trait_key)
             .ok_or_else(|| format!("Trait '{}' not found", trait_name))?;
 
         // Check if method exists in this trait

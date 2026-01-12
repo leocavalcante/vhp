@@ -13,7 +13,7 @@ pub mod reflection;
 
 use crate::interpreter::{ArrayKey, ClosureBody, Interpreter, Value};
 use class::{CompiledClass, CompiledEnum, CompiledInterface, CompiledProperty, CompiledTrait};
-use frame::{CallFrame, ExceptionHandler, LoopContext};
+use frame::{CallFrame, ExceptionHandler, LoopContext, ThisSource};
 use opcode::{CastType, CompiledFunction, Constant, Opcode};
 use std::collections::HashMap;
 use std::io::Write;
@@ -109,6 +109,8 @@ impl<W: Write> VM<W> {
             is_static: false,
             type_hint: None,
             attributes: Vec::new(),
+            get_hook: None,
+            set_hook: None,
         });
 
         // Add code property
@@ -121,6 +123,8 @@ impl<W: Write> VM<W> {
             is_static: false,
             type_hint: None,
             attributes: Vec::new(),
+            get_hook: None,
+            set_hook: None,
         });
 
         // Create __construct method: __construct(string $message = "", int $code = 0)
@@ -128,7 +132,11 @@ impl<W: Write> VM<W> {
         construct.param_count = 2;
         construct.required_param_count = 0; // Both have defaults
         construct.local_count = 3; // $this, $message, $code
-        construct.local_names = vec!["this".to_string(), "message".to_string(), "code".to_string()];
+        construct.local_names = vec![
+            "this".to_string(),
+            "message".to_string(),
+            "code".to_string(),
+        ];
 
         // Bytecode for constructor:
         // Store $message to $this->message
@@ -142,7 +150,9 @@ impl<W: Write> VM<W> {
         construct.bytecode.push(Opcode::StoreThisProperty(1)); // Store to $this->code
 
         construct.bytecode.push(Opcode::ReturnNull);
-        exception.methods.insert("__construct".to_string(), Arc::new(construct));
+        exception
+            .methods
+            .insert("__construct".to_string(), Arc::new(construct));
 
         // Create getMessage method
         let mut get_message = CompiledFunction::new("Exception::getMessage".to_string());
@@ -155,7 +165,9 @@ impl<W: Write> VM<W> {
         get_message.bytecode.push(Opcode::LoadThis);
         get_message.bytecode.push(Opcode::LoadProperty(0)); // Load $this->message
         get_message.bytecode.push(Opcode::Return);
-        exception.methods.insert("getMessage".to_string(), Arc::new(get_message));
+        exception
+            .methods
+            .insert("getMessage".to_string(), Arc::new(get_message));
 
         // Create getCode method
         let mut get_code = CompiledFunction::new("Exception::getCode".to_string());
@@ -168,9 +180,12 @@ impl<W: Write> VM<W> {
         get_code.bytecode.push(Opcode::LoadThis);
         get_code.bytecode.push(Opcode::LoadProperty(0)); // Load $this->code
         get_code.bytecode.push(Opcode::Return);
-        exception.methods.insert("getCode".to_string(), Arc::new(get_code));
+        exception
+            .methods
+            .insert("getCode".to_string(), Arc::new(get_code));
 
-        self.classes.insert("Exception".to_string(), Arc::new(exception));
+        self.classes
+            .insert("Exception".to_string(), Arc::new(exception));
 
         // Register Error class (same structure as Exception)
         let mut error = CompiledClass::new("Error".to_string());
@@ -185,6 +200,8 @@ impl<W: Write> VM<W> {
             is_static: false,
             type_hint: None,
             attributes: Vec::new(),
+            get_hook: None,
+            set_hook: None,
         });
 
         // Add code property
@@ -197,6 +214,8 @@ impl<W: Write> VM<W> {
             is_static: false,
             type_hint: None,
             attributes: Vec::new(),
+            get_hook: None,
+            set_hook: None,
         });
 
         // Create __construct method
@@ -204,7 +223,11 @@ impl<W: Write> VM<W> {
         error_construct.param_count = 2;
         error_construct.required_param_count = 0;
         error_construct.local_count = 3;
-        error_construct.local_names = vec!["this".to_string(), "message".to_string(), "code".to_string()];
+        error_construct.local_names = vec![
+            "this".to_string(),
+            "message".to_string(),
+            "code".to_string(),
+        ];
         error_construct.bytecode.push(Opcode::LoadFast(1));
         error_construct.strings.push("message".to_string());
         error_construct.bytecode.push(Opcode::StoreThisProperty(0));
@@ -212,7 +235,9 @@ impl<W: Write> VM<W> {
         error_construct.strings.push("code".to_string());
         error_construct.bytecode.push(Opcode::StoreThisProperty(1));
         error_construct.bytecode.push(Opcode::ReturnNull);
-        error.methods.insert("__construct".to_string(), Arc::new(error_construct));
+        error
+            .methods
+            .insert("__construct".to_string(), Arc::new(error_construct));
 
         // Create getMessage method
         let mut error_get_message = CompiledFunction::new("Error::getMessage".to_string());
@@ -223,7 +248,9 @@ impl<W: Write> VM<W> {
         error_get_message.bytecode.push(Opcode::LoadThis);
         error_get_message.bytecode.push(Opcode::LoadProperty(0));
         error_get_message.bytecode.push(Opcode::Return);
-        error.methods.insert("getMessage".to_string(), Arc::new(error_get_message));
+        error
+            .methods
+            .insert("getMessage".to_string(), Arc::new(error_get_message));
 
         // Create getCode method
         let mut error_get_code = CompiledFunction::new("Error::getCode".to_string());
@@ -234,24 +261,31 @@ impl<W: Write> VM<W> {
         error_get_code.bytecode.push(Opcode::LoadThis);
         error_get_code.bytecode.push(Opcode::LoadProperty(0));
         error_get_code.bytecode.push(Opcode::Return);
-        error.methods.insert("getCode".to_string(), Arc::new(error_get_code));
+        error
+            .methods
+            .insert("getCode".to_string(), Arc::new(error_get_code));
 
         self.classes.insert("Error".to_string(), Arc::new(error));
 
         // Register TypeError
         let mut type_error = CompiledClass::new("TypeError".to_string());
         type_error.parent = Some("Error".to_string());
-        self.classes.insert("TypeError".to_string(), Arc::new(type_error));
+        self.classes
+            .insert("TypeError".to_string(), Arc::new(type_error));
 
         // Register InvalidArgumentException
         let mut invalid_arg = CompiledClass::new("InvalidArgumentException".to_string());
         invalid_arg.parent = Some("Exception".to_string());
-        self.classes.insert("InvalidArgumentException".to_string(), Arc::new(invalid_arg));
+        self.classes.insert(
+            "InvalidArgumentException".to_string(),
+            Arc::new(invalid_arg),
+        );
 
         // Register UnhandledMatchError
         let mut unhandled_match = CompiledClass::new("UnhandledMatchError".to_string());
         unhandled_match.parent = Some("Error".to_string());
-        self.classes.insert("UnhandledMatchError".to_string(), Arc::new(unhandled_match));
+        self.classes
+            .insert("UnhandledMatchError".to_string(), Arc::new(unhandled_match));
     }
 
     /// Execute a compiled function
@@ -300,9 +334,21 @@ impl<W: Write> VM<W> {
                         // Get the frame before popping to check if it's a constructor
                         let frame = self.frames.last().expect("No frame");
                         let is_constructor = frame.is_constructor;
+                        let this_source = frame.this_source.clone();
+                        // Only get modified $this if this is a method call (has locals with $this in slot 0)
+                        let modified_this = if !matches!(this_source, ThisSource::None)
+                            && !frame.locals.is_empty()
+                        {
+                            Some(frame.locals[0].clone())
+                        } else {
+                            None
+                        };
 
                         let value = if is_constructor {
                             // For constructors, return $this (slot 0)
+                            frame.locals[0].clone()
+                        } else if matches!(this_source, ThisSource::PropertySetHook) {
+                            // For property set hooks, return the modified $this instead of return value
                             frame.locals[0].clone()
                         } else {
                             let value_str = e.strip_prefix("__RETURN__").unwrap();
@@ -314,6 +360,22 @@ impl<W: Write> VM<W> {
                         };
 
                         self.frames.pop();
+
+                        // Update the source variable with modified $this
+                        if let Some(modified) = modified_this {
+                            match this_source {
+                                ThisSource::LocalSlot(slot) => {
+                                    if let Some(caller_frame) = self.frames.last_mut() {
+                                        caller_frame.set_local(slot, modified);
+                                    }
+                                }
+                                ThisSource::GlobalVar(var_name) => {
+                                    self.globals.insert(var_name, modified);
+                                }
+                                ThisSource::None | ThisSource::PropertySetHook => {}
+                            }
+                        }
+
                         if self.frames.is_empty() {
                             return Ok(value);
                         }
@@ -576,17 +638,20 @@ impl<W: Write> VM<W> {
             Opcode::And => {
                 let right = self.stack.pop().ok_or("Stack underflow")?;
                 let left = self.stack.pop().ok_or("Stack underflow")?;
-                self.stack.push(Value::Bool(left.to_bool() && right.to_bool()));
+                self.stack
+                    .push(Value::Bool(left.to_bool() && right.to_bool()));
             }
             Opcode::Or => {
                 let right = self.stack.pop().ok_or("Stack underflow")?;
                 let left = self.stack.pop().ok_or("Stack underflow")?;
-                self.stack.push(Value::Bool(left.to_bool() || right.to_bool()));
+                self.stack
+                    .push(Value::Bool(left.to_bool() || right.to_bool()));
             }
             Opcode::Xor => {
                 let right = self.stack.pop().ok_or("Stack underflow")?;
                 let left = self.stack.pop().ok_or("Stack underflow")?;
-                self.stack.push(Value::Bool(left.to_bool() ^ right.to_bool()));
+                self.stack
+                    .push(Value::Bool(left.to_bool() ^ right.to_bool()));
             }
 
             // ==================== Control Flow ====================
@@ -622,8 +687,10 @@ impl<W: Write> VM<W> {
                 if let Some(ref return_type) = self.current_frame().function.return_type.clone() {
                     // Check for void return type - this is always an error for return with value
                     if matches!(return_type, crate::ast::TypeHint::Void) {
-                        return Err(format!("{}(): Return value must be of type void",
-                            self.current_frame().function.name));
+                        return Err(format!(
+                            "{}(): Return value must be of type void",
+                            self.current_frame().function.name
+                        ));
                     }
                     // Validate return value against type hint
                     // Return types are ALWAYS strictly checked in PHP (no coercion)
@@ -631,8 +698,10 @@ impl<W: Write> VM<W> {
                     if !self.value_matches_type_strict(&return_value, &return_type) {
                         let type_name = self.format_type_hint(&return_type);
                         let given_type = self.get_value_type_name(&return_value);
-                        return Err(format!("Return value must be of type {}, {} returned",
-                            type_name, given_type));
+                        return Err(format!(
+                            "Return value must be of type {}, {} returned",
+                            type_name, given_type
+                        ));
                     }
                 }
                 return Err("__RETURN__".to_string());
@@ -646,8 +715,10 @@ impl<W: Write> VM<W> {
                         // Return types are ALWAYS strictly checked in PHP (no coercion)
                         if !self.value_matches_type_strict(&Value::Null, &return_type) {
                             let type_name = self.format_type_hint(&return_type);
-                            return Err(format!("Return value must be of type {}, null returned",
-                                type_name));
+                            return Err(format!(
+                                "Return value must be of type {}, null returned",
+                                type_name
+                            ));
                         }
                     }
                 }
@@ -855,36 +926,62 @@ impl<W: Write> VM<W> {
                 let value = self.stack.pop().ok_or("Stack underflow")?;
                 // Check if it's an object with __toString
                 if let Value::Object(ref instance) = value {
-                    if let Some(to_string_method) = self.find_method_in_chain(&instance.class_name, "__toString") {
+                    if let Some(to_string_method) =
+                        self.find_method_in_chain(&instance.class_name, "__toString")
+                    {
                         // Call __toString and get the result
                         let result = self.call_method_sync(instance.clone(), to_string_method)?;
                         match result {
-                            Value::String(s) => write!(self.output, "{}", s).map_err(|e| e.to_string())?,
-                            _ => return Err(format!("Return value must be of type string, {} returned", result.get_type())),
+                            Value::String(s) => {
+                                write!(self.output, "{}", s).map_err(|e| e.to_string())?
+                            }
+                            _ => {
+                                return Err(format!(
+                                    "Return value must be of type string, {} returned",
+                                    result.get_type()
+                                ))
+                            }
                         }
                     } else {
-                        return Err(format!("Object of class {} could not be converted to string", instance.class_name));
+                        return Err(format!(
+                            "Object of class {} could not be converted to string",
+                            instance.class_name
+                        ));
                     }
                 } else {
-                    write!(self.output, "{}", value.to_output_string()).map_err(|e| e.to_string())?;
+                    write!(self.output, "{}", value.to_output_string())
+                        .map_err(|e| e.to_string())?;
                 }
             }
             Opcode::Print => {
                 let value = self.stack.pop().ok_or("Stack underflow")?;
                 // Check if it's an object with __toString
                 if let Value::Object(ref instance) = value {
-                    if let Some(to_string_method) = self.find_method_in_chain(&instance.class_name, "__toString") {
+                    if let Some(to_string_method) =
+                        self.find_method_in_chain(&instance.class_name, "__toString")
+                    {
                         // Call __toString and get the result
                         let result = self.call_method_sync(instance.clone(), to_string_method)?;
                         match result {
-                            Value::String(s) => write!(self.output, "{}", s).map_err(|e| e.to_string())?,
-                            _ => return Err(format!("Return value must be of type string, {} returned", result.get_type())),
+                            Value::String(s) => {
+                                write!(self.output, "{}", s).map_err(|e| e.to_string())?
+                            }
+                            _ => {
+                                return Err(format!(
+                                    "Return value must be of type string, {} returned",
+                                    result.get_type()
+                                ))
+                            }
                         }
                     } else {
-                        return Err(format!("Object of class {} could not be converted to string", instance.class_name));
+                        return Err(format!(
+                            "Object of class {} could not be converted to string",
+                            instance.class_name
+                        ));
                     }
                 } else {
-                    write!(self.output, "{}", value.to_output_string()).map_err(|e| e.to_string())?;
+                    write!(self.output, "{}", value.to_output_string())
+                        .map_err(|e| e.to_string())?;
                 }
                 self.stack.push(Value::Integer(1));
             }
@@ -916,7 +1013,8 @@ impl<W: Write> VM<W> {
                     for (i, arg) in args.iter().enumerate() {
                         if i < func.param_types.len() {
                             if let Some(ref type_hint) = func.param_types[i] {
-                                let use_strict = func.strict_types || self.requires_strict_type_check(type_hint);
+                                let use_strict =
+                                    func.strict_types || self.requires_strict_type_check(type_hint);
                                 if use_strict {
                                     if !self.value_matches_type_strict(arg, type_hint) {
                                         let type_name = self.format_type_hint(type_hint);
@@ -953,9 +1051,11 @@ impl<W: Write> VM<W> {
                             if i < args.len() {
                                 let coerced_arg = if i < func.param_types.len() {
                                     if let Some(ref type_hint) = func.param_types[i] {
-                                        let use_strict = func.strict_types || self.requires_strict_type_check(type_hint);
+                                        let use_strict = func.strict_types
+                                            || self.requires_strict_type_check(type_hint);
                                         if !use_strict {
-                                            let coerced = self.coerce_value_to_type(args[i].clone(), type_hint);
+                                            let coerced = self
+                                                .coerce_value_to_type(args[i].clone(), type_hint);
                                             // Validate that coercion succeeded (type matches)
                                             if !self.value_matches_type(&coerced, type_hint) {
                                                 let type_name = self.format_type_hint(type_hint);
@@ -992,9 +1092,11 @@ impl<W: Write> VM<W> {
                             if i < frame.locals.len() {
                                 let coerced_arg = if i < func.param_types.len() {
                                     if let Some(ref type_hint) = func.param_types[i] {
-                                        let use_strict = func.strict_types || self.requires_strict_type_check(type_hint);
+                                        let use_strict = func.strict_types
+                                            || self.requires_strict_type_check(type_hint);
                                         if !use_strict {
-                                            let coerced = self.coerce_value_to_type(arg.clone(), type_hint);
+                                            let coerced =
+                                                self.coerce_value_to_type(arg.clone(), type_hint);
                                             // Validate that coercion succeeded (type matches)
                                             if !self.value_matches_type(&coerced, type_hint) {
                                                 let type_name = self.format_type_hint(type_hint);
@@ -1062,7 +1164,8 @@ impl<W: Write> VM<W> {
                     for (i, arg) in args.iter().enumerate() {
                         if i < func.param_types.len() {
                             if let Some(ref type_hint) = func.param_types[i] {
-                                let use_strict = func.strict_types || self.requires_strict_type_check(type_hint);
+                                let use_strict =
+                                    func.strict_types || self.requires_strict_type_check(type_hint);
                                 if use_strict {
                                     if !self.value_matches_type_strict(arg, type_hint) {
                                         let type_name = self.format_type_hint(type_hint);
@@ -1097,7 +1200,8 @@ impl<W: Write> VM<W> {
                             if i < args.len() {
                                 let coerced_arg = if i < func.param_types.len() {
                                     if let Some(ref type_hint) = func.param_types[i] {
-                                        let use_strict = func.strict_types || self.requires_strict_type_check(type_hint);
+                                        let use_strict = func.strict_types
+                                            || self.requires_strict_type_check(type_hint);
                                         if !use_strict {
                                             self.coerce_value_to_type(args[i].clone(), type_hint)
                                         } else {
@@ -1124,7 +1228,8 @@ impl<W: Write> VM<W> {
                             if i < frame.locals.len() {
                                 let coerced_arg = if i < func.param_types.len() {
                                     if let Some(ref type_hint) = func.param_types[i] {
-                                        let use_strict = func.strict_types || self.requires_strict_type_check(type_hint);
+                                        let use_strict = func.strict_types
+                                            || self.requires_strict_type_check(type_hint);
                                         if !use_strict {
                                             self.coerce_value_to_type(arg.clone(), type_hint)
                                         } else {
@@ -1178,7 +1283,8 @@ impl<W: Write> VM<W> {
 
                         // Sort positional by index
                         positional.sort_by_key(|(i, _)| *i);
-                        let positional: Vec<Value> = positional.into_iter().map(|(_, v)| v).collect();
+                        let positional: Vec<Value> =
+                            positional.into_iter().map(|(_, v)| v).collect();
 
                         (positional, named)
                     }
@@ -1230,7 +1336,8 @@ impl<W: Write> VM<W> {
                     for (i, arg) in args.iter().enumerate() {
                         if i < func.param_types.len() {
                             if let Some(ref type_hint) = func.param_types[i] {
-                                let use_strict = func.strict_types || self.requires_strict_type_check(type_hint);
+                                let use_strict =
+                                    func.strict_types || self.requires_strict_type_check(type_hint);
                                 if use_strict {
                                     if !self.value_matches_type_strict(arg, type_hint) {
                                         let type_name = self.format_type_hint(type_hint);
@@ -1265,7 +1372,8 @@ impl<W: Write> VM<W> {
                             if i < args.len() {
                                 let coerced_arg = if i < func.param_types.len() {
                                     if let Some(ref type_hint) = func.param_types[i] {
-                                        let use_strict = func.strict_types || self.requires_strict_type_check(type_hint);
+                                        let use_strict = func.strict_types
+                                            || self.requires_strict_type_check(type_hint);
                                         if !use_strict {
                                             self.coerce_value_to_type(args[i].clone(), type_hint)
                                         } else {
@@ -1292,7 +1400,8 @@ impl<W: Write> VM<W> {
                             if i < frame.locals.len() {
                                 let coerced_arg = if i < func.param_types.len() {
                                     if let Some(ref type_hint) = func.param_types[i] {
-                                        let use_strict = func.strict_types || self.requires_strict_type_check(type_hint);
+                                        let use_strict = func.strict_types
+                                            || self.requires_strict_type_check(type_hint);
                                         if !use_strict {
                                             self.coerce_value_to_type(arg.clone(), type_hint)
                                         } else {
@@ -1348,9 +1457,7 @@ impl<W: Write> VM<W> {
                 // Pop args array from stack
                 let args_array = self.stack.pop().ok_or("Stack underflow")?;
                 let args = match args_array {
-                    Value::Array(arr) => {
-                        arr.into_iter().map(|(_, v)| v).collect::<Vec<_>>()
-                    }
+                    Value::Array(arr) => arr.into_iter().map(|(_, v)| v).collect::<Vec<_>>(),
                     _ => return Err("CallBuiltinSpread expects an array of arguments".to_string()),
                 };
 
@@ -1365,16 +1472,20 @@ impl<W: Write> VM<W> {
                 // Pop args associative array from stack
                 let args_array = self.stack.pop().ok_or("Stack underflow")?;
                 let named_args = match args_array {
-                    Value::Array(arr) => {
-                        arr.into_iter().filter_map(|(k, v)| {
+                    Value::Array(arr) => arr
+                        .into_iter()
+                        .filter_map(|(k, v)| {
                             if let ArrayKey::String(name) = k {
                                 Some((name, v))
                             } else {
                                 None
                             }
-                        }).collect::<Vec<(String, Value)>>()
+                        })
+                        .collect::<Vec<(String, Value)>>(),
+                    _ => {
+                        return Err("CallBuiltinNamed expects an associative array of arguments"
+                            .to_string())
                     }
-                    _ => return Err("CallBuiltinNamed expects an associative array of arguments".to_string()),
                 };
 
                 // For built-ins, convert named args to positional
@@ -1430,10 +1541,10 @@ impl<W: Write> VM<W> {
                         }
                         // Fall back to built-in functions
                         else if builtins::is_builtin(&func_name) {
-                            let result = builtins::call_builtin(&func_name, &args, &mut self.output)?;
+                            let result =
+                                builtins::call_builtin(&func_name, &args, &mut self.output)?;
                             self.stack.push(result);
-                        }
-                        else {
+                        } else {
                             return Err(format!("undefined function: {}", func_name));
                         }
                     }
@@ -1450,7 +1561,12 @@ impl<W: Write> VM<W> {
                                     let mut next_slot = 0;
                                     for (var_name, value) in &closure.captured_vars {
                                         // Find the slot for this captured variable
-                                        if let Some(slot) = frame.function.local_names.iter().position(|n| n == var_name) {
+                                        if let Some(slot) = frame
+                                            .function
+                                            .local_names
+                                            .iter()
+                                            .position(|n| n == var_name)
+                                        {
                                             frame.locals[slot] = value.clone();
                                             next_slot = next_slot.max(slot + 1);
                                         }
@@ -1465,7 +1581,8 @@ impl<W: Write> VM<W> {
 
                                     self.frames.push(frame);
                                 } else if builtins::is_builtin(func_name) {
-                                    let result = builtins::call_builtin(func_name, &args, &mut self.output)?;
+                                    let result =
+                                        builtins::call_builtin(func_name, &args, &mut self.output)?;
                                     self.stack.push(result);
                                 } else {
                                     return Err(format!("undefined function: {}", func_name));
@@ -1475,7 +1592,10 @@ impl<W: Write> VM<W> {
                                 // Arrow function - need to evaluate the expression
                                 // For VM, arrow functions should be compiled to named functions
                                 // Check if we have a compiled version
-                                return Err("Arrow function expression evaluation not yet supported in VM".to_string());
+                                return Err(
+                                    "Arrow function expression evaluation not yet supported in VM"
+                                        .to_string(),
+                                );
                             }
                             _ => return Err("Unsupported closure type".to_string()),
                         }
@@ -1505,12 +1625,13 @@ impl<W: Write> VM<W> {
 
             // ==================== OOP Opcodes ====================
             Opcode::NewObject(class_idx) => {
-                let class_name = Self::normalize_class_name(
-                    &self.current_frame().get_string(class_idx)
-                );
+                let class_name =
+                    Self::normalize_class_name(&self.current_frame().get_string(class_idx));
 
                 // Look up class definition
-                let class_def = self.classes.get(&class_name)
+                let class_def = self
+                    .classes
+                    .get(&class_name)
                     .ok_or_else(|| format!("Class '{}' not found", class_name))?
                     .clone();
 
@@ -1541,7 +1662,9 @@ impl<W: Write> VM<W> {
                 for parent_def in parent_chain.iter().rev() {
                     for prop in &parent_def.properties {
                         let default_val = prop.default.clone().unwrap_or(Value::Null);
-                        instance.properties.insert(prop.name.clone(), default_val.clone());
+                        instance
+                            .properties
+                            .insert(prop.name.clone(), default_val.clone());
                         if prop.readonly {
                             instance.readonly_properties.insert(prop.name.clone());
                             // If property has a default value, mark as initialized
@@ -1554,7 +1677,9 @@ impl<W: Write> VM<W> {
                 // Then initialize current class properties (can override parents)
                 for prop in &class_def.properties {
                     let default_val = prop.default.clone().unwrap_or(Value::Null);
-                    instance.properties.insert(prop.name.clone(), default_val.clone());
+                    instance
+                        .properties
+                        .insert(prop.name.clone(), default_val.clone());
                     if prop.readonly {
                         instance.readonly_properties.insert(prop.name.clone());
                         // If property has a default value, mark as initialized
@@ -1576,12 +1701,34 @@ impl<W: Write> VM<W> {
 
                 match object {
                     Value::Object(instance) => {
-                        // Try to get the property directly first
+                        // Check for property hook (PHP 8.4)
+                        if let Some(class) = self.classes.get(&instance.class_name).cloned() {
+                            if let Some(prop_def) =
+                                class.properties.iter().find(|p| p.name == prop_name)
+                            {
+                                if let Some(ref hook_method_name) = prop_def.get_hook {
+                                    // Call the get hook method
+                                    if let Some(hook_method) =
+                                        class.methods.get(hook_method_name).cloned()
+                                    {
+                                        let stack_base = self.stack.len();
+                                        let mut frame = CallFrame::new(hook_method, stack_base);
+                                        frame.locals[0] = Value::Object(instance); // $this
+                                        self.frames.push(frame);
+                                        return Ok(()); // Return value will be pushed by method
+                                    }
+                                }
+                            }
+                        }
+
+                        // No hook, try to get the property directly
                         if let Some(value) = instance.properties.get(&prop_name).cloned() {
                             self.stack.push(value);
                         } else {
                             // Property not found, try __get magic method
-                            if let Some(get_method) = self.find_method_in_chain(&instance.class_name, "__get") {
+                            if let Some(get_method) =
+                                self.find_method_in_chain(&instance.class_name, "__get")
+                            {
                                 // Push the property name as argument, then call __get
                                 self.stack.push(Value::String(prop_name));
                                 let stack_base = self.stack.len();
@@ -1594,7 +1741,11 @@ impl<W: Write> VM<W> {
                             }
                         }
                     }
-                    Value::EnumCase { enum_name, case_name, backing_value } => {
+                    Value::EnumCase {
+                        enum_name,
+                        case_name,
+                        backing_value,
+                    } => {
                         // Enum cases have ->name and ->value properties
                         let value = match prop_name.as_str() {
                             "name" => Value::String(case_name),
@@ -1602,14 +1753,27 @@ impl<W: Write> VM<W> {
                                 if let Some(bv) = backing_value {
                                     *bv
                                 } else {
-                                    return Err(format!("Pure enum case {}::{} does not have a 'value' property", enum_name, case_name));
+                                    return Err(format!(
+                                        "Pure enum case {}::{} does not have a 'value' property",
+                                        enum_name, case_name
+                                    ));
                                 }
                             }
-                            _ => return Err(format!("Undefined property: {}::{}", enum_name, prop_name)),
+                            _ => {
+                                return Err(format!(
+                                    "Undefined property: {}::{}",
+                                    enum_name, prop_name
+                                ))
+                            }
                         };
                         self.stack.push(value);
                     }
-                    _ => return Err(format!("Cannot access property of non-object: {:?}", object)),
+                    _ => {
+                        return Err(format!(
+                            "Cannot access property of non-object: {:?}",
+                            object
+                        ))
+                    }
                 }
             }
 
@@ -1619,10 +1783,44 @@ impl<W: Write> VM<W> {
                 let object = self.stack.pop().ok_or("Stack underflow")?;
 
                 match object {
-                    Value::Object(mut instance) => {
-                        // Check readonly constraint
+                    Value::Object(instance) => {
+                        // Check for property hooks (PHP 8.4)
+                        if let Some(class) = self.classes.get(&instance.class_name).cloned() {
+                            if let Some(prop_def) =
+                                class.properties.iter().find(|p| p.name == prop_name)
+                            {
+                                // Check if property has a get hook but no set hook (read-only computed property)
+                                if prop_def.get_hook.is_some() && prop_def.set_hook.is_none() {
+                                    return Err(format!(
+                                        "Cannot write to read-only property {}",
+                                        prop_name
+                                    ));
+                                }
+
+                                if let Some(ref hook_method_name) = prop_def.set_hook {
+                                    // Call the set hook method with $value as argument
+                                    if let Some(hook_method) =
+                                        class.methods.get(hook_method_name).cloned()
+                                    {
+                                        // DON'T push old object - we'll push modified $this after hook returns
+                                        let stack_base = self.stack.len();
+                                        let mut frame = CallFrame::new(hook_method, stack_base);
+                                        frame.locals[0] = Value::Object(instance); // $this
+                                        frame.locals[1] = value; // $value
+                                                                 // Track that we need to push modified $this to stack on return
+                                        frame.this_source = ThisSource::PropertySetHook;
+                                        self.frames.push(frame);
+                                        return Ok(());
+                                    }
+                                }
+                            }
+                        }
+
+                        // No hook, check readonly constraint
+                        let mut instance = instance;
                         if instance.readonly_properties.contains(&prop_name)
-                            && instance.initialized_readonly.contains(&prop_name) {
+                            && instance.initialized_readonly.contains(&prop_name)
+                        {
                             return Err(format!("Cannot modify readonly property {}", prop_name));
                         }
                         instance.properties.insert(prop_name.clone(), value.clone());
@@ -1646,7 +1844,10 @@ impl<W: Write> VM<W> {
                     Value::Object(mut instance) => {
                         // Check that property exists on this object
                         if !instance.properties.contains_key(&prop_name) {
-                            return Err(format!("Property '{}' does not exist on class '{}'", prop_name, instance.class_name));
+                            return Err(format!(
+                                "Property '{}' does not exist on class '{}'",
+                                prop_name, instance.class_name
+                            ));
                         }
 
                         // Check readonly constraint (clone with allows modifying readonly)
@@ -1676,7 +1877,9 @@ impl<W: Write> VM<W> {
                             // Property removed successfully, we're done
                         } else {
                             // Property not found, try __unset magic method
-                            if let Some(unset_method) = self.find_method_in_chain(&instance.class_name, "__unset") {
+                            if let Some(unset_method) =
+                                self.find_method_in_chain(&instance.class_name, "__unset")
+                            {
                                 // Call __unset($name)
                                 self.stack.push(Value::String(prop_name));
                                 let stack_base = self.stack.len();
@@ -1726,7 +1929,8 @@ impl<W: Write> VM<W> {
                     Value::Object(mut instance) => {
                         // Check readonly constraint
                         if instance.readonly_properties.contains(&prop_name)
-                            && instance.initialized_readonly.contains(&prop_name) {
+                            && instance.initialized_readonly.contains(&prop_name)
+                        {
                             return Err(format!("Cannot modify readonly property {}", prop_name));
                         }
                         instance.properties.insert(prop_name.clone(), value.clone());
@@ -1734,7 +1938,8 @@ impl<W: Write> VM<W> {
                             instance.initialized_readonly.insert(prop_name);
                         }
                         // Update slot 0 with modified $this
-                        self.current_frame_mut().set_local(0, Value::Object(instance));
+                        self.current_frame_mut()
+                            .set_local(0, Value::Object(instance));
                         // Push the assigned value as result (for expression contexts)
                         self.stack.push(value);
                     }
@@ -1795,7 +2000,9 @@ impl<W: Write> VM<W> {
                             }
 
                             self.frames.push(frame);
-                        } else if let Some(magic_call) = self.find_method_in_chain(&class_name, "__call") {
+                        } else if let Some(magic_call) =
+                            self.find_method_in_chain(&class_name, "__call")
+                        {
                             // Fall back to __call magic method
                             let stack_base = self.stack.len();
                             let mut frame = CallFrame::new(magic_call, stack_base);
@@ -1814,7 +2021,185 @@ impl<W: Write> VM<W> {
 
                             self.frames.push(frame);
                         } else {
-                            return Err(format!("Method '{}' not found on class '{}'", method_name, class_name));
+                            return Err(format!(
+                                "Method '{}' not found on class '{}'",
+                                method_name, class_name
+                            ));
+                        }
+                    }
+                    _ => return Err("Cannot call method on non-object".to_string()),
+                }
+            }
+
+            Opcode::CallMethodOnLocal(var_slot, method_idx, arg_count) => {
+                let method_name = self.current_frame().get_string(method_idx).to_string();
+
+                // Pop arguments
+                let mut args = Vec::with_capacity(arg_count as usize);
+                for _ in 0..arg_count {
+                    args.push(self.stack.pop().ok_or("Stack underflow")?);
+                }
+                args.reverse();
+
+                // Get object from local variable slot in current frame
+                let object = self.current_frame().get_local(var_slot).clone();
+
+                match object {
+                    Value::Object(instance) => {
+                        let class_name = instance.class_name.clone();
+
+                        // Find method in class or parent chain
+                        if let Some(method) = self.find_method_in_chain(&class_name, &method_name) {
+                            // Validate parameter types
+                            for (i, arg) in args.iter().enumerate() {
+                                if i < method.param_types.len() {
+                                    if let Some(ref type_hint) = method.param_types[i] {
+                                        if self.requires_strict_type_check(type_hint) {
+                                            if !self.value_matches_type(arg, type_hint) {
+                                                let type_name = self.format_type_hint(type_hint);
+                                                let given_type = self.get_value_type_name(arg);
+                                                return Err(format!(
+                                                    "Argument {} passed to {}::{}() must be of type {}, {} given",
+                                                    i + 1, class_name, method_name, type_name, given_type
+                                                ));
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Create new call frame with $this as first local
+                            let stack_base = self.stack.len();
+                            let mut frame = CallFrame::new(method, stack_base);
+
+                            // Set $this (slot 0)
+                            frame.locals[0] = Value::Object(instance);
+
+                            // Track source so we can update after method returns
+                            frame.this_source = ThisSource::LocalSlot(var_slot);
+
+                            // Set up parameter locals (starting from slot 1)
+                            for (i, arg) in args.into_iter().enumerate() {
+                                if i + 1 < frame.locals.len() {
+                                    frame.locals[i + 1] = arg;
+                                }
+                            }
+
+                            self.frames.push(frame);
+                        } else if let Some(magic_call) =
+                            self.find_method_in_chain(&class_name, "__call")
+                        {
+                            // Fall back to __call magic method
+                            let stack_base = self.stack.len();
+                            let mut frame = CallFrame::new(magic_call, stack_base);
+
+                            // Set $this (slot 0)
+                            frame.locals[0] = Value::Object(instance);
+                            frame.this_source = ThisSource::LocalSlot(var_slot);
+                            // Set method name (slot 1)
+                            frame.locals[1] = Value::String(method_name);
+                            // Set args array (slot 2)
+                            let args_array: Vec<(ArrayKey, Value)> = args
+                                .into_iter()
+                                .enumerate()
+                                .map(|(i, v)| (ArrayKey::Integer(i as i64), v))
+                                .collect();
+                            frame.locals[2] = Value::Array(args_array);
+
+                            self.frames.push(frame);
+                        } else {
+                            return Err(format!(
+                                "Method '{}' not found on class '{}'",
+                                method_name, class_name
+                            ));
+                        }
+                    }
+                    _ => return Err("Cannot call method on non-object".to_string()),
+                }
+            }
+
+            Opcode::CallMethodOnGlobal(var_idx, method_idx, arg_count) => {
+                let var_name = self.current_frame().get_string(var_idx).to_string();
+                let method_name = self.current_frame().get_string(method_idx).to_string();
+
+                // Pop arguments
+                let mut args = Vec::with_capacity(arg_count as usize);
+                for _ in 0..arg_count {
+                    args.push(self.stack.pop().ok_or("Stack underflow")?);
+                }
+                args.reverse();
+
+                // Get object from global variable
+                let object = self.globals.get(&var_name).cloned().unwrap_or(Value::Null);
+
+                match object {
+                    Value::Object(instance) => {
+                        let class_name = instance.class_name.clone();
+
+                        // Find method in class or parent chain
+                        if let Some(method) = self.find_method_in_chain(&class_name, &method_name) {
+                            // Validate parameter types
+                            for (i, arg) in args.iter().enumerate() {
+                                if i < method.param_types.len() {
+                                    if let Some(ref type_hint) = method.param_types[i] {
+                                        if self.requires_strict_type_check(type_hint) {
+                                            if !self.value_matches_type(arg, type_hint) {
+                                                let type_name = self.format_type_hint(type_hint);
+                                                let given_type = self.get_value_type_name(arg);
+                                                return Err(format!(
+                                                    "Argument {} passed to {}::{}() must be of type {}, {} given",
+                                                    i + 1, class_name, method_name, type_name, given_type
+                                                ));
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Create new call frame with $this as first local
+                            let stack_base = self.stack.len();
+                            let mut frame = CallFrame::new(method, stack_base);
+
+                            // Set $this (slot 0)
+                            frame.locals[0] = Value::Object(instance);
+
+                            // Track source so we can update after method returns
+                            frame.this_source = ThisSource::GlobalVar(var_name.clone());
+
+                            // Set up parameter locals (starting from slot 1)
+                            for (i, arg) in args.into_iter().enumerate() {
+                                if i + 1 < frame.locals.len() {
+                                    frame.locals[i + 1] = arg;
+                                }
+                            }
+
+                            self.frames.push(frame);
+                        } else if let Some(magic_call) =
+                            self.find_method_in_chain(&class_name, "__call")
+                        {
+                            // Fall back to __call magic method
+                            let stack_base = self.stack.len();
+                            let mut frame = CallFrame::new(magic_call, stack_base);
+
+                            // Set $this (slot 0)
+                            frame.locals[0] = Value::Object(instance);
+                            frame.this_source = ThisSource::GlobalVar(var_name.clone());
+                            // Set method name (slot 1)
+                            frame.locals[1] = Value::String(method_name);
+                            // Set args array (slot 2)
+                            let args_array: Vec<(ArrayKey, Value)> = args
+                                .into_iter()
+                                .enumerate()
+                                .map(|(i, v)| (ArrayKey::Integer(i as i64), v))
+                                .collect();
+                            frame.locals[2] = Value::Array(args_array);
+
+                            self.frames.push(frame);
+                        } else {
+                            return Err(format!(
+                                "Method '{}' not found on class '{}'",
+                                method_name, class_name
+                            ));
                         }
                     }
                     _ => return Err("Cannot call method on non-object".to_string()),
@@ -1822,9 +2207,8 @@ impl<W: Write> VM<W> {
             }
 
             Opcode::CallStaticMethod(class_idx, method_idx, arg_count) => {
-                let class_name = Self::normalize_class_name(
-                    &self.current_frame().get_string(class_idx)
-                );
+                let class_name =
+                    Self::normalize_class_name(&self.current_frame().get_string(class_idx));
                 let method_name = self.current_frame().get_string(method_idx).to_string();
 
                 // Pop arguments
@@ -1838,7 +2222,9 @@ impl<W: Write> VM<W> {
                 let resolved_class = self.resolve_class_keyword(&class_name)?;
 
                 // Find method through inheritance chain
-                if let Some((method, is_instance_method)) = self.find_static_method_in_chain(&resolved_class, &method_name) {
+                if let Some((method, is_instance_method)) =
+                    self.find_static_method_in_chain(&resolved_class, &method_name)
+                {
                     // Create new call frame
                     let stack_base = self.stack.len();
                     let mut frame = CallFrame::new(method, stack_base);
@@ -1858,7 +2244,9 @@ impl<W: Write> VM<W> {
                     }
 
                     self.frames.push(frame);
-                } else if let Some((magic_call_static, _)) = self.find_static_method_in_chain(&resolved_class, "__callStatic") {
+                } else if let Some((magic_call_static, _)) =
+                    self.find_static_method_in_chain(&resolved_class, "__callStatic")
+                {
                     // Fall back to __callStatic magic method
                     let stack_base = self.stack.len();
                     let mut frame = CallFrame::new(magic_call_static, stack_base);
@@ -1928,7 +2316,10 @@ impl<W: Write> VM<W> {
                                     Value::String(s) => format!("'{}'", s),
                                     other => format!("{:?}", other),
                                 };
-                                return Err(format!("Value '{}' is not a valid backing value for enum {}", value_str, resolved_class));
+                                return Err(format!(
+                                    "Value '{}' is not a valid backing value for enum {}",
+                                    value_str, resolved_class
+                                ));
                             }
                         }
                         "tryFrom" => {
@@ -1968,19 +2359,24 @@ impl<W: Write> VM<W> {
                                 }
                                 self.frames.push(frame);
                             } else {
-                                return Err(format!("Static method '{}' not found on enum '{}'", method_name, resolved_class));
+                                return Err(format!(
+                                    "Static method '{}' not found on enum '{}'",
+                                    method_name, resolved_class
+                                ));
                             }
                         }
                     }
                 } else {
-                    return Err(format!("Static method '{}' not found on class '{}'", method_name, resolved_class));
+                    return Err(format!(
+                        "Static method '{}' not found on class '{}'",
+                        method_name, resolved_class
+                    ));
                 }
             }
 
             Opcode::CallStaticMethodNamed(class_idx, method_idx) => {
-                let class_name = Self::normalize_class_name(
-                    &self.current_frame().get_string(class_idx)
-                );
+                let class_name =
+                    Self::normalize_class_name(&self.current_frame().get_string(class_idx));
                 let method_name = self.current_frame().get_string(method_idx).to_string();
 
                 // Pop args array from stack
@@ -2015,7 +2411,9 @@ impl<W: Write> VM<W> {
                 positional.sort_by_key(|(idx, _)| *idx);
 
                 // Find method through inheritance chain
-                if let Some((method, is_instance_method)) = self.find_static_method_in_chain(&resolved_class, &method_name) {
+                if let Some((method, is_instance_method)) =
+                    self.find_static_method_in_chain(&resolved_class, &method_name)
+                {
                     // Build final args array by matching to parameters
                     let param_count = method.param_count as usize;
                     let mut final_args = vec![Value::Null; param_count];
@@ -2054,32 +2452,42 @@ impl<W: Write> VM<W> {
 
                     self.frames.push(frame);
                 } else {
-                    return Err(format!("Static method '{}' not found on class '{}'", method_name, resolved_class));
+                    return Err(format!(
+                        "Static method '{}' not found on class '{}'",
+                        method_name, resolved_class
+                    ));
                 }
             }
 
             Opcode::LoadStaticProp(class_idx, prop_idx) => {
-                let class_name = Self::normalize_class_name(
-                    &self.current_frame().get_string(class_idx)
-                );
+                let class_name =
+                    Self::normalize_class_name(&self.current_frame().get_string(class_idx));
                 let prop_name = self.current_frame().get_string(prop_idx).to_string();
 
                 // Resolve self/static/parent keywords
                 let resolved_class = self.resolve_class_keyword(&class_name)?;
 
-                let class_def = self.classes.get(&resolved_class)
+                let class_def = self
+                    .classes
+                    .get(&resolved_class)
                     .ok_or_else(|| format!("Class '{}' not found", resolved_class))?;
 
-                let value = class_def.static_properties.get(&prop_name)
+                let value = class_def
+                    .static_properties
+                    .get(&prop_name)
                     .cloned()
-                    .ok_or_else(|| format!("Access to undeclared static property {}::${}", resolved_class, prop_name))?;
+                    .ok_or_else(|| {
+                        format!(
+                            "Access to undeclared static property {}::${}",
+                            resolved_class, prop_name
+                        )
+                    })?;
                 self.stack.push(value);
             }
 
             Opcode::StoreStaticProp(class_idx, prop_idx) => {
-                let class_name = Self::normalize_class_name(
-                    &self.current_frame().get_string(class_idx)
-                );
+                let class_name =
+                    Self::normalize_class_name(&self.current_frame().get_string(class_idx));
                 let prop_name = self.current_frame().get_string(prop_idx).to_string();
                 let value = self.stack.pop().ok_or("Stack underflow")?;
 
@@ -2089,14 +2497,21 @@ impl<W: Write> VM<W> {
                 // Check if static property is readonly
                 if let Some(class_def) = self.classes.get(&resolved_class) {
                     if class_def.readonly_static_properties.contains(&prop_name) {
-                        return Err(format!("Cannot modify readonly property {}::${}", resolved_class, prop_name));
+                        return Err(format!(
+                            "Cannot modify readonly property {}::${}",
+                            resolved_class, prop_name
+                        ));
                     }
                 }
 
                 // Need mutable access to update static property
-                let class_def = self.classes.get_mut(&resolved_class)
+                let class_def = self
+                    .classes
+                    .get_mut(&resolved_class)
                     .ok_or_else(|| format!("Class '{}' not found", resolved_class))?;
-                Arc::make_mut(class_def).static_properties.insert(prop_name, value.clone());
+                Arc::make_mut(class_def)
+                    .static_properties
+                    .insert(prop_name, value.clone());
 
                 // Push value back (assignment returns the assigned value)
                 self.stack.push(value);
@@ -2105,16 +2520,17 @@ impl<W: Write> VM<W> {
             Opcode::LoadThis => {
                 // $this is stored in slot 0 for instance methods
                 let frame = self.current_frame();
-                let this = frame.locals.get(0)
+                let this = frame
+                    .locals
+                    .get(0)
                     .cloned()
                     .ok_or("No $this available in current context")?;
                 self.stack.push(this);
             }
 
             Opcode::InstanceOf(class_idx) => {
-                let class_name = Self::normalize_class_name(
-                    &self.current_frame().get_string(class_idx)
-                );
+                let class_name =
+                    Self::normalize_class_name(&self.current_frame().get_string(class_idx));
                 let object = self.stack.pop().ok_or("Stack underflow")?;
 
                 let result = match object {
@@ -2142,19 +2558,24 @@ impl<W: Write> VM<W> {
             }
 
             Opcode::LoadEnumCase(enum_idx, case_idx) => {
-                let enum_name = Self::normalize_class_name(
-                    &self.current_frame().get_string(enum_idx)
-                );
+                let enum_name =
+                    Self::normalize_class_name(&self.current_frame().get_string(enum_idx));
                 let case_name = self.current_frame().get_string(case_idx).to_string();
 
                 // Look up the enum definition
-                let enum_def = self.enums.get(&enum_name)
+                let enum_def = self
+                    .enums
+                    .get(&enum_name)
                     .ok_or_else(|| format!("Enum '{}' not found", enum_name))?
                     .clone();
 
                 // Check if the case exists
-                let backing_value = enum_def.cases.get(&case_name)
-                    .ok_or_else(|| format!("Undefined case '{}' for enum '{}'", case_name, enum_name))?
+                let backing_value = enum_def
+                    .cases
+                    .get(&case_name)
+                    .ok_or_else(|| {
+                        format!("Undefined case '{}' for enum '{}'", case_name, enum_name)
+                    })?
                     .clone()
                     .map(Box::new);
 
@@ -2182,7 +2603,9 @@ impl<W: Write> VM<W> {
                         let class_name = instance.class_name.clone();
 
                         // Find constructor in inheritance chain
-                        if let Some(constructor) = self.find_method_in_chain(&class_name, "__construct") {
+                        if let Some(constructor) =
+                            self.find_method_in_chain(&class_name, "__construct")
+                        {
                             let constructor = constructor.clone();
 
                             // Create call frame for constructor with $this as first local
@@ -2198,10 +2621,12 @@ impl<W: Write> VM<W> {
                                     let coerced_arg = if i < frame.function.param_types.len() {
                                         if let Some(ref type_hint) = frame.function.param_types[i] {
                                             if !self.requires_strict_type_check(type_hint) {
-                                                let coerced = self.coerce_value_to_type(arg.clone(), type_hint);
+                                                let coerced = self
+                                                    .coerce_value_to_type(arg.clone(), type_hint);
                                                 // Validate that coercion succeeded (type matches)
                                                 if !self.value_matches_type(&coerced, type_hint) {
-                                                    let type_name = self.format_type_hint(type_hint);
+                                                    let type_name =
+                                                        self.format_type_hint(type_hint);
                                                     let given_type = self.get_value_type_name(&arg);
                                                     return Err(format!(
                                                         "must be of type {}, {} given",
@@ -2226,11 +2651,11 @@ impl<W: Write> VM<W> {
                             frame.is_constructor = true;
 
                             self.frames.push(frame);
-                            } else {
-                                // No constructor, just push the object back
-                                self.stack.push(Value::Object(instance));
-                            }
+                        } else {
+                            // No constructor, just push the object back
+                            self.stack.push(Value::Object(instance));
                         }
+                    }
                     _ => return Err("Cannot call constructor on non-object".to_string()),
                 }
             }
@@ -2246,7 +2671,9 @@ impl<W: Write> VM<W> {
                         let class_name = instance.class_name.clone();
 
                         // Find constructor in inheritance chain
-                        if let Some(constructor) = self.find_method_in_chain(&class_name, "__construct") {
+                        if let Some(constructor) =
+                            self.find_method_in_chain(&class_name, "__construct")
+                        {
                             let constructor = constructor.clone();
 
                             // Extract arguments from array (mixed positional and named)
@@ -2351,7 +2778,11 @@ impl<W: Write> VM<W> {
                     };
 
                     if handler_is_active {
-                        handler_info = Some((handler.catch_offset as usize, handler.frame_depth, handler_idx));
+                        handler_info = Some((
+                            handler.catch_offset as usize,
+                            handler.frame_depth,
+                            handler_idx,
+                        ));
                         break;
                     }
                 }
@@ -2382,7 +2813,7 @@ impl<W: Write> VM<W> {
                             match msg_value {
                                 Value::String(s) if !s.is_empty() => {
                                     format!("Uncaught {}: {}", obj.class_name, s)
-                                },
+                                }
                                 _ => format!("Uncaught {}", obj.class_name),
                             }
                         } else {
@@ -2459,7 +2890,10 @@ impl<W: Write> VM<W> {
                 let value = {
                     let frame = self.current_frame();
                     // Search for the variable in local_names to find its slot
-                    let slot = frame.function.local_names.iter()
+                    let slot = frame
+                        .function
+                        .local_names
+                        .iter()
                         .position(|name| name == &var_name)
                         .map(|i| i as u16);
 
@@ -2590,7 +3024,8 @@ impl<W: Write> VM<W> {
         }
         // Try case-insensitive match
         let name_lower = name.to_lowercase();
-        self.functions.iter()
+        self.functions
+            .iter()
             .find(|(k, _)| k.to_lowercase() == name_lower)
             .map(|(_, v)| v.clone())
     }
@@ -2620,10 +3055,9 @@ impl<W: Write> VM<W> {
     /// Resolve self/static/parent to actual class name
     fn resolve_class_keyword(&self, keyword: &str) -> Result<String, String> {
         match keyword {
-            "self" => {
-                self.get_current_class()
-                    .ok_or_else(|| "Cannot use self:: outside of class".to_string())
-            }
+            "self" => self
+                .get_current_class()
+                .ok_or_else(|| "Cannot use self:: outside of class".to_string()),
             "static" => {
                 // Late static binding: use called_class if available, otherwise fall back to current class
                 if let Some(frame) = self.frames.last() {
@@ -2635,11 +3069,16 @@ impl<W: Write> VM<W> {
                     .ok_or_else(|| "Cannot use static:: outside of class".to_string())
             }
             "parent" => {
-                let current_class = self.get_current_class()
+                let current_class = self
+                    .get_current_class()
                     .ok_or_else(|| "Cannot use parent:: outside of class".to_string())?;
-                let class_def = self.classes.get(&current_class)
+                let class_def = self
+                    .classes
+                    .get(&current_class)
                     .ok_or_else(|| format!("Class '{}' not found", current_class))?;
-                class_def.parent.clone()
+                class_def
+                    .parent
+                    .clone()
                     .ok_or_else(|| format!("Class '{}' has no parent", current_class))
             }
             other => Ok(other.to_string()),
@@ -2647,7 +3086,11 @@ impl<W: Write> VM<W> {
     }
 
     /// Look up method through inheritance chain
-    fn find_method_in_chain(&self, class_name: &str, method_name: &str) -> Option<Arc<CompiledFunction>> {
+    fn find_method_in_chain(
+        &self,
+        class_name: &str,
+        method_name: &str,
+    ) -> Option<Arc<CompiledFunction>> {
         let mut current_class = Some(class_name.to_string());
 
         while let Some(class) = current_class {
@@ -2672,7 +3115,11 @@ impl<W: Write> VM<W> {
     }
 
     /// Recursively look up method in trait and its used traits
-    fn find_method_in_trait(&self, trait_name: &str, method_name: &str) -> Option<Arc<CompiledFunction>> {
+    fn find_method_in_trait(
+        &self,
+        trait_name: &str,
+        method_name: &str,
+    ) -> Option<Arc<CompiledFunction>> {
         if let Some(trait_def) = self.traits.get(trait_name) {
             // Check if this trait has the method
             if let Some(method) = trait_def.methods.get(method_name) {
@@ -2689,7 +3136,11 @@ impl<W: Write> VM<W> {
     }
 
     /// Look up static method through inheritance chain
-    fn find_static_method_in_chain(&self, class_name: &str, method_name: &str) -> Option<(Arc<CompiledFunction>, bool)> {
+    fn find_static_method_in_chain(
+        &self,
+        class_name: &str,
+        method_name: &str,
+    ) -> Option<(Arc<CompiledFunction>, bool)> {
         let mut current_class = Some(class_name.to_string());
 
         while let Some(class) = current_class {
@@ -2713,7 +3164,11 @@ impl<W: Write> VM<W> {
 
     /// Call a method synchronously and return its result
     /// This is used for magic methods like __toString that need immediate evaluation
-    fn call_method_sync(&mut self, instance: crate::interpreter::ObjectInstance, method: Arc<CompiledFunction>) -> Result<Value, String> {
+    fn call_method_sync(
+        &mut self,
+        instance: crate::interpreter::ObjectInstance,
+        method: Arc<CompiledFunction>,
+    ) -> Result<Value, String> {
         // Save current frame count to know when to stop
         let initial_frame_count = self.frames.len();
 
@@ -2791,7 +3246,8 @@ impl<W: Write> VM<W> {
             Value::Object(ref instance) => {
                 let class_name = instance.class_name.clone();
                 // Look for __toString method
-                if let Some(to_string_method) = self.find_method_in_chain(&class_name, "__toString") {
+                if let Some(to_string_method) = self.find_method_in_chain(&class_name, "__toString")
+                {
                     let result = self.call_method_sync(instance.clone(), to_string_method)?;
                     match result {
                         Value::String(s) => Ok(s),
@@ -2799,7 +3255,10 @@ impl<W: Write> VM<W> {
                     }
                 } else {
                     // No __toString method - this is an error in PHP
-                    Err(format!("Object of class {} could not be converted to string", class_name))
+                    Err(format!(
+                        "Object of class {} could not be converted to string",
+                        class_name
+                    ))
                 }
             }
             _ => Ok(value.to_string_val()),
@@ -2815,16 +3274,20 @@ impl<W: Write> VM<W> {
             TypeHint::Nullable(inner) => {
                 matches!(value, Value::Null) || self.value_matches_type_strict(value, inner)
             }
-            TypeHint::Union(types) => types.iter().any(|t| self.value_matches_type_strict(value, t)),
-            TypeHint::Intersection(types) => {
-                types.iter().all(|t| self.value_matches_type_strict(value, t))
-            }
+            TypeHint::Union(types) => types
+                .iter()
+                .any(|t| self.value_matches_type_strict(value, t)),
+            TypeHint::Intersection(types) => types
+                .iter()
+                .all(|t| self.value_matches_type_strict(value, t)),
             TypeHint::DNF(intersections) => {
                 // DNF: (A&B)|(C&D)|E
                 // Value must match at least one intersection group
                 intersections.iter().any(|group| {
                     // All types in the group must match
-                    group.iter().all(|t| self.value_matches_type_strict(value, t))
+                    group
+                        .iter()
+                        .all(|t| self.value_matches_type_strict(value, t))
                 })
             }
             TypeHint::Class(class_name) => {
@@ -3005,19 +3468,36 @@ impl<W: Write> VM<W> {
             // Simple types - only check for class names (not scalar types)
             TypeHint::Simple(name) => {
                 // These are scalar types that can be coerced
-                !matches!(name.as_str(),
-                    "int" | "string" | "float" | "bool" | "array" |
-                    "mixed" | "null" | "callable" | "iterable" | "object")
+                !matches!(
+                    name.as_str(),
+                    "int"
+                        | "string"
+                        | "float"
+                        | "bool"
+                        | "array"
+                        | "mixed"
+                        | "null"
+                        | "callable"
+                        | "iterable"
+                        | "object"
+                )
             }
             // Check the inner type for nullable
             TypeHint::Nullable(inner) => self.requires_strict_type_check(inner),
             // For union/intersection/DNF, check if any part requires strict checking
             TypeHint::Union(types) => types.iter().any(|t| self.requires_strict_type_check(t)),
-            TypeHint::Intersection(types) => types.iter().any(|t| self.requires_strict_type_check(t)),
-            TypeHint::DNF(groups) => groups.iter().any(|g| g.iter().any(|t| self.requires_strict_type_check(t))),
+            TypeHint::Intersection(types) => {
+                types.iter().any(|t| self.requires_strict_type_check(t))
+            }
+            TypeHint::DNF(groups) => groups
+                .iter()
+                .any(|g| g.iter().any(|t| self.requires_strict_type_check(t))),
             // These special types are for return types
-            TypeHint::Void | TypeHint::Never | TypeHint::Static |
-            TypeHint::SelfType | TypeHint::ParentType => false,
+            TypeHint::Void
+            | TypeHint::Never
+            | TypeHint::Static
+            | TypeHint::SelfType
+            | TypeHint::ParentType => false,
         }
     }
 
@@ -3067,7 +3547,9 @@ impl<W: Write> VM<W> {
                                 while end_pos < chars.len() && chars[end_pos].is_ascii_digit() {
                                     end_pos += 1;
                                 }
-                                if end_pos == 0 || (end_pos == 1 && (chars[0] == '+' || chars[0] == '-')) {
+                                if end_pos == 0
+                                    || (end_pos == 1 && (chars[0] == '+' || chars[0] == '-'))
+                                {
                                     // No digits found - coerce to 0
                                     return Value::Integer(0);
                                 }
@@ -3078,15 +3560,9 @@ impl<W: Write> VM<W> {
                             _ => Value::Integer(value.to_int()),
                         }
                     }
-                    "float" => {
-                        Value::Float(value.to_float())
-                    }
-                    "string" => {
-                        Value::String(value.to_string_val())
-                    }
-                    "bool" => {
-                        Value::Bool(value.to_bool())
-                    }
+                    "float" => Value::Float(value.to_float()),
+                    "string" => Value::String(value.to_string_val()),
+                    "bool" => Value::Bool(value.to_bool()),
                     _ => value, // For other types, don't coerce
                 }
             }
@@ -3107,21 +3583,29 @@ impl<W: Write> VM<W> {
         match type_hint {
             TypeHint::Simple(name) => name.clone(),
             TypeHint::Nullable(inner) => format!("?{}", self.format_type_hint(inner)),
-            TypeHint::Union(types) => types.iter()
+            TypeHint::Union(types) => types
+                .iter()
                 .map(|t| self.format_type_hint(t))
                 .collect::<Vec<_>>()
                 .join("|"),
-            TypeHint::Intersection(types) => types.iter()
+            TypeHint::Intersection(types) => types
+                .iter()
                 .map(|t| self.format_type_hint(t))
                 .collect::<Vec<_>>()
                 .join("&"),
-            TypeHint::DNF(groups) => groups.iter()
+            TypeHint::DNF(groups) => groups
+                .iter()
                 .map(|group| {
-                    let inner = group.iter()
+                    let inner = group
+                        .iter()
                         .map(|t| self.format_type_hint(t))
                         .collect::<Vec<_>>()
                         .join("&");
-                    if group.len() > 1 { format!("({})", inner) } else { inner }
+                    if group.len() > 1 {
+                        format!("({})", inner)
+                    } else {
+                        inner
+                    }
                 })
                 .collect::<Vec<_>>()
                 .join("|"),
@@ -3135,7 +3619,11 @@ impl<W: Write> VM<W> {
     }
 
     /// Call a reflection function or regular builtin function
-    fn call_reflection_or_builtin(&mut self, func_name: &str, args: &[Value]) -> Result<Value, String> {
+    fn call_reflection_or_builtin(
+        &mut self,
+        func_name: &str,
+        args: &[Value],
+    ) -> Result<Value, String> {
         match func_name {
             "get_class_attributes" => {
                 if args.is_empty() {
@@ -3167,7 +3655,12 @@ impl<W: Write> VM<W> {
                 let class_name = args[0].to_string_val();
                 let method_name = args[1].to_string_val();
                 let parameter_name = args[2].to_string_val();
-                reflection::get_method_parameter_attributes(&class_name, &method_name, &parameter_name, &self.classes)
+                reflection::get_method_parameter_attributes(
+                    &class_name,
+                    &method_name,
+                    &parameter_name,
+                    &self.classes,
+                )
             }
             "get_function_attributes" => {
                 if args.is_empty() {
@@ -3182,7 +3675,11 @@ impl<W: Write> VM<W> {
                 }
                 let function_name = args[0].to_string_val();
                 let parameter_name = args[1].to_string_val();
-                reflection::get_parameter_attributes(&function_name, &parameter_name, &self.functions)
+                reflection::get_parameter_attributes(
+                    &function_name,
+                    &parameter_name,
+                    &self.functions,
+                )
             }
             "get_interface_attributes" => {
                 if args.is_empty() {

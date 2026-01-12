@@ -189,6 +189,12 @@ pub enum Opcode {
     StoreStaticProp(u32, u32),
     /// Call method: method name index, arg count (stack: object, args... -> result)
     CallMethod(u32, u8),
+    /// Call method on a local variable: var slot, method name index, arg count
+    /// This tracks the source variable so $this modifications persist
+    CallMethodOnLocal(u16, u32, u8),
+    /// Call method on a global variable: var name index, method name index, arg count
+    /// This tracks the source variable so $this modifications persist
+    CallMethodOnGlobal(u32, u32, u8),
     /// Call static method: class name index, method name index, arg count
     CallStaticMethod(u32, u32, u8),
     /// Call static method with named arguments: class name index, method name index (stack: args_array -> result)
@@ -291,38 +297,89 @@ impl Opcode {
     pub fn stack_effect(&self) -> i32 {
         match self {
             // Pushes: +1
-            Opcode::PushNull | Opcode::PushTrue | Opcode::PushFalse |
-            Opcode::PushInt(_) | Opcode::PushFloat(_) | Opcode::PushString(_) |
-            Opcode::LoadConst(_) | Opcode::LoadVar(_) | Opcode::LoadFast(_) |
-            Opcode::LoadGlobal(_) | Opcode::LoadThis | Opcode::Dup => 1,
+            Opcode::PushNull
+            | Opcode::PushTrue
+            | Opcode::PushFalse
+            | Opcode::PushInt(_)
+            | Opcode::PushFloat(_)
+            | Opcode::PushString(_)
+            | Opcode::LoadConst(_)
+            | Opcode::LoadVar(_)
+            | Opcode::LoadFast(_)
+            | Opcode::LoadGlobal(_)
+            | Opcode::LoadThis
+            | Opcode::Dup => 1,
 
             // Pops 1, pushes 1: 0
-            Opcode::Neg | Opcode::Not | Opcode::BitwiseNot | Opcode::Cast(_) |
-            Opcode::TypeCheck(_) | Opcode::InstanceOf(_) | Opcode::Clone |
-            Opcode::PreInc | Opcode::PreDec | Opcode::PostInc | Opcode::PostDec |
-            Opcode::ArrayCount => 0,
+            Opcode::Neg
+            | Opcode::Not
+            | Opcode::BitwiseNot
+            | Opcode::Cast(_)
+            | Opcode::TypeCheck(_)
+            | Opcode::InstanceOf(_)
+            | Opcode::Clone
+            | Opcode::PreInc
+            | Opcode::PreDec
+            | Opcode::PostInc
+            | Opcode::PostDec
+            | Opcode::ArrayCount => 0,
 
             // Pops 2, pushes 1: -1
-            Opcode::Add | Opcode::Sub | Opcode::Mul | Opcode::Div | Opcode::Mod |
-            Opcode::Pow | Opcode::Concat | Opcode::Eq | Opcode::Ne | Opcode::Identical |
-            Opcode::NotIdentical | Opcode::Lt | Opcode::Le | Opcode::Gt | Opcode::Ge |
-            Opcode::Spaceship | Opcode::And | Opcode::Or | Opcode::Xor | Opcode::BitwiseAnd |
-            Opcode::BitwiseOr | Opcode::BitwiseXor | Opcode::ShiftLeft | Opcode::ShiftRight |
-            Opcode::NullCoalesce | Opcode::ArrayGet | Opcode::ArrayPush |
-            Opcode::ArrayGetKeyAt | Opcode::ArrayGetValueAt => -1,
+            Opcode::Add
+            | Opcode::Sub
+            | Opcode::Mul
+            | Opcode::Div
+            | Opcode::Mod
+            | Opcode::Pow
+            | Opcode::Concat
+            | Opcode::Eq
+            | Opcode::Ne
+            | Opcode::Identical
+            | Opcode::NotIdentical
+            | Opcode::Lt
+            | Opcode::Le
+            | Opcode::Gt
+            | Opcode::Ge
+            | Opcode::Spaceship
+            | Opcode::And
+            | Opcode::Or
+            | Opcode::Xor
+            | Opcode::BitwiseAnd
+            | Opcode::BitwiseOr
+            | Opcode::BitwiseXor
+            | Opcode::ShiftLeft
+            | Opcode::ShiftRight
+            | Opcode::NullCoalesce
+            | Opcode::ArrayGet
+            | Opcode::ArrayPush
+            | Opcode::ArrayGetKeyAt
+            | Opcode::ArrayGetValueAt => -1,
 
             // Pops 3, pushes 1: -2
             Opcode::ArraySet => -2,
 
             // Pops 1, pushes 0: -1
-            Opcode::Pop | Opcode::StoreVar(_) | Opcode::StoreFast(_) |
-            Opcode::StoreGlobal(_) | Opcode::Return | Opcode::Echo |
-            Opcode::JumpIfFalse(_) | Opcode::JumpIfTrue(_) | Opcode::Throw => -1,
+            Opcode::Pop
+            | Opcode::StoreVar(_)
+            | Opcode::StoreFast(_)
+            | Opcode::StoreGlobal(_)
+            | Opcode::Return
+            | Opcode::Echo
+            | Opcode::JumpIfFalse(_)
+            | Opcode::JumpIfTrue(_)
+            | Opcode::Throw => -1,
 
             // Special cases
-            Opcode::ReturnNull | Opcode::Jump(_) | Opcode::Nop |
-            Opcode::LoopStart(_, _) | Opcode::LoopEnd | Opcode::TryStart(_, _) |
-            Opcode::TryEnd | Opcode::Break | Opcode::Continue | Opcode::Swap => 0,
+            Opcode::ReturnNull
+            | Opcode::Jump(_)
+            | Opcode::Nop
+            | Opcode::LoopStart(_, _)
+            | Opcode::LoopEnd
+            | Opcode::TryStart(_, _)
+            | Opcode::TryEnd
+            | Opcode::Break
+            | Opcode::Continue
+            | Opcode::Swap => 0,
 
             // Function calls: variable effect (handled specially)
             Opcode::Call(_, n) | Opcode::CallBuiltin(_, n) => -(*n as i32),
@@ -330,29 +387,31 @@ impl Opcode {
             Opcode::CallNamed(_) | Opcode::CallBuiltinNamed(_) => 0, // pops assoc array, pushes result
             Opcode::CallCallable(n) => -(*n as i32) - 1 + 1, // pops callable + args, pushes result
             Opcode::CallMethod(_, n) => -(*n as i32) - 1 + 1, // pops object + args, pushes result
+            Opcode::CallMethodOnLocal(_, _, n) => -(*n as i32) + 1, // pops args only (loads from local), pushes result
+            Opcode::CallMethodOnGlobal(_, _, n) => -(*n as i32) + 1, // pops args only (loads from global), pushes result
             Opcode::CallStaticMethod(_, _, n) => -(*n as i32) + 1,
             Opcode::CallStaticMethodNamed(_, _) => 0, // pops array, pushes result
             Opcode::CallConstructor(n) => -(*n as i32), // pops args, uses object in-place
-            Opcode::CallConstructorNamed => -1, // pops args array, uses object in-place
+            Opcode::CallConstructorNamed => -1,       // pops args array, uses object in-place
 
             // Object operations
             Opcode::NewObject(_) => 1,
-            Opcode::LoadProperty(_) => 0, // pops object, pushes value
+            Opcode::LoadProperty(_) => 0,   // pops object, pushes value
             Opcode::StoreProperty(_) => -1, // pops object and value, pushes object
             Opcode::StoreThisProperty(_) => 0, // pops value, modifies $this in slot 0, pushes value back
             Opcode::StoreCloneProperty(_) => -1, // pops object and value, pushes modified object
-            Opcode::UnsetProperty(_) => -1, // pops object
-            Opcode::UnsetVar(_) => 0, // no stack effect
-            Opcode::UnsetArrayElement => -2, // pops array and key
+            Opcode::UnsetProperty(_) => -1,    // pops object
+            Opcode::UnsetVar(_) => 0,          // no stack effect
+            Opcode::UnsetArrayElement => -2,   // pops array and key
             Opcode::LoadStaticProp(_, _) => 1,
             Opcode::StoreStaticProp(_, _) => -1,
             Opcode::LoadEnumCase(_, _) => 1, // pushes enum case value
 
             // Array
             Opcode::NewArray(n) => 1 - (*n as i32) * 2, // pops n key-value pairs, pushes array
-            Opcode::ArrayAppend => -1, // pops array and value, pushes array
-            Opcode::ArrayUnpack => 0, // varies at runtime
-            Opcode::ArrayMerge => -1, // pops two arrays, pushes merged array
+            Opcode::ArrayAppend => -1,                  // pops array and value, pushes array
+            Opcode::ArrayUnpack => 0,                   // varies at runtime
+            Opcode::ArrayMerge => -1,                   // pops two arrays, pushes merged array
 
             // Null coalescing jumps
             Opcode::JumpIfNull(_) | Opcode::JumpIfNotNull(_) => 0, // doesn't pop

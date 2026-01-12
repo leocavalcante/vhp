@@ -8,6 +8,19 @@ use crate::vm::opcode::CompiledFunction;
 use std::collections::HashMap;
 use std::sync::Arc;
 
+/// Source of $this for method calls - tracks where to update after method returns
+#[derive(Debug, Clone)]
+pub enum ThisSource {
+    /// No tracking needed (e.g., chained method calls)
+    None,
+    /// $this came from a local variable slot in the caller's frame
+    LocalSlot(u16),
+    /// $this came from a global variable
+    GlobalVar(String),
+    /// Property set hook - push modified $this to stack instead of return value
+    PropertySetHook,
+}
+
 /// A call frame represents a single function invocation
 #[derive(Debug, Clone)]
 pub struct CallFrame {
@@ -27,6 +40,8 @@ pub struct CallFrame {
     pub called_class: Option<String>,
     /// Whether this is a constructor frame (returns $this on completion)
     pub is_constructor: bool,
+    /// Tracks where $this came from so we can update the source after method returns
+    pub this_source: ThisSource,
 }
 
 impl CallFrame {
@@ -42,6 +57,7 @@ impl CallFrame {
             this: None,
             called_class: None,
             is_constructor: false,
+            this_source: ThisSource::None,
         }
     }
 
@@ -62,6 +78,7 @@ impl CallFrame {
             this: Some(this),
             called_class: Some(called_class),
             is_constructor: false,
+            this_source: ThisSource::None,
         }
     }
 
