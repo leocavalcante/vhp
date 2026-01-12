@@ -132,6 +132,7 @@ fn value_to_json(value: &Value, depth: u32) -> Result<String, String> {
         }
         Value::Closure(_) => Ok("null".to_string()),
         Value::Fiber(_) => Ok("null".to_string()),
+        Value::Generator(_) => Ok("null".to_string()),
         Value::EnumCase { .. } => Ok("null".to_string()),
         Value::Exception(_) => Ok("null".to_string()),
     }
