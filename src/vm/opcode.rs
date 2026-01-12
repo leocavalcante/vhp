@@ -136,6 +136,12 @@ pub enum Opcode {
     /// Return null from function
     ReturnNull,
 
+    // ==================== Generators ====================
+    /// Yield value from generator
+    Yield,
+    /// Yield from iterator
+    YieldFrom,
+
     // ==================== Loop Control ====================
     /// Break out of loop
     Break,
@@ -387,11 +393,12 @@ impl Opcode {
             | Opcode::Echo
             | Opcode::JumpIfFalse(_)
             | Opcode::JumpIfTrue(_)
-            | Opcode::Throw => -1,
+            | Opcode::Throw
+            | Opcode::Yield => -1,
 
             // Special cases
-            Opcode::ReturnNull
-            | Opcode::Jump(_)
+            Opcode::ReturnNull | Opcode::YieldFrom => -1,
+            Opcode::Jump(_)
             | Opcode::Nop
             | Opcode::LoopStart(_, _)
             | Opcode::LoopEnd
