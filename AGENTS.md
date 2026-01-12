@@ -72,7 +72,7 @@ src/
         ├── output.rs    # Output functions (4)
         └── reflection.rs # Reflection functions (8)
 
-tests/                   # Test suite organized by feature (490 tests)
+tests/                   # Test suite organized by feature (509 tests)
 ├── arrays/              # Array tests (18)
 ├── attributes/          # Attribute syntax and reflection tests (29)
 ├── builtins/            # Built-in function tests (26)
@@ -193,13 +193,15 @@ Source Code → Lexer → Tokens → Parser → AST → Compiler → Bytecode �
 - [x] Type hints for parameters (int, string, float, bool, array, etc.)
 - [x] Return type declarations (including void, never, static)
 
-### Built-in Functions (73)
+### Built-in Functions (95+)
 - [x] **String** (23): `strlen`, `substr`, `strtoupper`, `strtolower`, `trim`, `ltrim`, `rtrim`, `str_repeat`, `str_replace`, `strpos`, `strrev`, `ucfirst`, `lcfirst`, `ucwords`, `str_starts_with`, `str_ends_with`, `str_contains`, `str_pad`, `explode`, `implode`/`join`, `sprintf`, `chr`, `ord`
-- [x] **Math** (9): `abs`, `ceil`, `floor`, `round`, `max`, `min`, `pow`, `sqrt`, `rand`/`mt_rand`
-- [x] **Array** (15): `count`/`sizeof`, `array_push`, `array_pop`, `array_shift`, `array_unshift`, `array_keys`, `array_values`, `in_array`, `array_search`, `array_reverse`, `array_merge`, `array_key_exists`, `range`, `array_first`, `array_last`
+- [x] **Math** (9): `abs`, `ceil`, `floor`, `round`, `max`, `min`, `pow`, `sqrt`, `rand`/`mt_rand`, `sin`, `cos`, `tan`, `log10`, `exp`, `pi`
+- [x] **Array** (21): `count`/`sizeof`, `array_push`, `array_pop`, `array_shift`, `array_unshift`, `array_keys`, `array_values`, `in_array`, `array_search`, `array_reverse`, `array_merge`, `array_key_exists`, `range`, `array_first`, `array_last`, `array_map`, `array_filter`, `array_reduce`, `array_sum`, `array_unique`
 - [x] **Type** (14): `intval`, `floatval`/`doubleval`, `strval`, `boolval`, `gettype`, `is_null`, `is_bool`, `is_int`/`is_integer`/`is_long`, `is_float`/`is_double`/`is_real`, `is_string`, `is_array`, `is_numeric`, `isset`, `empty`
 - [x] **Output** (4): `print`, `var_dump`, `print_r`, `printf`
 - [x] **Reflection** (8): `get_class_attributes`, `get_method_attributes`, `get_property_attributes`, `get_function_attributes`, `get_parameter_attributes`, `get_method_parameter_attributes`, `get_interface_attributes`, `get_trait_attributes`
+- [x] **JSON** (2): `json_encode`, `json_decode`
+- [x] **File I/O** (10): `file_get_contents`, `file_put_contents`, `file_exists`, `is_file`, `is_dir`, `filemtime`, `filesize`, `unlink`, `is_readable`, `is_writable`
 
 ### Type Coercion (PHP-compatible)
 - [x] Loose equality (`==`) with type coercion
@@ -365,6 +367,46 @@ function apply($value, $func) {
     return $func($value);
 }
 echo apply("hello", strtoupper(...)); // HELLO
+```
+
+### Generators (PHP 5.5+)
+- [x] Basic yield syntax: `yield $value`
+- [x] Yield with keys: `yield $key => $value`
+- [x] Yield from iterables: `yield from $array`
+- [x] Yield without value: `yield;` (yields NULL)
+- [ ] Generator object creation and state management
+- [ ] Generator execution with send() and throw() methods
+- [ ] Generator return values (PHP 7.0)
+
+**Note:** Generators can be parsed and compiled, but full execution with resume/send is not yet implemented. Currently, generator functions return a placeholder Generator object.
+
+**Example:**
+```php
+<?php
+// Basic yield
+function gen() {
+    yield 1;
+    yield 2;
+    yield 3;
+}
+$g = gen();
+var_dump($g);
+
+// Yield with keys
+function keyed_gen() {
+    yield 'a' => 1;
+    yield 'b' => 2;
+}
+
+// Yield from
+function from_gen() {
+    yield from [1, 2, 3];
+}
+
+// Yield without value (yields NULL)
+function null_gen() {
+    yield;
+}
 ```
 
 ### Anonymous Classes (PHP 7.0)
@@ -780,7 +822,9 @@ Essential PHP features for compatibility with standard PHP code.
 - [x] Namespace resolution for classes and interfaces
 
 **Generators:**
-- [ ] yield keyword and yield from (PHP 7.0)
+- [x] yield keyword and yield from (PHP 5.5/7.0)
+- [x] Generator object creation and basic structure
+- [ ] Generator execution with resume/send methods
 - [ ] Generator return values (PHP 7.0)
 - [ ] Iterator interfaces
 
