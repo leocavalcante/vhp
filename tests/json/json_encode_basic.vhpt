@@ -1,0 +1,17 @@
+--TEST--
+json_encode - basic types
+--FILE--
+<?php
+echo json_encode(null) . "\n";
+echo json_encode(true) . "\n";
+echo json_encode(false) . "\n";
+echo json_encode(42) . "\n";
+echo json_encode(3.14) . "\n";
+echo json_encode("hello") . "\n";
+--EXPECT--
+null
+true
+false
+42
+3.14
+"hello"

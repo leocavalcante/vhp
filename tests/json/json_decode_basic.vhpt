@@ -1,0 +1,15 @@
+--TEST--
+json_decode - basic parsing
+--FILE--
+<?php
+var_dump(json_decode('null'));
+var_dump(json_decode('true'));
+var_dump(json_decode('false'));
+var_dump(json_decode('42'));
+var_dump(json_decode('"hello"'));
+--EXPECT--
+NULL
+bool(true)
+bool(false)
+int(42)
+string(5) "hello"

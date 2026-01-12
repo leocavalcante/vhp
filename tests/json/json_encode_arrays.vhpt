@@ -1,0 +1,11 @@
+--TEST--
+json_encode - arrays
+--FILE--
+<?php
+echo json_encode([1, 2, 3]) . "\n";
+echo json_encode(["a" => "b", "c" => "d"]) . "\n";
+echo json_encode([]) . "\n";
+--EXPECT--
+[1,2,3]
+{"a":"b","c":"d"}
+[]

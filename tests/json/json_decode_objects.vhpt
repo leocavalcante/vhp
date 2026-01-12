@@ -1,0 +1,21 @@
+--TEST--
+json_decode - arrays and objects
+--FILE--
+<?php
+var_dump(json_decode('[1,2,3]'));
+var_dump(json_decode('{"a":"b","c":"d"}'));
+--EXPECT--
+array(3) {
+  [0]=>
+  int(1)
+  [1]=>
+  int(2)
+  [2]=>
+  int(3)
+}
+  array(2) {
+    ["a"]=>
+    string(1) "b"
+    ["c"]=>
+    string(1) "d"
+  }

@@ -34,6 +34,9 @@ pub const BUILTIN_FUNCTIONS: &[&str] = &[
     "sprintf",
     "chr",
     "ord",
+    // JSON functions
+    "json_encode",
+    "json_decode",
     // Math functions
     "abs",
     "ceil",
@@ -135,6 +138,10 @@ pub fn call_builtin<W: Write>(name: &str, args: &[Value], output: &mut W) -> Res
         "chr" => builtins::string::chr(args),
         "ord" => builtins::string::ord(args),
 
+        // JSON functions
+        "json_encode" => builtins::json_encode(args),
+        "json_decode" => builtins::json_decode(args),
+
         // Math functions
         "abs" => builtins::math::abs(args),
         "ceil" => builtins::math::ceil(args),
@@ -179,6 +186,11 @@ pub fn call_builtin<W: Write>(name: &str, args: &[Value], output: &mut W) -> Res
         "range" => builtins::array::range(args),
         "array_first" => builtins::array::array_first(args),
         "array_last" => builtins::array::array_last(args),
+        "array_map" => builtins::array::array_map(args),
+        "array_filter" => builtins::array::array_filter(args),
+        "array_reduce" => builtins::array::array_reduce(args),
+        "array_sum" => builtins::array::array_sum(args),
+        "array_unique" => builtins::array::array_unique(args),
 
         // Output functions (need writer)
         "print" => builtins::output::print(output, args),
