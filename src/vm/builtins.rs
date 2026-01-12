@@ -59,6 +59,12 @@ pub const BUILTIN_FUNCTIONS: &[&str] = &[
     "sqrt",
     "rand",
     "mt_rand",
+    "sin",
+    "cos",
+    "tan",
+    "log10",
+    "exp",
+    "pi",
     // Type functions
     "intval",
     "floatval",
@@ -175,6 +181,12 @@ pub fn call_builtin<W: Write>(name: &str, args: &[Value], output: &mut W) -> Res
         "pow" => builtins::math::pow(args),
         "sqrt" => builtins::math::sqrt(args),
         "rand" | "mt_rand" => builtins::math::rand(args),
+        "sin" => builtins::math::sin(args),
+        "cos" => builtins::math::cos(args),
+        "tan" => builtins::math::tan(args),
+        "log10" => builtins::math::log10(args),
+        "exp" => builtins::math::exp(args),
+        "pi" => builtins::math::pi(args),
 
         // Type functions
         "intval" => builtins::types::intval(args),
