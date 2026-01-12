@@ -887,6 +887,38 @@ Essential PHP features for compatibility with standard PHP code.
 - **Clear error messages** with line/column information
 - **PHP compatibility** - existing PHP 8.x code should work
 - **Incremental development** - small, focused changes
+- **File size guidelines**: Keep source files at 300-500 lines for maintainability. When files exceed 500 lines, split them into focused sub-modules with clear boundaries.
+
+## Common Patterns
+
+### Adding a Binary Operator
+
+1. Add token: `Plus`, `Minus`, etc.
+2. Lexer: recognize the character
+3. AST: `BinaryOp { left: Expr, op: Operator, right: Expr }`
+4. Parser: implement operator precedence (Pratt parsing recommended)
+5. Interpreter: evaluate both sides, apply operation
+
+### Adding a Keyword Statement
+
+1. Add token: `If`, `While`, `For`, etc.
+2. Lexer: add to keyword matching
+3. AST: add statement variant
+4. Parser: add `parse_<keyword>()` method
+5. Interpreter: add execution logic
+
+### Managing Large Files
+
+When a file exceeds 500 lines:
+1. Create new sub-module directory (e.g., `vm/ops/`, `vm/types`)
+2. Split related functionality logically (arithmetic, strings, comparison, etc.)
+3. Update parent module to use the new sub-modules
+4. Re-compile and test after each split
+5. Update documentation to reflect new structure
+
+Examples:
+- `vm/mod.rs` (4450 lines) → `vm/ops/arithmetic.rs`, `vm/ops/strings.rs`, `vm/types.rs`
+- `runtime/value.rs` (665 lines) → `runtime/value/closure.rs`, `runtime/value/object.rs`, etc.
 
 ## Common Patterns
 
