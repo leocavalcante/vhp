@@ -174,6 +174,8 @@ impl Lexer {
             "default" => TokenKind::Default,
             "break" => TokenKind::Break,
             "continue" => TokenKind::Continue,
+            "yield" => TokenKind::Yield,
+            "from" => TokenKind::From,
             "endif" => TokenKind::Endif,
             "endwhile" => TokenKind::Endwhile,
             "endfor" => TokenKind::Endfor,

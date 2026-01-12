@@ -23,6 +23,8 @@ pub enum TokenKind {
     Break,    // break
     Continue, // continue
     Do,       // do
+    Yield,    // yield (PHP 5.5)
+    From,     // from (for yield from, PHP 7.0)
 
     // Alternative syntax end keywords
     Endif,      // endif
