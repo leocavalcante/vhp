@@ -131,3 +131,64 @@ pub fn rand(args: &[Value]) -> Result<Value, String> {
 
     Ok(Value::Integer(random))
 }
+
+/// sin - Sine of an angle in radians
+pub fn sin(args: &[Value]) -> Result<Value, String> {
+    if args.is_empty() {
+        return Err("sin() expects exactly 1 parameter".to_string());
+    }
+    Ok(Value::Float(args[0].to_float().sin()))
+}
+
+/// cos - Cosine of an angle in radians
+pub fn cos(args: &[Value]) -> Result<Value, String> {
+    if args.is_empty() {
+        return Err("cos() expects exactly 1 parameter".to_string());
+    }
+    Ok(Value::Float(args[0].to_float().cos()))
+}
+
+/// tan - Tangent of an angle in radians
+pub fn tan(args: &[Value]) -> Result<Value, String> {
+    if args.is_empty() {
+        return Err("tan() expects exactly 1 parameter".to_string());
+    }
+    Ok(Value::Float(args[0].to_float().tan()))
+}
+
+/// log - Natural logarithm
+pub fn log(args: &[Value]) -> Result<Value, String> {
+    if args.is_empty() {
+        return Err("log() expects exactly 1 parameter".to_string());
+    }
+    let val = args[0].to_float();
+    if val <= 0.0 {
+        return Err("log() argument must be greater than 0".to_string());
+    }
+    Ok(Value::Float(val.ln()))
+}
+
+/// log10 - Base-10 logarithm
+pub fn log10(args: &[Value]) -> Result<Value, String> {
+    if args.is_empty() {
+        return Err("log10() expects exactly 1 parameter".to_string());
+    }
+    let val = args[0].to_float();
+    if val <= 0.0 {
+        return Err("log10() argument must be greater than 0".to_string());
+    }
+    Ok(Value::Float(val.log10()))
+}
+
+/// exp - Exponential function
+pub fn exp(args: &[Value]) -> Result<Value, String> {
+    if args.is_empty() {
+        return Err("exp() expects exactly 1 parameter".to_string());
+    }
+    Ok(Value::Float(args[0].to_float().exp()))
+}
+
+/// pi - Mathematical constant
+pub fn pi(_args: &[Value]) -> Result<Value, String> {
+    Ok(Value::Float(std::f64::consts::PI))
+}
