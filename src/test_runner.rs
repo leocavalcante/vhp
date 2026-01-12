@@ -157,7 +157,7 @@ fn run_code(source: &str) -> Result<String, String> {
 
     // Execute with VM
     let mut output = Vec::new();
-    let mut vm = VM::new(&mut output, std::ptr::null_mut());
+    let mut vm = VM::new(&mut output);
     vm.register_builtins();
     vm.register_functions(compilation.functions);
     vm.register_classes(compilation.classes);

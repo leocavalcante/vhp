@@ -1,7 +1,7 @@
 //! Reflection built-in functions for attributes
 
 use crate::ast::{Attribute, AttributeArgument, Expr};
-use crate::interpreter::value::{ArrayKey, Value};
+use crate::runtime::{ArrayKey, Value};
 
 /// Convert an Attribute AST node to a runtime Value (associative array)
 /// Format: ["name" => "AttributeName", "arguments" => [...]]
@@ -83,7 +83,7 @@ fn expr_to_simple_value(expr: &Expr) -> Value {
 /// Usage: get_class_attributes(string $class_name): array
 pub fn get_class_attributes(
     args: &[Value],
-    classes: &std::collections::HashMap<String, crate::interpreter::ClassDefinition>,
+    classes: &std::collections::HashMap<String, crate::runtime::ClassDefinition>,
 ) -> Result<Value, String> {
     if args.len() != 1 {
         return Err("get_class_attributes() expects exactly 1 parameter".to_string());
@@ -109,7 +109,7 @@ pub fn get_class_attributes(
 /// Usage: get_method_attributes(string $class_name, string $method_name): array
 pub fn get_method_attributes(
     args: &[Value],
-    classes: &std::collections::HashMap<String, crate::interpreter::ClassDefinition>,
+    classes: &std::collections::HashMap<String, crate::runtime::ClassDefinition>,
 ) -> Result<Value, String> {
     if args.len() != 2 {
         return Err("get_method_attributes() expects exactly 2 parameters".to_string());
@@ -144,7 +144,7 @@ pub fn get_method_attributes(
 /// Usage: get_property_attributes(string $class_name, string $property_name): array
 pub fn get_property_attributes(
     args: &[Value],
-    classes: &std::collections::HashMap<String, crate::interpreter::ClassDefinition>,
+    classes: &std::collections::HashMap<String, crate::runtime::ClassDefinition>,
 ) -> Result<Value, String> {
     if args.len() != 2 {
         return Err("get_property_attributes() expects exactly 2 parameters".to_string());
@@ -184,7 +184,7 @@ pub fn get_property_attributes(
 /// Usage: get_function_attributes(string $function_name): array
 pub fn get_function_attributes(
     args: &[Value],
-    functions: &std::collections::HashMap<String, crate::interpreter::UserFunction>,
+    functions: &std::collections::HashMap<String, crate::runtime::UserFunction>,
 ) -> Result<Value, String> {
     if args.len() != 1 {
         return Err("get_function_attributes() expects exactly 1 parameter".to_string());
@@ -215,7 +215,7 @@ pub fn get_function_attributes(
 /// Usage: get_parameter_attributes(string $function_name, string $parameter_name): array
 pub fn get_parameter_attributes(
     args: &[Value],
-    functions: &std::collections::HashMap<String, crate::interpreter::UserFunction>,
+    functions: &std::collections::HashMap<String, crate::runtime::UserFunction>,
 ) -> Result<Value, String> {
     if args.len() != 2 {
         return Err("get_parameter_attributes() expects exactly 2 parameters".to_string());
@@ -260,7 +260,7 @@ pub fn get_parameter_attributes(
 /// Usage: get_method_parameter_attributes(string $class_name, string $method_name, string $parameter_name): array
 pub fn get_method_parameter_attributes(
     args: &[Value],
-    classes: &std::collections::HashMap<String, crate::interpreter::ClassDefinition>,
+    classes: &std::collections::HashMap<String, crate::runtime::ClassDefinition>,
 ) -> Result<Value, String> {
     if args.len() != 3 {
         return Err("get_method_parameter_attributes() expects exactly 3 parameters".to_string());
@@ -309,7 +309,7 @@ pub fn get_method_parameter_attributes(
 /// Usage: get_interface_attributes(string $interface_name): array
 pub fn get_interface_attributes(
     args: &[Value],
-    interfaces: &std::collections::HashMap<String, crate::interpreter::InterfaceDefinition>,
+    interfaces: &std::collections::HashMap<String, crate::runtime::InterfaceDefinition>,
 ) -> Result<Value, String> {
     if args.len() != 1 {
         return Err("get_interface_attributes() expects exactly 1 parameter".to_string());
@@ -335,7 +335,7 @@ pub fn get_interface_attributes(
 /// Usage: get_trait_attributes(string $trait_name): array
 pub fn get_trait_attributes(
     args: &[Value],
-    traits: &std::collections::HashMap<String, crate::interpreter::TraitDefinition>,
+    traits: &std::collections::HashMap<String, crate::runtime::TraitDefinition>,
 ) -> Result<Value, String> {
     if args.len() != 1 {
         return Err("get_trait_attributes() expects exactly 1 parameter".to_string());

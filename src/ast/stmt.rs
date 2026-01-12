@@ -46,6 +46,7 @@ pub enum UseType {
 
 /// Single use import
 #[derive(Debug, Clone)]
+#[allow(dead_code)] // use_type parsed but not yet used
 pub struct UseItem {
     pub name: QualifiedName,
     pub alias: Option<String>, // `as` alias
@@ -208,6 +209,7 @@ pub struct InterfaceMethodSignature {
 
 /// Interface constant
 #[derive(Debug, Clone)]
+#[allow(dead_code)] // name and value parsed but not yet used
 pub struct InterfaceConstant {
     pub name: String,
     pub value: Expr,
@@ -257,6 +259,7 @@ pub enum TraitResolution {
 
 /// Catch clause for try statement
 #[derive(Debug, Clone)]
+#[allow(dead_code)] // exception_types parsed but not yet used
 pub struct CatchClause {
     /// Exception types to catch (supports multi-catch with |)
     pub exception_types: Vec<String>,

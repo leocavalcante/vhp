@@ -59,9 +59,9 @@ src/
 │   ├── opcode.rs        # Opcode definitions
 │   ├── frame.rs         # Call frames and loop contexts
 │   ├── class.rs         # CompiledClass, CompiledInterface, etc.
-│   └── builtins.rs      # Bridge to interpreter builtins
-└── interpreter/         # Value types and built-in functions
-    ├── mod.rs           # Value definitions, ObjectInstance
+│   └── builtins.rs      # Bridge to runtime builtins
+└── runtime/         # Value types and built-in functions
+    ├── mod.rs           # Value definitions and types
     ├── value.rs         # Value type and coercion
     └── builtins/        # Built-in function modules
         ├── mod.rs       # Module exports
@@ -616,12 +616,12 @@ fn parse_statement(&mut self) -> Result<Option<Stmt>, String> {
 }
 ```
 
-### 5. Update Interpreter (`interpreter/`)
+### 5. Update Interpreter (`runtime/`)
 
 Add execution logic:
 
 ```rust
-// In interpreter/mod.rs
+// In runtime/mod.rs
 pub fn execute(&mut self, program: &Program) -> io::Result<()> {
     for stmt in &program.statements {
         match stmt {
@@ -633,7 +633,7 @@ pub fn execute(&mut self, program: &Program) -> io::Result<()> {
     }
 }
 
-// For built-in functions, add to the appropriate file in interpreter/builtins/
+// For built-in functions, add to the appropriate file in runtime/builtins/
 // String functions → builtins/string.rs
 // Math functions → builtins/math.rs
 // Type functions → builtins/types.rs

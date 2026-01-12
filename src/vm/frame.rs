@@ -3,7 +3,7 @@
 //! This module defines the call frame structure used to track
 //! function execution state in the VM.
 
-use crate::interpreter::Value;
+use crate::runtime::Value;
 use crate::vm::opcode::CompiledFunction;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -23,24 +23,25 @@ pub enum ThisSource {
 
 /// A call frame represents a single function invocation
 #[derive(Debug, Clone)]
+#[allow(dead_code)] // stack_base, saved_globals, and this fields not yet used
 pub struct CallFrame {
-    /// Reference to the compiled function being executed
+    /// Reference to compiled function being executed
     pub function: Arc<CompiledFunction>,
     /// Instruction pointer (index into bytecode)
     pub ip: usize,
-    /// Base index in the value stack for this frame
+    /// Base index in value stack for this frame
     pub stack_base: usize,
     /// Local variables (fixed-size slots for fast access)
     pub locals: Vec<Value>,
     /// Saved global variables (for restoring after function call)
     pub saved_globals: Option<HashMap<String, Value>>,
     /// Current `$this` object (for methods)
-    pub this: Option<crate::interpreter::ObjectInstance>,
+    pub this: Option<crate::runtime::ObjectInstance>,
     /// Called class name (for late static binding)
     pub called_class: Option<String>,
     /// Whether this is a constructor frame (returns $this on completion)
     pub is_constructor: bool,
-    /// Tracks where $this came from so we can update the source after method returns
+    /// Tracks where $this came from so we can update source after method returns
     pub this_source: ThisSource,
 }
 
@@ -62,10 +63,11 @@ impl CallFrame {
     }
 
     /// Create a new call frame for a method
+    #[allow(dead_code)]
     pub fn new_method(
         function: Arc<CompiledFunction>,
         stack_base: usize,
-        this: crate::interpreter::ObjectInstance,
+        this: crate::runtime::ObjectInstance,
         called_class: String,
     ) -> Self {
         let local_count = function.local_count as usize;
@@ -84,12 +86,14 @@ impl CallFrame {
 
     /// Get the current instruction offset
     #[inline]
+    #[allow(dead_code)]
     pub fn current_ip(&self) -> usize {
         self.ip
     }
 
     /// Advance the instruction pointer and return the new position
     #[inline]
+    #[allow(dead_code)]
     pub fn advance(&mut self) -> usize {
         self.ip += 1;
         self.ip
@@ -128,6 +132,7 @@ impl CallFrame {
 
 /// Loop context for tracking break/continue targets
 #[derive(Debug, Clone)]
+#[allow(dead_code)] // stack_depth field not yet used
 pub struct LoopContext {
     /// Instruction offset for continue
     pub continue_target: u32,
@@ -139,10 +144,11 @@ pub struct LoopContext {
 
 /// Exception handler for try/catch/finally
 #[derive(Debug, Clone)]
+#[allow(dead_code)] // catch_class, catch_var, and stack_depth fields not yet used
 pub struct ExceptionHandler {
-    /// Start of the try block
+    /// Start of try block
     pub try_start: u32,
-    /// End of the try block
+    /// End of try block
     pub try_end: u32,
     /// Catch block offset (0 if no catch)
     pub catch_offset: u32,
@@ -152,8 +158,8 @@ pub struct ExceptionHandler {
     pub catch_var: String,
     /// Finally block offset (0 if no finally)
     pub finally_offset: u32,
-    /// Stack depth at try block start
+    /// Stack depth at handler entry (for proper cleanup)
     pub stack_depth: usize,
-    /// Frame depth when handler was registered (for cross-frame exception handling)
+    /// Call frame depth at handler entry (for exception propagation)
     pub frame_depth: usize,
 }

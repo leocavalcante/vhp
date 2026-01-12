@@ -8,6 +8,7 @@
 /// Stack-based VM instructions. Most instructions operate on values
 /// at the top of the operand stack.
 #[derive(Debug, Clone, PartialEq)]
+#[allow(dead_code)] // Many opcode variants are defined for future use
 pub enum Opcode {
     // ==================== Literals & Constants ====================
     /// Push null value onto stack
@@ -300,6 +301,7 @@ pub enum Opcode {
 
 /// Cast type for Cast opcode
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[allow(dead_code)] // All variants defined for future use
 pub enum CastType {
     Int,
     Float,
@@ -311,6 +313,7 @@ pub enum CastType {
 
 impl Opcode {
     /// Get the stack effect of this opcode (positive = pushes, negative = pops)
+    #[allow(dead_code)]
     pub fn stack_effect(&self) -> i32 {
         match self {
             // Pushes: +1
@@ -518,6 +521,7 @@ impl CompiledFunction {
 
 /// Constant value in the constant pool
 #[derive(Debug, Clone)]
+#[allow(dead_code)] // All variants defined for future use
 pub enum Constant {
     Null,
     Bool(bool),

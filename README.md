@@ -87,7 +87,7 @@ Don't just take our word for it. Run `make bench` and see for yourself:
 - **Efficient memory management** with compile-time guarantees
 
 **What about complex operations?**
-VHP uses a tree-walking interpreter, so deeply recursive operations (like fibonacci) are slower than PHP's JIT-compiled VM. But for typical web application workloads — arrays, strings, loops, objects — VHP delivers **significantly better performance**.
+VHP uses a stack-based bytecode VM that compiles PHP to optimized bytecode, offering performance that approaches and often exceeds native PHP. The VM is designed for efficient execution with proper handling of control flow, function calls, and object-oriented features.
 
 **The bottom line:** VHP gives you Rust-level speed for everyday PHP code.
 

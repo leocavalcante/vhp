@@ -1,6 +1,6 @@
 //! Type built-in functions
 
-use crate::interpreter::value::Value;
+use crate::runtime::Value;
 
 /// intval - Get the integer value of a variable
 pub fn intval(args: &[Value]) -> Result<Value, String> {

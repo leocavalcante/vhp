@@ -9,6 +9,7 @@ use std::sync::Arc;
 
 /// Compiled class definition
 #[derive(Debug, Clone)]
+#[allow(dead_code)] // name and constants fields not yet used
 pub struct CompiledClass {
     pub name: String,
     pub is_abstract: bool,
@@ -20,9 +21,9 @@ pub struct CompiledClass {
     pub properties: Vec<CompiledProperty>,
     pub methods: HashMap<String, Arc<CompiledFunction>>,
     pub static_methods: HashMap<String, Arc<CompiledFunction>>,
-    pub static_properties: HashMap<String, crate::interpreter::Value>,
+    pub static_properties: HashMap<String, crate::runtime::Value>,
     pub readonly_static_properties: std::collections::HashSet<String>,
-    pub constants: HashMap<String, crate::interpreter::Value>,
+    pub constants: HashMap<String, crate::runtime::Value>,
     pub method_visibility: HashMap<String, Visibility>,
     pub method_finals: HashMap<String, bool>,
     pub method_abstracts: HashMap<String, bool>,
@@ -70,11 +71,12 @@ impl CompiledClass {
 
 /// Compiled property definition
 #[derive(Debug, Clone)]
+#[allow(dead_code)] // visibility and type_hint fields not yet used
 pub struct CompiledProperty {
     pub name: String,
     pub visibility: Visibility,
     pub write_visibility: Option<Visibility>,
-    pub default: Option<crate::interpreter::Value>,
+    pub default: Option<crate::runtime::Value>,
     pub readonly: bool,
     pub is_static: bool,
     pub type_hint: Option<TypeHint>,
@@ -91,13 +93,13 @@ impl CompiledProperty {
         let default = prop.default.as_ref().and_then(|expr| {
             use crate::ast::Expr;
             match expr {
-                Expr::Integer(n) => Some(crate::interpreter::Value::Integer(*n)),
-                Expr::Float(n) => Some(crate::interpreter::Value::Float(*n)),
-                Expr::String(s) => Some(crate::interpreter::Value::String(s.clone())),
-                Expr::Bool(b) => Some(crate::interpreter::Value::Bool(*b)),
-                Expr::Null => Some(crate::interpreter::Value::Null),
+                Expr::Integer(n) => Some(crate::runtime::Value::Integer(*n)),
+                Expr::Float(n) => Some(crate::runtime::Value::Float(*n)),
+                Expr::String(s) => Some(crate::runtime::Value::String(s.clone())),
+                Expr::Bool(b) => Some(crate::runtime::Value::Bool(*b)),
+                Expr::Null => Some(crate::runtime::Value::Null),
                 Expr::Array(elements) if elements.is_empty() => {
-                    Some(crate::interpreter::Value::Array(Vec::new()))
+                    Some(crate::runtime::Value::Array(Vec::new()))
                 }
                 _ => None, // Complex expressions need runtime evaluation
             }
@@ -119,11 +121,12 @@ impl CompiledProperty {
 
 /// Compiled interface definition
 #[derive(Debug, Clone)]
+#[allow(dead_code)] // name and constants fields not yet used
 pub struct CompiledInterface {
     pub name: String,
     pub parents: Vec<String>,
     pub method_signatures: Vec<(String, u8)>, // (name, param_count)
-    pub constants: HashMap<String, crate::interpreter::Value>,
+    pub constants: HashMap<String, crate::runtime::Value>,
     pub attributes: Vec<Attribute>,
 }
 
@@ -141,6 +144,7 @@ impl CompiledInterface {
 
 /// Compiled trait definition
 #[derive(Debug, Clone)]
+#[allow(dead_code)] // name field not yet used
 pub struct CompiledTrait {
     pub name: String,
     pub uses: Vec<String>,
@@ -163,10 +167,11 @@ impl CompiledTrait {
 
 /// Compiled enum definition
 #[derive(Debug, Clone)]
+#[allow(dead_code)] // name and backing_type fields not yet used
 pub struct CompiledEnum {
     pub name: String,
     pub backing_type: crate::ast::EnumBackingType,
-    pub cases: HashMap<String, Option<crate::interpreter::Value>>,
+    pub cases: HashMap<String, Option<crate::runtime::Value>>,
     pub case_order: Vec<String>, // Preserves insertion order for cases() method
     pub methods: HashMap<String, Arc<CompiledFunction>>,
     pub attributes: Vec<Attribute>,

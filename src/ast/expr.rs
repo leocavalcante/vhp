@@ -102,6 +102,7 @@ pub enum Expr {
     },
 
     // Anonymous class instantiation (PHP 7.0): new class(...) extends X implements Y { ... }
+    #[allow(dead_code)] // interfaces and traits parsed but not yet used
     NewAnonymousClass {
         constructor_args: Vec<Argument>,
         parent: Option<String>,

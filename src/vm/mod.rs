@@ -11,7 +11,7 @@ pub mod frame;
 pub mod opcode;
 pub mod reflection;
 
-use crate::interpreter::{ArrayKey, ClosureBody, Interpreter, Value};
+use crate::runtime::{ArrayKey, ClosureBody, Value};
 use class::{CompiledClass, CompiledEnum, CompiledInterface, CompiledProperty, CompiledTrait};
 use frame::{CallFrame, ExceptionHandler, LoopContext, ThisSource};
 use opcode::{CastType, CompiledFunction, Constant, Opcode};
@@ -20,6 +20,7 @@ use std::io::Write;
 use std::sync::Arc;
 
 /// The bytecode virtual machine
+#[allow(dead_code)] // current_fiber field not yet used
 pub struct VM<W: Write> {
     /// Value stack for operands
     stack: Vec<Value>,
@@ -37,8 +38,6 @@ pub struct VM<W: Write> {
     current_fiber: Option<Value>,
     /// Output writer
     output: W,
-    /// Reference to interpreter for built-in functions and classes
-    interpreter: *mut Interpreter<W>,
     /// User-defined functions
     functions: HashMap<String, Arc<CompiledFunction>>,
     /// Class definitions
@@ -53,7 +52,7 @@ pub struct VM<W: Write> {
 
 impl<W: Write> VM<W> {
     /// Create a new VM instance
-    pub fn new(output: W, interpreter: *mut Interpreter<W>) -> Self {
+    pub fn new(output: W) -> Self {
         Self {
             stack: Vec::with_capacity(256),
             frames: Vec::with_capacity(64),
@@ -63,7 +62,6 @@ impl<W: Write> VM<W> {
             pending_return: None,
             current_fiber: None,
             output,
-            interpreter,
             functions: HashMap::new(),
             classes: HashMap::new(),
             interfaces: HashMap::new(),
@@ -391,19 +389,22 @@ impl<W: Write> VM<W> {
         // Mark as started and terminated (synchronous execution)
         start.strings.push("__started".to_string());
         start.bytecode.push(Opcode::PushTrue);
-start.strings.push("__started".to_string());        start.bytecode.push(Opcode::LoadThis);
+        start.strings.push("__started".to_string());
+        start.bytecode.push(Opcode::LoadThis);
         start.bytecode.push(Opcode::StoreProperty(0)); // $this->__started = true
 
         start.strings.push("__terminated".to_string());
         start.bytecode.push(Opcode::PushTrue);
-start.strings.push("__terminated".to_string());        start.bytecode.push(Opcode::LoadThis);
+        start.strings.push("__terminated".to_string());
+        start.bytecode.push(Opcode::LoadThis);
         start.bytecode.push(Opcode::StoreProperty(1)); // $this->__terminated = true
 
         // Load and call the callback
         start.strings.push("__callback".to_string());
         start.bytecode.push(Opcode::LoadThis);
         start.bytecode.push(Opcode::LoadProperty(2)); // Load $this->__callback
-start.strings.push("__callback".to_string());        start.bytecode.push(Opcode::CallCallable(0)); // Call the callback with 0 args
+        start.strings.push("__callback".to_string());
+        start.bytecode.push(Opcode::CallCallable(0)); // Call the callback with 0 args
                                                       // Stack now: [$this, result]
 
         // Store the return value - use local to preserve $this
@@ -412,7 +413,7 @@ start.strings.push("__callback".to_string());        start.bytecode.push(Opcode:
 
         start.strings.push("__return_value".to_string());
         start.bytecode.push(Opcode::Swap); // Swap to get: [$this, $this, result]
-start.strings.push("__return_value".to_string());                                           // Stack now: [$this, result]
+        start.strings.push("__return_value".to_string()); // Stack now: [$this, result]
 
         start.bytecode.push(Opcode::StoreProperty(3)); // $this->__return_value = result
                                                        // Stack now: [$this]
@@ -420,7 +421,8 @@ start.strings.push("__return_value".to_string());                               
         // Return the result - load it and return
         start.strings.push("__return_value".to_string());
         start.bytecode.push(Opcode::LoadProperty(3));
-start.strings.push("__return_value".to_string());        start.bytecode.push(Opcode::Return);
+        start.strings.push("__return_value".to_string());
+        start.bytecode.push(Opcode::Return);
 
         fiber.methods.insert("start".to_string(), Arc::new(start));
 
@@ -962,8 +964,8 @@ start.strings.push("__return_value".to_string());        start.bytecode.push(Opc
                     // Validate return value against type hint
                     // Return types are ALWAYS strictly checked in PHP (no coercion)
                     let return_value = self.stack.last().cloned().unwrap_or(Value::Null);
-                    if !self.value_matches_type_strict(&return_value, &return_type) {
-                        let type_name = self.format_type_hint(&return_type);
+                    if !self.value_matches_type_strict(&return_value, return_type) {
+                        let type_name = self.format_type_hint(return_type);
                         let given_type = self.get_value_type_name(&return_value);
                         return Err(format!(
                             "Return value must be of type {}, {} returned",
@@ -980,8 +982,8 @@ start.strings.push("__return_value".to_string());        start.bytecode.push(Opc
                     if !matches!(return_type, crate::ast::TypeHint::Void) {
                         // Validate null against return type
                         // Return types are ALWAYS strictly checked in PHP (no coercion)
-                        if !self.value_matches_type_strict(&Value::Null, &return_type) {
-                            let type_name = self.format_type_hint(&return_type);
+                        if !self.value_matches_type_strict(&Value::Null, return_type) {
+                            let type_name = self.format_type_hint(return_type);
                             return Err(format!(
                                 "Return value must be of type {}, null returned",
                                 type_name
@@ -1267,7 +1269,7 @@ start.strings.push("__return_value".to_string());        start.bytecode.push(Opc
                 // 1. Check user-defined functions first (case-insensitive)
                 if let Some(func) = self.get_function(&func_name) {
                     // Check minimum argument count
-                    if (arg_count as u8) < func.required_param_count {
+                    if arg_count < func.required_param_count {
                         return Err(format!(
                             "Too few arguments to function {}(), {} passed in, at least {} expected",
                             func.name, arg_count, func.required_param_count
@@ -1442,15 +1444,16 @@ start.strings.push("__return_value".to_string());        start.bytecode.push(Opc
                                             i + 1, func.name, type_name, given_type
                                         ));
                                     }
-                                } else {
-                                    if !self.value_matches_type(arg, type_hint) {
-                                        let type_name = self.format_type_hint(type_hint);
-                                        let given_type = self.get_value_type_name(arg);
-                                        return Err(format!(
-                                            "Argument {} passed to {}() must be of type {}, {} given",
-                                            i + 1, func.name, type_name, given_type
-                                        ));
-                                    }
+                                } else if !self.value_matches_type(arg, type_hint) {
+                                    let type_name = self.format_type_hint(type_hint);
+                                    let given_type = self.get_value_type_name(arg);
+                                    return Err(format!(
+                                        "Argument {} passed to {}() must be of type {}, {} given",
+                                        i + 1,
+                                        func.name,
+                                        type_name,
+                                        given_type
+                                    ));
                                 }
                             }
                         }
@@ -1587,7 +1590,7 @@ start.strings.push("__return_value".to_string());        start.bytecode.push(Opc
                     }
 
                     // Check for unknown parameters
-                    for (name, _) in &named_args {
+                    for name in named_args.keys() {
                         if !func.parameters.iter().any(|p| &p.name == name) {
                             return Err(format!(
                                 "Unknown named parameter '{}' for function {}()",
@@ -1597,7 +1600,7 @@ start.strings.push("__return_value".to_string());        start.bytecode.push(Opc
                     }
 
                     // Validate and create call frame (reuse existing logic)
-                    let arg_count = args.len();
+                    let _arg_count = args.len();
 
                     // Validate parameter types
                     for (i, arg) in args.iter().enumerate() {
@@ -1614,15 +1617,16 @@ start.strings.push("__return_value".to_string());        start.bytecode.push(Opc
                                             i + 1, func.name, type_name, given_type
                                         ));
                                     }
-                                } else {
-                                    if !self.value_matches_type(arg, type_hint) {
-                                        let type_name = self.format_type_hint(type_hint);
-                                        let given_type = self.get_value_type_name(arg);
-                                        return Err(format!(
-                                            "Argument {} passed to {}() must be of type {}, {} given",
-                                            i + 1, func.name, type_name, given_type
-                                        ));
-                                    }
+                                } else if !self.value_matches_type(arg, type_hint) {
+                                    let type_name = self.format_type_hint(type_hint);
+                                    let given_type = self.get_value_type_name(arg);
+                                    return Err(format!(
+                                        "Argument {} passed to {}() must be of type {}, {} given",
+                                        i + 1,
+                                        func.name,
+                                        type_name,
+                                        given_type
+                                    ));
                                 }
                             }
                         }
@@ -1893,7 +1897,7 @@ start.strings.push("__return_value".to_string());        start.bytecode.push(Opc
             // ==================== OOP Opcodes ====================
             Opcode::NewObject(class_idx) => {
                 let class_name =
-                    Self::normalize_class_name(&self.current_frame().get_string(class_idx));
+                    Self::normalize_class_name(self.current_frame().get_string(class_idx));
 
                 // Look up class definition
                 let class_def = self
@@ -1907,7 +1911,7 @@ start.strings.push("__return_value".to_string());        start.bytecode.push(Opc
                 }
 
                 // Create new object instance
-                let mut instance = crate::interpreter::ObjectInstance::with_hierarchy(
+                let mut instance = crate::runtime::ObjectInstance::with_hierarchy(
                     class_name.clone(),
                     class_def.parent.clone(),
                     class_def.interfaces.clone(),
@@ -1974,7 +1978,7 @@ start.strings.push("__return_value".to_string());        start.bytecode.push(Opc
                     .clone();
 
                 // Create new Fiber instance
-                let mut instance = crate::interpreter::ObjectInstance::with_hierarchy(
+                let mut instance = crate::runtime::ObjectInstance::with_hierarchy(
                     "Fiber".to_string(),
                     fiber_class.parent.clone(),
                     fiber_class.interfaces.clone(),
@@ -2584,15 +2588,15 @@ start.strings.push("__return_value".to_string());        start.bytecode.push(Opc
                                 if i < method.param_types.len() {
                                     if let Some(ref type_hint) = method.param_types[i] {
                                         // Only validate class type hints strictly
-                                        if self.requires_strict_type_check(type_hint) {
-                                            if !self.value_matches_type(arg, type_hint) {
-                                                let type_name = self.format_type_hint(type_hint);
-                                                let given_type = self.get_value_type_name(arg);
-                                                return Err(format!(
-                                                    "Argument {} passed to {}::{}() must be of type {}, {} given",
-                                                    i + 1, class_name, method_name, type_name, given_type
-                                                ));
-                                            }
+                                        if self.requires_strict_type_check(type_hint)
+                                            && !self.value_matches_type(arg, type_hint)
+                                        {
+                                            let type_name = self.format_type_hint(type_hint);
+                                            let given_type = self.get_value_type_name(arg);
+                                            return Err(format!(
+                                                "Argument {} passed to {}::{}() must be of type {}, {} given",
+                                                i + 1, class_name, method_name, type_name, given_type
+                                            ));
                                         }
                                     }
                                 }
@@ -2667,15 +2671,15 @@ start.strings.push("__return_value".to_string());        start.bytecode.push(Opc
                             for (i, arg) in args.iter().enumerate() {
                                 if i < method.param_types.len() {
                                     if let Some(ref type_hint) = method.param_types[i] {
-                                        if self.requires_strict_type_check(type_hint) {
-                                            if !self.value_matches_type(arg, type_hint) {
-                                                let type_name = self.format_type_hint(type_hint);
-                                                let given_type = self.get_value_type_name(arg);
-                                                return Err(format!(
-                                                    "Argument {} passed to {}::{}() must be of type {}, {} given",
-                                                    i + 1, class_name, method_name, type_name, given_type
-                                                ));
-                                            }
+                                        if self.requires_strict_type_check(type_hint)
+                                            && !self.value_matches_type(arg, type_hint)
+                                        {
+                                            let type_name = self.format_type_hint(type_hint);
+                                            let given_type = self.get_value_type_name(arg);
+                                            return Err(format!(
+                                                "Argument {} passed to {}::{}() must be of type {}, {} given",
+                                                i + 1, class_name, method_name, type_name, given_type
+                                            ));
                                         }
                                     }
                                 }
@@ -2755,15 +2759,15 @@ start.strings.push("__return_value".to_string());        start.bytecode.push(Opc
                             for (i, arg) in args.iter().enumerate() {
                                 if i < method.param_types.len() {
                                     if let Some(ref type_hint) = method.param_types[i] {
-                                        if self.requires_strict_type_check(type_hint) {
-                                            if !self.value_matches_type(arg, type_hint) {
-                                                let type_name = self.format_type_hint(type_hint);
-                                                let given_type = self.get_value_type_name(arg);
-                                                return Err(format!(
-                                                    "Argument {} passed to {}::{}() must be of type {}, {} given",
-                                                    i + 1, class_name, method_name, type_name, given_type
-                                                ));
-                                            }
+                                        if self.requires_strict_type_check(type_hint)
+                                            && !self.value_matches_type(arg, type_hint)
+                                        {
+                                            let type_name = self.format_type_hint(type_hint);
+                                            let given_type = self.get_value_type_name(arg);
+                                            return Err(format!(
+                                                "Argument {} passed to {}::{}() must be of type {}, {} given",
+                                                i + 1, class_name, method_name, type_name, given_type
+                                            ));
                                         }
                                     }
                                 }
@@ -2821,7 +2825,7 @@ start.strings.push("__return_value".to_string());        start.bytecode.push(Opc
 
             Opcode::CallStaticMethod(class_idx, method_idx, arg_count) => {
                 let class_name =
-                    Self::normalize_class_name(&self.current_frame().get_string(class_idx));
+                    Self::normalize_class_name(self.current_frame().get_string(class_idx));
                 let method_name = self.current_frame().get_string(method_idx).to_string();
 
                 // Pop arguments
@@ -2989,7 +2993,7 @@ start.strings.push("__return_value".to_string());        start.bytecode.push(Opc
 
             Opcode::CallStaticMethodNamed(class_idx, method_idx) => {
                 let class_name =
-                    Self::normalize_class_name(&self.current_frame().get_string(class_idx));
+                    Self::normalize_class_name(self.current_frame().get_string(class_idx));
                 let method_name = self.current_frame().get_string(method_idx).to_string();
 
                 // Pop args array from stack
@@ -3074,7 +3078,7 @@ start.strings.push("__return_value".to_string());        start.bytecode.push(Opc
 
             Opcode::LoadStaticProp(class_idx, prop_idx) => {
                 let class_name =
-                    Self::normalize_class_name(&self.current_frame().get_string(class_idx));
+                    Self::normalize_class_name(self.current_frame().get_string(class_idx));
                 let prop_name = self.current_frame().get_string(prop_idx).to_string();
 
                 // Resolve self/static/parent keywords
@@ -3100,7 +3104,7 @@ start.strings.push("__return_value".to_string());        start.bytecode.push(Opc
 
             Opcode::StoreStaticProp(class_idx, prop_idx) => {
                 let class_name =
-                    Self::normalize_class_name(&self.current_frame().get_string(class_idx));
+                    Self::normalize_class_name(self.current_frame().get_string(class_idx));
                 let prop_name = self.current_frame().get_string(prop_idx).to_string();
                 let value = self.stack.pop().ok_or("Stack underflow")?;
 
@@ -3172,7 +3176,7 @@ start.strings.push("__return_value".to_string());        start.bytecode.push(Opc
                 let frame = self.current_frame();
                 let this = frame
                     .locals
-                    .get(0)
+                    .first()
                     .cloned()
                     .ok_or("No $this available in current context")?;
                 self.stack.push(this);
@@ -3180,7 +3184,7 @@ start.strings.push("__return_value".to_string());        start.bytecode.push(Opc
 
             Opcode::InstanceOf(class_idx) => {
                 let class_name =
-                    Self::normalize_class_name(&self.current_frame().get_string(class_idx));
+                    Self::normalize_class_name(self.current_frame().get_string(class_idx));
                 let object = self.stack.pop().ok_or("Stack underflow")?;
 
                 let result = match object {
@@ -3209,7 +3213,7 @@ start.strings.push("__return_value".to_string());        start.bytecode.push(Opc
 
             Opcode::LoadEnumCase(enum_idx, case_idx) => {
                 let enum_name =
-                    Self::normalize_class_name(&self.current_frame().get_string(enum_idx));
+                    Self::normalize_class_name(self.current_frame().get_string(enum_idx));
                 let case_name = self.current_frame().get_string(case_idx).to_string();
 
                 // Look up the enum definition
@@ -3532,19 +3536,19 @@ start.strings.push("__return_value".to_string());        start.bytecode.push(Opc
                 let func_name = self.current_frame().get_string(func_idx).to_string();
 
                 // Pop captured variables from stack (in reverse order)
-                let mut captured_vars = std::collections::HashMap::new();
+                let mut captured_vars: Vec<(String, Value)> = Vec::new();
                 for _ in 0..capture_count {
                     let value = self.stack.pop().ok_or("Stack underflow")?;
                     let var_name = self.stack.pop().ok_or("Stack underflow")?;
                     if let Value::String(name) = var_name {
-                        captured_vars.insert(name, value);
+                        captured_vars.push((name, value));
                     } else {
                         return Err("CaptureVar expects variable name as string".to_string());
                     }
                 }
 
                 // Create a proper Closure value with FunctionRef
-                use crate::interpreter::Closure;
+                use crate::runtime::Closure;
                 let closure = Closure {
                     params: Vec::new(), // Params are handled by the compiled function
                     body: ClosureBody::FunctionRef(func_name),
@@ -3705,11 +3709,7 @@ start.strings.push("__return_value".to_string());        start.bytecode.push(Opc
         let frame = self.frames.last()?;
         let func_name = &frame.function.name;
         // Function names are formatted as "ClassName::methodName" for methods
-        if let Some(pos) = func_name.find("::") {
-            Some(func_name[..pos].to_string())
-        } else {
-            None
-        }
+        func_name.find("::").map(|pos| func_name[..pos].to_string())
     }
 
     /// Check if a class is a subclass of another class
@@ -3731,8 +3731,8 @@ start.strings.push("__return_value".to_string());        start.bytecode.push(Opc
     /// Normalize a class name by removing the leading backslash if present
     /// A leading backslash indicates a fully qualified name from the global namespace
     fn normalize_class_name(name: &str) -> String {
-        if name.starts_with('\\') {
-            name[1..].to_string()
+        if let Some(stripped) = name.strip_prefix('\\') {
+            stripped.to_string()
         } else {
             name.to_string()
         }
@@ -3852,7 +3852,7 @@ start.strings.push("__return_value".to_string());        start.bytecode.push(Opc
     /// This is used for magic methods like __toString that need immediate evaluation
     fn call_method_sync(
         &mut self,
-        instance: crate::interpreter::ObjectInstance,
+        instance: crate::runtime::ObjectInstance,
         method: Arc<CompiledFunction>,
     ) -> Result<Value, String> {
         // Save current frame count to know when to stop

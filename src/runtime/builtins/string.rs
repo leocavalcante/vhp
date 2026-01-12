@@ -1,6 +1,6 @@
 //! String built-in functions
 
-use crate::interpreter::value::Value;
+use crate::runtime::Value;
 
 /// strlen - Get string length
 pub fn strlen(args: &[Value]) -> Result<Value, String> {

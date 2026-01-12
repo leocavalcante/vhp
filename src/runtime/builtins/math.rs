@@ -1,6 +1,6 @@
 //! Math built-in functions
 
-use crate::interpreter::value::Value;
+use crate::runtime::Value;
 
 /// abs - Absolute value
 pub fn abs(args: &[Value]) -> Result<Value, String> {

@@ -1,7 +1,7 @@
 //! AST (Abstract Syntax Tree) module for VHP
 //!
 //! This module contains all the AST node definitions used by the parser
-//! and interpreter.
+//! and VM.
 
 mod expr;
 mod ops;

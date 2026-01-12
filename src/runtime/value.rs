@@ -6,30 +6,26 @@ use std::hash::{Hash, Hasher};
 
 /// Closure (arrow function or anonymous function)
 #[derive(Debug, Clone)]
+#[allow(dead_code)] // params parsed but not yet used
 pub struct Closure {
     pub params: Vec<crate::ast::FunctionParam>,
     pub body: ClosureBody,
-    pub captured_vars: HashMap<String, Value>, // Auto-captured from scope
+    pub captured_vars: Vec<(String, Value)>, // Captured variables by value
 }
 
 /// Closure body type
 #[derive(Debug, Clone)]
+#[allow(dead_code)] // Expression, MethodRef, StaticMethodRef parsed but not yet used
 pub enum ClosureBody {
     Expression(Box<crate::ast::Expr>), // For arrow functions: fn($x) => $x * 2
     FunctionRef(String),               // For first-class callables: strlen(...)
     MethodRef {
-        // For first-class method callables: $obj->method(...)
-        #[allow(dead_code)]
-        object: Box<Value>,
-        #[allow(dead_code)]
-        method: String,
+        class_name: String,
+        method_name: String,
     },
     StaticMethodRef {
-        // For first-class static callables: Class::method(...)
-        #[allow(dead_code)]
-        class: String,
-        #[allow(dead_code)]
-        method: String,
+        class_name: String,
+        method_name: String,
     },
 }
 
@@ -39,16 +35,17 @@ pub enum ClosureBody {
 pub struct FiberInstance {
     pub id: usize,
     pub state: FiberState,
-    pub callback: Option<crate::interpreter::UserFunction>, // The callback function to execute
-    pub call_stack: Vec<CallFrame>,                         // Fiber's own call stack
-    pub variables: HashMap<String, Value>,                  // Fiber's local variables
-    pub suspended_value: Option<Box<Value>>,                // Value passed to Fiber::suspend()
-    pub return_value: Option<Box<Value>>,                   // Final return value
-    pub error: Option<String>,                              // Error if fiber failed
+    pub callback: Option<crate::runtime::UserFunction>, // The callback function to execute
+    pub call_stack: Vec<CallFrame>,                     // Fiber's own call stack
+    pub variables: HashMap<String, Value>,              // Fiber's local variables
+    pub suspended_value: Option<Box<Value>>,            // Value passed to Fiber::suspend()
+    pub return_value: Option<Box<Value>>,               // Final return value
+    pub error: Option<String>,                          // Error if fiber failed
 }
 
 /// Fiber execution state
 #[derive(Debug, Clone, PartialEq)]
+#[allow(dead_code)] // All variants parsed but not yet used
 pub enum FiberState {
     NotStarted,
     Running,
@@ -160,6 +157,7 @@ pub struct ExceptionValue {
 
 /// Runtime value representation
 #[derive(Debug, Clone)]
+#[allow(dead_code)] // Fiber and Exception variants parsed but not yet used
 pub enum Value {
     Null,
     Bool(bool),
@@ -546,6 +544,7 @@ impl Value {
     }
 
     /// Get type name for error messages (shorter format)
+    #[allow(dead_code)]
     pub fn type_name(&self) -> &'static str {
         match self {
             Value::Null => "null",
@@ -562,6 +561,7 @@ impl Value {
         }
     }
     /// Strict type matching (no coercion) - PHP 7.0+ strict_types mode
+    #[allow(dead_code)]
     pub fn matches_type_strict(&self, type_hint: &crate::ast::TypeHint) -> bool {
         use crate::ast::TypeHint;
         match type_hint {
@@ -617,6 +617,7 @@ impl Value {
 impl ObjectInstance {
     /// Check if this object is an instance of a given class or interface
     /// Checks: exact match, parent class, and implemented interfaces
+    #[allow(dead_code)]
     pub fn is_instance_of(&self, class_name: &str) -> bool {
         // Check exact class name match (case-insensitive)
         if self.class_name.eq_ignore_ascii_case(class_name) {

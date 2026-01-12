@@ -1,10 +1,10 @@
 //! Built-in function bridge for the VM
 //!
-//! This module provides a bridge between the VM and the interpreter's
+//! This module provides a bridge between the VM and the runtime's
 //! built-in function implementations.
 
-use crate::interpreter::builtins;
-use crate::interpreter::Value;
+use crate::runtime::builtins;
+use crate::runtime::Value;
 use std::io::Write;
 
 /// List of all built-in function names (lowercase for case-insensitive matching)

@@ -4,7 +4,7 @@
 //! attributes on classes, interfaces, traits, functions, methods, etc.
 
 use crate::ast::Attribute;
-use crate::interpreter::{ArrayKey, Value};
+use crate::runtime::{ArrayKey, Value};
 use crate::vm::class::{CompiledClass, CompiledInterface, CompiledTrait};
 use crate::vm::opcode::CompiledFunction;
 use std::sync::Arc;

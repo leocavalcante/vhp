@@ -27,6 +27,7 @@ pub struct CompilationResult {
 }
 
 /// Compiler state for generating bytecode
+#[allow(dead_code)] // break_targets and continue_targets fields not yet used
 pub struct Compiler {
     /// Current function being compiled
     function: CompiledFunction,
@@ -526,11 +527,9 @@ impl Compiler {
         self.emit(Opcode::StoreFast(iter_slot));
 
         // Create local slots for key and value
-        let key_slot = if let Some(key_name) = key {
-            Some(self.allocate_local(key_name.clone()))
-        } else {
-            None
-        };
+        let key_slot = key
+            .as_ref()
+            .map(|key_name| self.allocate_local(key_name.clone()));
         let value_slot = self.allocate_local(value.to_string());
 
         // Loop start - where continue jumps to (increment and check)
@@ -777,28 +776,26 @@ impl Compiler {
 
                 // Special handling for isset() - it's a language construct
                 // isset($obj->prop) should call __isset magic method
-                if name.to_lowercase() == "isset" {
-                    if args.len() == 1 {
-                        if let Expr::PropertyAccess { object, property } = args[0].value.as_ref() {
-                            let prop_idx = self.intern_string(property.clone());
+                if name.to_lowercase() == "isset" && args.len() == 1 {
+                    if let Expr::PropertyAccess { object, property } = args[0].value.as_ref() {
+                        let prop_idx = self.intern_string(property.clone());
 
-                            // Check if object is a variable to track source
-                            if let Expr::Variable(var_name) = object.as_ref() {
-                                if let Some(&slot) = self.locals.get(var_name) {
-                                    // Local variable - use tracking opcode
-                                    self.emit(Opcode::IssetPropertyOnLocal(slot, prop_idx));
-                                } else {
-                                    // Global variable - use tracking opcode
-                                    let var_idx = self.intern_string(var_name.clone());
-                                    self.emit(Opcode::IssetPropertyOnGlobal(var_idx, prop_idx));
-                                }
+                        // Check if object is a variable to track source
+                        if let Expr::Variable(var_name) = object.as_ref() {
+                            if let Some(&slot) = self.locals.get(var_name) {
+                                // Local variable - use tracking opcode
+                                self.emit(Opcode::IssetPropertyOnLocal(slot, prop_idx));
                             } else {
-                                // Complex expression - use regular IssetProperty
-                                self.compile_expr(object)?;
-                                self.emit(Opcode::IssetProperty(prop_idx));
+                                // Global variable - use tracking opcode
+                                let var_idx = self.intern_string(var_name.clone());
+                                self.emit(Opcode::IssetPropertyOnGlobal(var_idx, prop_idx));
                             }
-                            return Ok(());
+                        } else {
+                            // Complex expression - use regular IssetProperty
+                            self.compile_expr(object)?;
+                            self.emit(Opcode::IssetProperty(prop_idx));
                         }
+                        return Ok(());
                     }
                     // For other cases (variables, array access), use normal isset builtin
                 }
@@ -840,7 +837,6 @@ impl Compiler {
                     // Build an array with positional args followed by named args
                     // Use array with integer and string keys
 
-                    let mut positional_count = 0;
                     let mut total_pairs = 0;
 
                     // First, push all key-value pairs (positional as integers, named as strings)
@@ -854,7 +850,6 @@ impl Compiler {
                             // Positional argument - use integer index
                             self.emit(Opcode::PushInt(idx as i64));
                             self.compile_expr(&arg.value)?;
-                            positional_count += 1;
                         }
                         total_pairs += 1;
                     }
@@ -1792,7 +1787,7 @@ impl Compiler {
         closure_compiler.next_local = captured_vars.len() as u16;
 
         // Set up parameters as local variables (after captured vars)
-        for (i, param) in params.iter().enumerate() {
+        for param in params.iter() {
             let slot = closure_compiler.next_local;
             closure_compiler.locals.insert(param.name.clone(), slot);
             closure_compiler
@@ -2047,6 +2042,7 @@ impl Compiler {
     }
 
     /// Patch a jump instruction to jump to a specific target
+    #[allow(dead_code)]
     fn patch_jump_at(&mut self, offset: usize, target: usize) {
         match &mut self.function.bytecode[offset] {
             Opcode::Jump(ref mut target_ref) => *target_ref = target as u32,
@@ -2469,7 +2465,7 @@ impl Compiler {
                 let default_value = compiled_prop
                     .default
                     .clone()
-                    .unwrap_or(crate::interpreter::Value::Null);
+                    .unwrap_or(crate::runtime::Value::Null);
                 compiled_class
                     .static_properties
                     .insert(prop.name.clone(), default_value);
@@ -2533,7 +2529,7 @@ impl Compiler {
                 for method_name in trait_def.methods.keys() {
                     trait_methods
                         .entry(method_name.clone())
-                        .or_insert_with(Vec::new)
+                        .or_default()
                         .push(trait_name.clone());
                 }
             }
@@ -2625,18 +2621,17 @@ impl Compiler {
                     // Check both regular and static methods
                     let has_method = parent_class.methods.contains_key(&method.name)
                         || parent_class.static_methods.contains_key(&method.name);
-                    if has_method {
-                        if parent_class
+                    if has_method
+                        && parent_class
                             .method_finals
                             .get(&method.name)
                             .copied()
                             .unwrap_or(false)
-                        {
-                            return Err(format!(
-                                "Cannot override final method {}::{}",
-                                parent_name, method.name
-                            ));
-                        }
+                    {
+                        return Err(format!(
+                            "Cannot override final method {}::{}",
+                            parent_name, method.name
+                        ));
                     }
                 }
             }
@@ -2951,9 +2946,9 @@ impl Compiler {
             let backing_value = if let Some(expr) = &case.value {
                 // Handle simple literal values at compile time
                 match expr {
-                    Expr::Integer(n) => Some(crate::interpreter::Value::Integer(*n)),
-                    Expr::Float(n) => Some(crate::interpreter::Value::Float(*n)),
-                    Expr::String(s) => Some(crate::interpreter::Value::String(s.clone())),
+                    Expr::Integer(n) => Some(crate::runtime::Value::Integer(*n)),
+                    Expr::Float(n) => Some(crate::runtime::Value::Float(*n)),
+                    Expr::String(s) => Some(crate::runtime::Value::String(s.clone())),
                     _ => None, // Complex expressions not supported yet
                 }
             } else {
@@ -2963,12 +2958,12 @@ impl Compiler {
             // Check backing value type matches declared backing type
             if let Some(ref val) = backing_value {
                 use crate::ast::EnumBackingType;
-                let type_matches = match (backing_type, val) {
-                    (EnumBackingType::Int, crate::interpreter::Value::Integer(_)) => true,
-                    (EnumBackingType::String, crate::interpreter::Value::String(_)) => true,
-                    (EnumBackingType::None, _) => true,
-                    _ => false,
-                };
+                let type_matches = matches!(
+                    (backing_type, val),
+                    (EnumBackingType::Int, crate::runtime::Value::Integer(_))
+                        | (EnumBackingType::String, crate::runtime::Value::String(_))
+                        | (EnumBackingType::None, _)
+                );
                 if !type_matches {
                     let expected_type = match backing_type {
                         EnumBackingType::Int => "int",
@@ -3075,9 +3070,9 @@ impl Compiler {
     /// - If name contains \, it's a qualified name (resolve first segment as alias)
     /// - Otherwise, prefix with current namespace
     fn qualify_class_name(&self, name: &str) -> String {
-        if name.starts_with('\\') {
+        if let Some(stripped) = name.strip_prefix('\\') {
             // Fully qualified name - remove leading backslash
-            name[1..].to_string()
+            stripped.to_string()
         } else if name.contains('\\') {
             // Qualified name like Foo\Bar - check if first segment is aliased
             let parts: Vec<&str> = name.splitn(2, '\\').collect();
