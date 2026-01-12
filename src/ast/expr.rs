@@ -221,4 +221,15 @@ pub enum Expr {
     // Throw expression (PHP 8.0+)
     /// Used in: $x ?? throw new Exception("..."), fn() => throw new Exception()
     Throw(Box<Expr>),
+
+    // Yield expression (PHP 5.5+)
+    /// yield, yield $value, or yield $key => $value
+    Yield {
+        key: Option<Box<Expr>>,
+        value: Option<Box<Expr>>,
+    },
+
+    // Yield from expression (PHP 7.0+)
+    /// yield from $iterable
+    YieldFrom(Box<Expr>),
 }
