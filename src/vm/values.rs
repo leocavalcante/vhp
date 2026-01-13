@@ -15,31 +15,44 @@ use std::io::Write;
 impl<W: Write> VM<W> {
     /// Add two values (for Add opcode)
     pub fn add_values(&self, left: Value, right: Value) -> Result<Value, String> {
-        let left_str = format!("{:?}", left);
-        let right_str = format!("{:?}", right);
-
         match (left, right) {
             (Value::Integer(a), Value::Integer(b)) => {
-                if let Some(result) = a.checked_add(b) {
+                if let Some(result) = a.checked_add(*b) {
                     Ok(Value::Integer(result))
                 } else {
                     Err("Integer overflow in addition".to_string())
                 }
             }
             (Value::Float(a), Value::Float(b)) => Ok(Value::Float(a + b)),
-            (Value::Float(a), Value::Integer(b)) => Ok(Value::Float(a + (b as f64))),
-            (Value::Integer(a), Value::Float(b)) => Ok(Value::Float((a as f64) + b)),
+            (Value::Float(a), Value::Integer(b)) => Ok(Value::Float(a + (*b as f64))),
+            (Value::Integer(a), Value::Float(b)) => Ok(Value::Float(*a as f64 + b)),
             (Value::String(a), Value::String(b)) => Ok(Value::String(format!("{}{}", a, b))),
             (Value::String(a), Value::Integer(b)) => Ok(Value::String(format!("{}{}", a, b))),
             (Value::String(a), Value::Float(b)) => Ok(Value::String(format!("{}{}", a, b))),
             (Value::Array(_), Value::Integer(_)) => {
-                Err("Array + int is not yet implemented".to_string())
+                let count = right.to_int();
+                if let Value::Integer(n) = left {
+                    let mut new_arr = left.clone();
+                    if let Value::Array(mut arr) = new_arr {
+                        for _ in 0..count {
+                            arr.push((
+                                crate::runtime::ArrayKey::Integer(arr.len() as i64),
+                                n.clone(),
+                            ));
+                        }
+                        Ok(Value::Array(arr))
+                    } else {
+                        Ok(Value::Array(vec![]))
+                    }
+                } else {
+                    Ok(Value::Array(vec![]))
+                }
             }
             (Value::Integer(_), Value::String(_)) => Ok(Value::Array(vec![])),
             (Value::Float(_), Value::String(_)) => Ok(Value::Array(vec![])),
             _ => Err(format!(
-                "Invalid operand types for addition: {} + {}",
-                left_str, right_str
+                "Invalid operand types for addition: {:?} + {:?}",
+                left, right
             )),
         }
     }
@@ -67,10 +80,9 @@ impl<W: Write> VM<W> {
                 }
             }
             (Value::Float(a), Value::Integer(b)) => {
-                let b_float = *b as f64;
-                if a < &b_float {
+                if a < (*b as f64) {
                     Ok(-1)
-                } else if a > &b_float {
+                } else if a > (*b as f64) {
                     Ok(1)
                 } else {
                     Ok(0)
@@ -99,7 +111,7 @@ impl<W: Write> VM<W> {
                 }
             }
             (Value::Null, _) => {
-                if matches!(right, Value::Null) {
+                if right.is_null() {
                     Ok(0)
                 } else {
                     Ok(1)

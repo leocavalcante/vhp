@@ -180,4 +180,29 @@ impl<W: Write> super::VM<W> {
             }
         }
     }
+
+    /// Convert a value to string, calling __toString for objects if available
+    pub fn value_to_string(&mut self, value: crate::runtime::Value) -> Result<String, String> {
+        match value {
+            crate::runtime::Value::Object(ref instance) => {
+                let class_name = instance.class_name.clone();
+                // Look for __toString method
+                if let Some(to_string_method) = self.find_method_in_chain(&class_name, "__toString")
+                {
+                    let result = self.call_method_sync(instance.clone(), to_string_method)?;
+                    match result {
+                        crate::runtime::Value::String(s) => Ok(s),
+                        _ => Err("__toString must return a string".to_string()),
+                    }
+                } else {
+                    // No __toString method - this is an error in PHP
+                    Err(format!(
+                        "Object of class {} could not be converted to string",
+                        class_name
+                    ))
+                }
+            }
+            _ => Ok(value.to_string_val()),
+        }
+    }
 }
