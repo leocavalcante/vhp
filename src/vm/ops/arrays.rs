@@ -8,7 +8,7 @@ pub fn execute_new_array<W: std::io::Write>(vm: &mut super::super::VM<W>, count:
         arr.push((ArrayKey::from_value(&key), value));
     }
     arr.reverse();
-    vm.stack.push(Value::Array(arr));
+    vm.stack.push(Value::Array(arr)));
     Ok(())
 }
 
@@ -42,7 +42,7 @@ pub fn execute_array_set<W: std::io::Write>(vm: &mut super::super::VM<W>) -> Res
             } else {
                 arr.push((array_key, value));
             }
-            vm.stack.push(Value::Array(arr));
+            vm.stack.push(Value::Array(arr)));
         }
         _ => return Err("Cannot use [] on non-array".to_string()),
     }
@@ -64,7 +64,7 @@ pub fn execute_array_append<W: std::io::Write>(vm: &mut super::super::VM<W>) -> 
                 .unwrap_or(-1)
                 + 1;
             arr.push((ArrayKey::Integer(next_idx), value));
-            vm.stack.push(Value::Array(arr));
+            vm.stack.push(Value::Array(arr)));
         }
         _ => return Err("Cannot append to non-array".to_string()),
     }
@@ -89,7 +89,7 @@ pub fn execute_array_merge<W: std::io::Write>(vm: &mut super::super::VM<W>) -> R
             for (i, (_, value)) in arr2.into_iter().enumerate() {
                 arr1.push((ArrayKey::Integer(next_idx + i as i64), value));
             }
-            vm.stack.push(Value::Array(arr1));
+            vm.stack.push(Value::Array(arr1)));
         }
         _ => return Err("Cannot merge non-arrays".to_string()),
     }
@@ -100,7 +100,7 @@ pub fn execute_array_count<W: std::io::Write>(vm: &mut super::super::VM<W>) {
     let array = vm.stack.pop().unwrap();
     match array {
         Value::Array(arr) => {
-            vm.stack.push(Value::Integer(arr.len() as i64));
+            vm.stack.push(Value::Integer(arr.len() as i64)));
         }
         _ => vm.stack.push(Value::Integer(0)),
     }

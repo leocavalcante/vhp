@@ -1,5 +1,4 @@
 use crate::runtime::Value;
-use crate::vm::values::add_values;
 
 pub fn execute_add<W: std::io::Write>(vm: &mut super::super::VM<W>) -> Result<(), String> {
     let right = vm.stack.pop().ok_or("Stack underflow")?;
