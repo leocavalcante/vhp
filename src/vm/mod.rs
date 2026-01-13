@@ -11,6 +11,7 @@ pub mod frame;
 pub mod methods;
 pub mod objects;
 pub mod opcode;
+pub mod ops;
 pub mod reflection;
 pub mod values;
 
