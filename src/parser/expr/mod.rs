@@ -2,12 +2,17 @@
 //!
 //! This module provides expression parsing through:
 //! - mod.rs: Main Pratt parser with operator precedence climbing
-//! - primary.rs: Literals, variables, arrays, and basic expressions
+//! - primary.rs: Dispatcher for primary expression parsing
+//! - literals_parsing.rs: Literals, variables, arrays, and grouped expressions
+//! - callable_parsing.rs: Function calls, static method calls, object instantiation
+//! - arrow_anonymous_parsing.rs: Arrow functions and anonymous classes
 //! - postfix.rs: Postfix operations (array access, property access, method calls)
-//! - special.rs: Complex expressions (match, clone, grouping)
+//! - special.rs: Complex expressions (match, clone)
 
+mod arrow_anonymous_parsing;
+mod callable_parsing;
+mod literals_parsing;
 mod postfix;
-mod primary;
 mod special;
 
 use super::precedence::{get_precedence, is_right_assoc, Precedence};
@@ -110,6 +115,171 @@ impl<'a> ExprParser<'a> {
             matches!(**index, Expr::Null)
         } else {
             false
+        }
+    }
+
+    /// Parse primary expression (literals, variables, grouped expressions, etc.)
+    pub fn parse_primary(&mut self) -> Result<Expr, String> {
+        let token = self.current().clone();
+
+        match &token.kind {
+            TokenKind::Integer(n) => self.parse_literal(),
+            TokenKind::Float(n) => self.parse_literal(),
+            TokenKind::String(s) => self.parse_literal(),
+            TokenKind::True => self.parse_literal(),
+            TokenKind::False => self.parse_literal(),
+            TokenKind::Null => self.parse_literal(),
+            TokenKind::LeftBracket => self.parse_array_literal(),
+            TokenKind::Variable(_) => self.parse_variable(),
+            TokenKind::LeftParen => self.parse_grouped(),
+            TokenKind::Minus => {
+                self.advance();
+                let expr = self.parse_unary()?;
+                Ok(Expr::Unary {
+                    op: crate::ast::UnaryOp::Neg,
+                    expr: Box::new(expr),
+                })
+            }
+            TokenKind::Not => {
+                self.advance();
+                let expr = self.parse_unary()?;
+                Ok(Expr::Unary {
+                    op: crate::ast::UnaryOp::Not,
+                    expr: Box::new(expr),
+                })
+            }
+            TokenKind::Increment => {
+                self.advance();
+                if let TokenKind::Variable(name) = &self.current().kind {
+                    let name = name.clone();
+                    self.advance();
+                    Ok(Expr::Unary {
+                        op: crate::ast::UnaryOp::PreInc,
+                        expr: Box::new(Expr::Variable(name)),
+                    })
+                } else {
+                    Err(format!(
+                        "Expected variable after '++' at line {}, column {}",
+                        self.current().line,
+                        self.current().column
+                    ))
+                }
+            }
+            TokenKind::Decrement => {
+                self.advance();
+                if let TokenKind::Variable(name) = &self.current().kind {
+                    let name = name.clone();
+                    self.advance();
+                    Ok(Expr::Unary {
+                        op: crate::ast::UnaryOp::PreDec,
+                        expr: Box::new(Expr::Variable(name)),
+                    })
+                } else {
+                    Err(format!(
+                        "Expected variable after '--' at line {}, column {}",
+                        self.current().line,
+                        self.current().column
+                    ))
+                }
+            }
+            TokenKind::Identifier(name) => {
+                let name = name.clone();
+                self.advance();
+
+                if self.check(&TokenKind::DoubleColon) {
+                    self.parse_static_access(name)
+                } else if self.check(&TokenKind::LeftParen) {
+                    self.parse_function_call(name)
+                } else {
+                    Err(format!(
+                        "Unexpected identifier '{}' at line {}, column {}",
+                        name, token.line, token.column
+                    ))
+                }
+            }
+            TokenKind::Fiber => {
+                let name = "Fiber".to_string();
+                self.advance();
+
+                if self.check(&TokenKind::DoubleColon) {
+                    self.parse_static_access(name)
+                } else {
+                    Err(format!(
+                        "Unexpected 'Fiber' token at line {}, column {}",
+                        token.line, token.column
+                    ))
+                }
+            }
+            TokenKind::Parent => {
+                self.advance();
+
+                if self.check(&TokenKind::DoubleColon) {
+                    self.parse_static_access("parent".to_string())
+                } else {
+                    Err(format!(
+                        "Expected '::' after 'parent' at line {}, column {}",
+                        token.line, token.column
+                    ))
+                }
+            }
+            TokenKind::Static => {
+                self.advance();
+
+                if self.check(&TokenKind::DoubleColon) {
+                    self.parse_static_access("static".to_string())
+                } else {
+                    Err(format!(
+                        "Expected '::' after 'static' at line {}, column {}",
+                        token.line, token.column
+                    ))
+                }
+            }
+            TokenKind::New => self.parse_new_object(),
+            TokenKind::Clone => {
+                self.advance();
+                let clone_expr = parse_clone(self)?;
+                parse_postfix(self, clone_expr)
+            }
+            TokenKind::Match => {
+                let match_expr = parse_match(self)?;
+                parse_postfix(self, match_expr)
+            }
+            TokenKind::Fn => {
+                self.advance();
+                let arrow_func = self.parse_arrow_function()?;
+                parse_postfix(self, arrow_func)
+            }
+            TokenKind::Throw => {
+                self.advance();
+                let expr = self.parse_unary()?;
+                Ok(Expr::Throw(Box::new(expr)))
+            }
+            TokenKind::Yield => {
+                self.advance();
+                let mut key: Option<Box<Expr>> = None;
+                let mut value: Option<Box<Expr>> = None;
+
+                if self.check(&TokenKind::From) {
+                    self.advance();
+                    let expr = self.parse_unary()?;
+                    return Ok(Expr::YieldFrom(Box::new(expr)));
+                }
+
+                let first_expr = self.parse_unary()?;
+                if self.check(&TokenKind::DoubleArrow) {
+                    self.advance();
+                    key = Some(Box::new(first_expr));
+                    value = Some(Box::new(self.parse_unary()?));
+                } else {
+                    value = Some(Box::new(first_expr));
+                }
+
+                Ok(Expr::Yield { key, value })
+            }
+            _ => Err(format!(
+                "Expected expression but found {:?} at line {}, column {}",
+                token.kind, token.line, token.column
+            )),
         }
     }
 
