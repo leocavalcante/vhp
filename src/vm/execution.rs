@@ -5,10 +5,17 @@
 use super::VM;
 use crate::runtime::Value;
 use crate::vm::frame::{CallFrame, ExceptionHandler, LoopContext, ThisSource};
-use crate::vm::opcode::Opcode;
+use crate::vm::opcode::{CompiledFunction, Opcode};
 use std::io::Write;
+use std::sync::Arc;
 
-pub fn execute_vm<W: Write>(vm: &mut VM<W>) -> Result<Value, String> {
+pub fn execute_vm<W: Write>(
+    vm: &mut VM<W>,
+    function: Arc<CompiledFunction>,
+) -> Result<Value, String> {
+    let frame = CallFrame::new(function, 0);
+    vm.frames.push(frame);
+
     loop {
         let frame = match vm.frames.last_mut() {
             Some(f) => f,

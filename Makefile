@@ -35,7 +35,7 @@ clean:
 
 # Run performance benchmarks
 bench: release
-	python3 run_benchmarks.py
+	python3 bench/run_benchmarks.py
 
 # Serve documentation locally
 docs-serve:
