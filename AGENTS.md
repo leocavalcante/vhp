@@ -42,8 +42,10 @@ make check-file-sizes   # Check file sizes only
 src/
 ├── main.rs              # CLI entry point, argument parsing
 ├── token.rs             # Token type definitions (TokenKind, Token)
-├── lexer.rs             # Lexical analysis (source code → tokens)
-├── test_runner.rs       # .vhpt test framework
+├── lexer/               # Lexical analysis (modularized)
+│   ├── mod.rs           # Main lexer logic
+│   ├── strings.rs       # String tokenization
+│   └── operators.rs     # Operator recognition
 ├── ast/                 # Abstract Syntax Tree (modularized)
 │   ├── mod.rs           # Module exports
 │   ├── expr.rs          # Expression AST nodes
@@ -51,86 +53,126 @@ src/
 │   └── ops.rs           # Operator definitions
 ├── parser/              # Recursive descent parser (modularized)
 │   ├── mod.rs           # Module exports
-│   ├── expr.rs          # Expression parsing
-│   ├── stmt.rs          # Statement parsing
-│   └── precedence.rs    # Operator precedence (Pratt parsing)
+│   ├── precedence.rs    # Operator precedence (Pratt parsing)
+│   ├── expr/            # Expression parsing
+│   │   ├── mod.rs       # Expression dispatcher
+│   │   ├── literals_parsing.rs
+│   │   ├── arrow_anonymous_parsing.rs
+│   │   ├── callable_parsing.rs
+│   │   ├── postfix.rs
+│   │   └── special.rs
+│   └── stmt/            # Statement parsing
+│       ├── mod.rs       # Statement dispatcher
+│       ├── attribute_parsing.rs
+│       ├── class.rs
+│       ├── control_flow.rs
+│       ├── declarations.rs
+│       ├── enum_.rs
+│       ├── interface.rs
+│       ├── member_parsing.rs
+│       ├── namespace_parsing.rs
+│       ├── trait_.rs
+│       └── type_parsing.rs
+├── runtime/             # Value types and built-in functions
+│   ├── mod.rs           # Runtime exports and types
+│   ├── value/           # Value type definitions
+│   │   ├── mod.rs       # Value enum and core methods
+│   │   ├── array_key.rs # Array key type
+│   │   ├── object_instance.rs # ObjectInstance, ExceptionValue
+│   │   └── value_helpers.rs   # Value coercion helpers
+│   └── builtins/        # Built-in function modules
+│       ├── mod.rs       # Module exports
+│       ├── array.rs     # Array functions (20)
+│       ├── fileio.rs    # File I/O functions (10)
+│       ├── json.rs      # JSON functions (2)
+│       ├── math.rs      # Math functions (16)
+│       ├── output.rs    # Output functions (4)
+│       ├── reflection.rs # Reflection functions (8)
+│       ├── string.rs    # String functions (23)
+│       ├── types.rs     # Type functions (14)
+│       └── pcre.rs      # PCRE regex functions (stub)
 ├── vm/                  # Bytecode Virtual Machine (primary execution engine)
 │   ├── mod.rs           # VM struct, main execution loop dispatcher
-│   ├── execution.rs     # VM execution loop (extracted)
-│   ├── opcode_dispatch.rs # Opcode dispatch logic (extracted)
+│   ├── execution.rs     # VM execution loop
 │   ├── opcode.rs        # Opcode definitions
 │   ├── frame.rs         # Call frames and loop contexts
-│   ├── class.rs         # CompiledClass, CompiledInterface, etc.
+│   ├── class.rs         # Class definition types
+│   ├── class_registration.rs # Built-in class registration
+│   ├── compiled_types.rs # CompiledFunction, Constant
+│   ├── methods.rs       # Method definition types
+│   ├── objects.rs       # Object instantiation and cloning
+│   ├── helpers.rs       # VM helper functions
+│   ├── reflection.rs    # Runtime reflection support
+│   ├── builtins.rs      # Built-in function bridge
+│   ├── type_validation.rs # Type hint validation
 │   ├── ops/             # Opcode execution modules
 │   │   ├── mod.rs       # Module exports
 │   │   ├── arithmetic.rs # Arithmetic opcode handlers
 │   │   ├── arrays.rs    # Array opcode handlers
+│   │   ├── call_ops.rs  # Function call opcodes
+│   │   ├── callable_ops.rs # First-class callable opcodes
 │   │   ├── comparison.rs # Comparison opcode handlers
 │   │   ├── control_flow.rs # Control flow opcode handlers
 │   │   ├── exceptions.rs # Exception opcode handlers
-│   │   ├── functions.rs # Function call opcode handlers
+│   │   ├── logical_bitwise.rs # Logical/bitwise handlers
+│   │   ├── method_calls.rs # Method call opcodes
 │   │   ├── misc.rs      # Miscellaneous opcode handlers
-│   │   ├── object_ops.rs # Object property/method handlers
-│   │   ├── strings.rs   # String opcode handlers
-│   │   └── logical_bitwise.rs # Logical/bitwise opcode handlers
-│   ├── compiler.rs      # Core compiler (AST to bytecode), ~355 lines
-│   ├── compiler/        # Compiler sub-modules (~2,693 lines total)
-│   │   ├── compiler_types.rs  # Type/name resolution utilities (~47 lines)
-│   │   ├── definitions.rs     # Class/interface/trait/enum compilation (~779 lines)
-│   │   ├── expr_helpers.rs    # Expression compilation helpers (~253 lines)
-│   │   ├── expr.rs            # Expression compilation (~682 lines)
-│   │   ├── functions.rs       # Function compilation (regular, arrow, closures) (~299 lines)
-│   │   ├── if_match.rs        # if/match/switch statement compilation (~175 lines)
-│   │   ├── loops.rs           # Loop compilation (while, do-while, for, foreach) (~188 lines)
-│   │   ├── stmt.rs            # Statement dispatcher (~206 lines)
-│   │   └── try_catch.rs       # try/catch/finally compilation (~64 lines)
-│   └── builtins.rs      # Bridge to runtime builtins
-└── runtime/         # Value types and built-in functions
-    ├── mod.rs           # Value definitions and types
-    ├── value.rs         # Value type and coercion
-    └── builtins/        # Built-in function modules
-        ├── mod.rs       # Module exports
-        ├── string.rs    # String functions (23)
-        ├── math.rs      # Math functions (9)
-        ├── array.rs     # Array functions (15)
-        ├── types.rs     # Type checking/conversion functions (14)
-        ├── output.rs    # Output functions (4)
-        └── reflection.rs # Reflection functions (8)
+│   │   ├── named_call_ops.rs # Named argument call opcodes
+│   │   ├── object_creation.rs # Object/class creation
+│   │   ├── property_access.rs # Property access handlers
+│   │   ├── property_ops.rs # Property operation handlers
+│   │   ├── static_ops.rs # Static property/method handlers
+│   │   └── strings.rs   # String opcode handlers
+│   └── compiler/        # AST to bytecode compiler
+│       ├── mod.rs       # Main compiler struct
+│       ├── assignment_compilation.rs # Variable assignment
+│       ├── class_compilation.rs # Class definition compilation
+│       ├── compiler_types.rs # Type/name resolution
+│       ├── expr.rs      # Expression compilation
+│       ├── expr_helpers.rs # Expression compilation helpers
+│       ├── functions.rs # Function/closure compilation
+│       ├── if_match.rs  # if/match/switch compilation
+│       ├── interface_compilation.rs # Interface compilation
+│       ├── loops.rs     # Loop compilation
+│       ├── object_access_compilation.rs # Property access compilation
+│       ├── stmt.rs      # Statement dispatcher
+│       ├── trait_enum_compilation.rs # Trait/enum compilation
+│       └── try_catch.rs # try/catch/finally compilation
+└── test_runner.rs       # .vhpt test framework
 
-tests/                   # Test suite organized by feature (509 tests)
-├── arrays/              # Array tests (18)
-├── attributes/          # Attribute syntax and reflection tests (29)
-├── builtins/            # Built-in function tests (26)
-├── classes/             # Class and object tests (120 including anonymous classes, property hooks, magic methods, static properties, asymmetric visibility, and #[\Override] attribute)
-├── comments/            # Comment syntax tests (4)
-├── control_flow/        # Control flow tests (40 including alternative syntax)
-├── echo/                # Echo statement tests (6)
-├── enums/               # Enum tests (16)
-├── errors/              # Error handling tests (8)
-├── exceptions/          # Exception handling tests (11)
-├── expressions/         # Expression evaluation tests (17)
-├── functions/           # User-defined function tests (42 including arrow functions and first-class callables)
-├── html/                # HTML passthrough tests (5)
-├── interfaces/          # Interface tests (7)
-├── namespaces/          # Namespace tests (10)
-├── numbers/             # Numeric literal tests (5)
-├── operators/           # Operator tests (37)
-├── strings/             # String literal and escape sequence tests (8)
-├── tags/                # PHP tag tests (4)
-├── traits/              # Trait tests (9)
-├── types/               # Type declaration and validation tests (53 including DNF types)
-└── variables/           # Variable assignment and scope tests (8)
+tests/                   # Test suite organized by feature
+├── arrays/              # Array tests
+├── attributes/          # Attribute syntax and reflection tests
+├── builtins/            # Built-in function tests
+├── classes/             # Class and object tests
+├── comments/            # Comment syntax tests
+├── control_flow/        # Control flow tests
+├── echo/                # Echo statement tests
+├── enums/               # Enum tests
+├── errors/              # Error handling tests
+├── exceptions/          # Exception handling tests
+├── expressions/         # Expression evaluation tests
+├── fibers/              # Fiber tests
+├── fileio/              # File I/O tests
+├── functions/           # User-defined function tests
+├── generators/          # Generator tests
+├── html/                # HTML passthrough tests
+├── interfaces/          # Interface tests
+├── json/                # JSON tests
+├── namespaces/          # Namespace tests
+├── numbers/             # Numeric literal tests
+├── operators/           # Operator tests
+├── strings/             # String literal and escape sequence tests
+├── tags/                # PHP tag tests
+├── traits/              # Trait tests
+├── types/               # Type declaration and validation tests
+└── variables/           # Variable assignment and scope tests
 
-bench/                   # Performance benchmarks comparing VHP vs PHP
-├── array_operations.php # Array manipulation and built-in functions
-├── fibonacci.php        # Recursive function calls (stack performance)
-├── function_calls.php   # Function call overhead and parameter passing
-├── loops.php            # Loop constructs and iteration performance
-├── object_creation.php  # Object instantiation
-├── string_operations.php # String manipulation and built-in functions
-└── README.md            # Benchmark documentation
+bench/                   # Performance benchmarks
+└── *.php                # Benchmark PHP files
 
-Makefile                 # Build automation (build, lint, test, bench targets)
+Makefile                 # Build automation
+Cargo.toml               # Rust package configuration
 ```
 
 ## Implementation Pipeline
@@ -139,10 +181,10 @@ Makefile                 # Build automation (build, lint, test, bench targets)
 Source Code → Lexer → Tokens → Parser → AST → Compiler → Bytecode → VM → Output
 ```
 
-1. **Lexer** (`lexer.rs`): Converts source text into tokens, handles PHP/HTML mode switching
+1. **Lexer** (`lexer/`): Converts source text into tokens, handles PHP/HTML mode switching
 2. **Parser** (`parser/`): Builds AST from tokens using recursive descent with Pratt parsing for operator precedence
-3. **Compiler** (`vm/compiler.rs` + `vm/compiler/`): Compiles AST to bytecode instructions
-4. **VM** (`vm/mod.rs`): Executes bytecode with stack-based virtual machine (7x faster than tree-walking)
+3. **Compiler** (`vm/compiler/`): Compiles AST to bytecode instructions
+4. **VM** (`vm/`): Executes bytecode with stack-based virtual machine
 
 ## Current Features (v0.1.0)
 
@@ -213,20 +255,10 @@ Source Code → Lexer → Tokens → Parser → AST → Compiler → Bytecode �
 - [x] Argument unpacking (`func(...$array)`)
 - [x] Type hints for parameters (int, string, float, bool, array, etc.)
 - [x] Return type declarations (including void, never, static)
-- [x] Type hints for parameters (int, string, float, bool, array, etc.)
-- [x] Return type declarations (including void, never, static)
-- [x] Type hints for parameters (int, string, float, bool, array, etc.)
-- [x] Return type declarations (including void, never, static)
 
-### Built-in Functions (95+)
-- [x] **String** (23): `strlen`, `substr`, `strtoupper`, `strtolower`, `trim`, `ltrim`, `rtrim`, `str_repeat`, `str_replace`, `strpos`, `strrev`, `ucfirst`, `lcfirst`, `ucwords`, `str_starts_with`, `str_ends_with`, `str_contains`, `str_pad`, `explode`, `implode`/`join`, `sprintf`, `chr`, `ord`
-- [x] **Math** (9): `abs`, `ceil`, `floor`, `round`, `max`, `min`, `pow`, `sqrt`, `rand`/`mt_rand`, `sin`, `cos`, `tan`, `log10`, `exp`, `pi`
-- [x] **Array** (21): `count`/`sizeof`, `array_push`, `array_pop`, `array_shift`, `array_unshift`, `array_keys`, `array_values`, `in_array`, `array_search`, `array_reverse`, `array_merge`, `array_key_exists`, `range`, `array_first`, `array_last`, `array_map`, `array_filter`, `array_reduce`, `array_sum`, `array_unique`
-- [x] **Type** (14): `intval`, `floatval`/`doubleval`, `strval`, `boolval`, `gettype`, `is_null`, `is_bool`, `is_int`/`is_integer`/`is_long`, `is_float`/`is_double`/`is_real`, `is_string`, `is_array`, `is_numeric`, `isset`, `empty`
-- [x] **Output** (4): `print`, `var_dump`, `print_r`, `printf`
-- [x] **Reflection** (8): `get_class_attributes`, `get_method_attributes`, `get_property_attributes`, `get_function_attributes`, `get_parameter_attributes`, `get_method_parameter_attributes`, `get_interface_attributes`, `get_trait_attributes`
-- [x] **JSON** (2): `json_encode`, `json_decode`
-- [x] **File I/O** (10): `file_get_contents`, `file_put_contents`, `file_exists`, `is_file`, `is_dir`, `filemtime`, `filesize`, `unlink`, `is_readable`, `is_writable`
+### Built-in Functions (97 total)
+
+VHP includes comprehensive built-in function support for PHP 8.x compatibility.
 
 ### Type Coercion (PHP-compatible)
 - [x] Loose equality (`==`) with type coercion
@@ -275,13 +307,13 @@ Source Code → Lexer → Tokens → Parser → AST → Compiler → Bytecode �
 - [x] #[\Override] attribute (PHP 8.3) - Validates method overrides at class definition time
 
 ### Magic Methods
-- [x] `__construct` - Constructor (already implemented)
+- [x] `__construct` - Constructor
 - [x] `__toString` - String conversion of objects
 - [x] `__invoke` - Callable objects
 - [x] `__get`/`__set` - Property overloading for undefined properties
 - [x] `__isset`/`__unset` - Property checking for isset() and unset()
 - [x] `__call`/`__callStatic` - Method overloading for undefined methods
-- [x] `__clone` - Object cloning (already implemented)
+- [x] `__clone` - Object cloning
 
 ### Match Expressions (PHP 8.0)
 - [x] Basic match syntax: `match($expr) { value => result }`
@@ -629,7 +661,7 @@ pub enum TokenKind {
 }
 ```
 
-### 2. Update Lexer (`lexer.rs`)
+### 2. Update Lexer (`lexer/`)
 
 Add recognition logic in `tokenize()`:
 
@@ -670,7 +702,7 @@ pub enum Stmt {
 Add parsing methods:
 
 ```rust
-// In parser/stmt.rs
+// In parser/stmt/mod.rs
 fn parse_if(&mut self) -> Result<Stmt, String> {
     // Parse if statement
 }
@@ -689,7 +721,7 @@ Add compilation logic:
 
 ```rust
 // For statement compilation, add to vm/compiler/stmt.rs
-// For expression compilation, add to vm/compiler/expr_helpers.rs
+// For expression compilation, add to vm/compiler/expr.rs
 // For control flow (if/match), add to vm/compiler/if_match.rs
 // For loops, add to vm/compiler/loops.rs
 
@@ -701,37 +733,53 @@ pub(crate) fn compile_my_feature_internal(
     // Compilation logic
 }
 
-// Wrapper in vm/compiler.rs delegates:
+// Wrapper in vm/compiler/mod.rs delegates:
 fn compile_my_feature(&mut self, param: &SomeType) -> Result<(), String> {
     self.compile_my_feature_internal(param)
 }
 ```
 
-### 6. Update Runtime (`runtime/`)
+### 6. Add Opcodes (`vm/opcode.rs`)
 
-Add execution logic:
+Add new opcode variants:
 
 ```rust
-// In runtime/mod.rs
-pub fn execute(&mut self, program: &Program) -> io::Result<()> {
-    for stmt in &program.statements {
-        match stmt {
-            Stmt::If { condition, then_branch, else_branch } => {
-                // Execute if statement
-            }
-            // ...
-        }
-    }
+pub enum Opcode {
+    // Add new opcodes
+    MyNewOpcode,
+    // ...
 }
-
-// For built-in functions, add to the appropriate file in runtime/builtins/
-// String functions → builtins/string.rs
-// Math functions → builtins/math.rs
-// Type functions → builtins/types.rs
-// Output functions → builtins/output.rs
 ```
 
-### 6. Add Tests
+### 7. Implement Opcode Execution (`vm/ops/`)
+
+Add execution function:
+
+```rust
+// In the appropriate module under vm/ops/
+impl<W: Write> VM<W> {
+    fn execute_my_new_opcode(&mut self) -> Result<(), String> {
+        // Implementation
+    }
+}
+```
+
+### 8. Add Built-in Functions (`runtime/builtins/`)
+
+For built-in functions, add to the appropriate file:
+
+```rust
+// In runtime/builtins/string.rs, math.rs, etc.
+pub fn my_function(args: &[Value]) -> Result<Value, String> {
+    // Implementation
+}
+```
+
+And register it in:
+- `runtime/builtins/mod.rs` - Export the function
+- `vm/builtins.rs` - Add to BUILTIN_FUNCTIONS and call_builtin
+
+### 9. Add Tests
 
 Create `.vhpt` test files in appropriate `tests/` subdirectory:
 
@@ -884,40 +932,63 @@ make check-file-sizes  # Run file size check only
 - [x] Anonymous Classes (PHP 7.0) - Inline class definitions
 
 ### Phase 7: Compiler Refactoring ✅ Complete
-Refactoring monolithic `vm/compiler.rs` (~3,100 lines) into organized sub-modules for better maintainability.
+Refactoring monolithic `vm/compiler.rs` into organized sub-modules for better maintainability.
 
-- [x] Phase 7.1: `compiler_types.rs` - Type/name resolution utilities (~47 lines)
-- [x] Phase 7.2: `expr_helpers.rs` - Expression compilation helpers (~253 lines)
-- [x] Phase 7.3: `stmt.rs` - Statement dispatcher (~206 lines)
-- [x] Phase 7.4: `if_match.rs` - if/match/switch statement compilation (~175 lines)
-- [x] Phase 7.5: `loops.rs` - Loop compilation (while, do-while, for, foreach) (~188 lines)
-- [x] Phase 7.6: `try_catch.rs` - try/catch/finally compilation (~64 lines)
-- [x] Phase 7.7: `functions.rs` - Function compilation (regular, arrow, closures) (~299 lines)
-- [x] Phase 7.8: `definitions.rs` - Class/interface/trait/enum compilation (~779 lines)
-- [x] Phase 7.9: `expr.rs` - Expression compilation (~682 lines)
-- [x] Phase 7.10: Final cleanup - main compiler.rs reduced to ~355 lines
+- [x] Phase 7.1: `compiler_types.rs` - Type/name resolution utilities
+- [x] Phase 7.2: `expr_helpers.rs` - Expression compilation helpers
+- [x] Phase 7.3: `stmt.rs` - Statement dispatcher
+- [x] Phase 7.4: `if_match.rs` - if/match/switch statement compilation
+- [x] Phase 7.5: `loops.rs` - Loop compilation (while, do-while, for, foreach)
+- [x] Phase 7.6: `try_catch.rs` - try/catch/finally compilation
+- [x] Phase 7.7: `functions.rs` - Function compilation (regular, arrow, closures)
+- [x] Phase 7.8: `definitions.rs` - Class/interface/trait/enum compilation
+- [x] Phase 7.9: `expr.rs` - Expression compilation
+- [x] Phase 7.10: `assignment_compilation.rs` - Variable assignment compilation
+- [x] Phase 7.11: `object_access_compilation.rs` - Property/method access compilation
 
-**Result**: compiler.rs reduced by 89% (3,130 → 355 lines)
+**Result**: compiler.rs modularized into 12 focused modules
 
-### Phase 9: PHP 8.5 Features (Planned)
+### Phase 8: Opcodes & Execution ✅ Complete
+Refactoring monolithic VM execution into modular opcode handlers.
+
+- [x] Phase 8.1: `arithmetic.rs` - Arithmetic opcodes
+- [x] Phase 8.2: `arrays.rs` - Array opcodes
+- [x] Phase 8.3: `comparison.rs` - Comparison opcodes
+- [x] Phase 8.4: `control_flow.rs` - Control flow opcodes
+- [x] Phase 8.5: `exceptions.rs` - Exception opcodes
+- [x] Phase 8.6: `functions.rs` - Function call opcodes
+- [x] Phase 8.7: `misc.rs` - Miscellaneous opcodes
+- [x] Phase 8.8: `object_ops.rs` - Object property/method opcodes
+- [x] Phase 8.9: `strings.rs` - String opcodes
+- [x] Phase 8.10: `logical_bitwise.rs` - Logical/bitwise opcodes
+
+### Phase 9: PHP 8.5+ Features (Planned)
 - [ ] URI Extension - `Uri\Rfc3986\Uri` class
-- [ ] Clone with syntax - `clone($obj, ['prop' => 'value'])`
 - [ ] #[\NoDiscard] attribute
 - [ ] Closures in constant expressions
 - [ ] First-class callables in constants
-- [x] array_first() / array_last()
 - [ ] #[\DelayedTargetValidation]
 - [ ] Final property promotion
 - [ ] Attributes on constants
 - [ ] Error backtraces for fatal errors
 
 ### Phase 10: Standard Library Expansion (Planned)
-- [ ] PCRE regex (preg_match, preg_replace, etc.)
-- [ ] Array functions (array_map, array_filter, array_reduce, sorting)
-- [ ] Math functions (trigonometry, logarithms)
-- [ ] JSON functions (json_encode, json_decode)
+- [x] PCRE regex (preg_match, preg_replace) - Stub implementation
+- [ ] Advanced array functions (full array_map, array_filter, array_reduce)
 - [ ] DateTime classes
-- [ ] File system functions
+- [ ] SPL classes and interfaces
+
+### Phase 11: Generator Execution (Planned)
+- [ ] Generator object creation and state management
+- [ ] Generator execution with send() and throw() methods
+- [ ] Generator return values (PHP 7.0)
+- [ ] Generator delegation with yield from
+
+### Phase 12: Fiber Completion (Planned)
+- [ ] Full fiber suspension and resumption
+- [ ] Fiber::suspend() with value
+- [ ] Fiber::getCurrent() implementation
+- [ ] Fiber error handling
 
 ## Code Style Guidelines
 
@@ -931,19 +1002,23 @@ Refactoring monolithic `vm/compiler.rs` (~3,100 lines) into organized sub-module
 
 ### Adding a Binary Operator
 
-1. Add token: `Plus`, `Minus`, etc.
-2. Lexer: recognize the character
-3. AST: `BinaryOp { left: Expr, op: Operator, right: Expr }`
-4. Parser: implement operator precedence (Pratt parsing recommended)
-5. Interpreter: evaluate both sides, apply operation
+1. Add token: `Plus`, `Minus`, etc. in `token.rs`
+2. Lexer: recognize the character in `lexer/operators.rs`
+3. AST: `BinaryOp { left: Expr, op: Operator, right: Expr }` in `ast/ops.rs`
+4. Parser: implement operator precedence in `parser/precedence.rs`
+5. Compiler: add compilation in `vm/compiler/expr.rs`
+6. Opcode: add opcode in `vm/opcode.rs`
+7. VM: implement execution in appropriate `vm/ops/*.rs` module
 
 ### Adding a Keyword Statement
 
-1. Add token: `If`, `While`, `For`, etc.
-2. Lexer: add to keyword matching
-3. AST: add statement variant
-4. Parser: add `parse_<keyword>()` method
-5. Interpreter: add execution logic
+1. Add token: `If`, `While`, `For`, etc. in `token.rs`
+2. Lexer: add to keyword matching in `lexer/mod.rs`
+3. AST: add statement variant in `ast/stmt.rs`
+4. Parser: add `parse_<keyword>()` method in `parser/stmt/`
+5. Compiler: add compilation in `vm/compiler/stmt.rs`
+6. Opcode: add opcodes in `vm/opcode.rs`
+7. VM: implement execution in `vm/ops/control_flow.rs`
 
 ## Debugging Tips
 

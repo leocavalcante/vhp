@@ -325,68 +325,9 @@ $values = [3, 1, 4, 1, 5];
 echo max(...$values); // 5
 ```
 
-### Built-in Functions (95+)
+### Built-in Functions
 
-```php
-<?php
-// String functions
-echo strlen("Hello");              // 5
-echo strtoupper("hello");          // HELLO
-echo substr("Hello World", 0, 5);  // Hello
-echo str_repeat("ab", 3);          // ababab
-
-// Math functions
-echo abs(-42);                     // 42
-echo round(3.7);                   // 4
-echo max(1, 5, 3);                 // 5
-
-// Array functions
-echo count([1, 2, 3]);             // 3
-echo array_sum([1, 2, 3, 4]);    // 10
-
-// JSON functions
-$json = json_encode(["name" => "John", "age" => 30]);
-$data = json_decode('{"name":"John","age":30}');
-
-// File I/O
-$content = file_get_contents("data.txt");
-file_put_contents("output.txt", "Hello, World!");
-
-// Formatting
-echo sprintf("Name: %s, Age: %d", "John", 25);
-```
-
-#### String Functions (23)
-
-`strlen`, `substr`, `strtoupper`, `strtolower`, `trim`, `ltrim`, `rtrim`, `str_repeat`, `str_replace`, `strpos`, `strrev`, `ucfirst`, `lcfirst`, `ucwords`, `str_starts_with`, `str_ends_with`, `str_contains`, `str_pad`, `explode`, `implode`/`join`, `sprintf`, `chr`, `ord`
-
-#### Math Functions (9)
-
-`abs`, `ceil`, `floor`, `round`, `max`, `min`, `pow`, `sqrt`, `rand`/`mt_rand`
-
-#### Array Functions (21)
-
-`count`/`sizeof`, `array_push`, `array_pop`, `array_shift`, `array_unshift`, `array_keys`, `array_values`, `in_array`, `array_search`, `array_reverse`, `array_merge`, `array_key_exists`, `range`, `array_first`, `array_last`, `array_map`, `array_filter`, `array_reduce`, `array_sum`, `array_unique`
-
-#### Type Functions (14)
-
-`intval`, `floatval`/`doubleval`, `strval`, `boolval`, `gettype`, `is_null`, `is_bool`, `is_int`/`is_integer`/`is_long`, `is_float`/`is_double`/`is_real`, `is_string`, `is_array`, `is_numeric`, `isset`, `empty`
-
-#### Output Functions (4)
-
-`print`, `var_dump`, `print_r`, `printf`
-
-#### Reflection Functions (8)
-
-`get_class_attributes`, `get_method_attributes`, `get_property_attributes`, `get_function_attributes`, `get_parameter_attributes`, `get_method_parameter_attributes`, `get_interface_attributes`, `get_trait_attributes`
-
-#### JSON Functions (2)
-
-`json_encode`, `json_decode`
-
-#### File I/O Functions (10)
-
-`file_get_contents`, `file_put_contents`, `file_exists`, `is_file`, `is_dir`, `filemtime`, `filesize`, `unlink`, `is_readable`, `is_writable`
+**Note:** `is_readable` and `is_writable` only check file existence.
 
 ## Classes & Objects
 

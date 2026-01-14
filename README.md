@@ -34,16 +34,16 @@
 
 Every. Single. Line. Written through prompts to AI agents. Zero manual coding.
 
-**The result?** A blazingly fast, memory-safe PHP 8.x interpreter written in pure Rust with **zero dependencies** — and it actually works.
+**The result?** A blazingly fast, memory-safe PHP 8.x bytecode VM written in pure Rust with **zero dependencies** — and it actually works.
 
 ### 💎 Why This Changes Everything
 
-- **🔥 Blazingly Fast** — 5-8x faster than PHP on common operations (arrays, strings, loops)
+- **🔥 Blazingly Fast** — Stack-based bytecode VM compiled from Rust
 - **🛡️ Rock-Solid Security** — Memory safety guaranteed by Rust's ownership model
 - **🎯 Zero Dependencies** — Pure standard library, no external crates, no bloat
-- **✨ PHP 8.x Compatible** — Run your WordPress, Laravel, Drupal — *unchanged*
+- **✨ PHP 8.x Compatible** — Run your existing PHP code unchanged
 - **🔮 Modern Features** — Arrow functions, match expressions, fibers, attributes, pipe operator
-- **📈 Battle-Tested** — 509 comprehensive tests and counting
+- **📈 Battle-Tested** — Comprehensive test suite
 
 ## ⚡ Get Started in 60 Seconds
 
@@ -68,28 +68,22 @@ make bench
 
 **That's it.** You're now running PHP with Rust-level performance.
 
-## ⚡ Performance: VHP vs PHP
+## ⚡ Performance
 
-Don't just take our word for it. Run `make bench` and see for yourself:
+Run `make bench` to see performance characteristics:
 
-| Benchmark | VHP (ms) | PHP 8.5 (ms) | Result |
-|-----------|----------|--------------|--------|
-| **Array Operations** | 11.82 | 59.95 | **5.1x faster** 🚀 |
-| **String Operations** | 7.98 | 62.86 | **7.9x faster** 🚀 |
-| **Object Creation** | 8.25 | 60.32 | **7.3x faster** 🚀 |
-| **Loops** | 9.34 | 59.06 | **6.3x faster** 🚀 |
-| **Function Calls** | 51.83 | 67.50 | **1.3x faster** 🚀 |
+```
+Source Code → Lexer → Tokens → Parser → AST → Compiler → Bytecode → VM → Output
+```
 
-**Why is VHP faster?**
+VHP uses a **stack-based bytecode VM** that compiles PHP to optimized bytecode. The compiler and VM are written in native Rust, providing:
+
 - **Zero-cost abstractions** from Rust's ownership model
 - **No garbage collection** overhead during execution
 - **Optimized built-in functions** written in native Rust
 - **Efficient memory management** with compile-time guarantees
 
-**What about complex operations?**
-VHP uses a stack-based bytecode VM that compiles PHP to optimized bytecode, offering performance that approaches and often exceeds native PHP. The VM is designed for efficient execution with proper handling of control flow, function calls, and object-oriented features.
-
-**The bottom line:** VHP gives you Rust-level speed for everyday PHP code.
+The architecture follows a classic interpreter pipeline with compilation to bytecode for efficient execution.
 
 ## 🎨 The Power of Modern PHP + Rust Performance
 
@@ -168,30 +162,6 @@ $fiber->resume(); // Non-blocking concurrent execution
 
 ## 🔥 What Makes VHP Special
 
-### 99+ Built-in Functions and Growing
-
-From string manipulation to array operations, math to type checking — we've got the essentials:
-
-- **String Functions (23):** strlen, substr, trim, ltrim, rtrim, explode, implode, str_replace, strtoupper, strtolower, str_repeat, strpos, strrev, ucfirst, lcfirst, ucwords, str_starts_with, str_ends_with, str_contains, str_pad, sprintf, chr, ord
-- **Array Functions (21):** count, array_push, array_pop, array_shift, array_unshift, array_keys, array_values, in_array, array_search, array_reverse, array_merge, array_key_exists, range, array_first, array_last, array_map, array_filter, array_reduce, array_sum, array_unique
-- **Math Functions (9):** abs, ceil, floor, round, max, min, pow, sqrt, rand/mt_rand
-- **Type Functions (14):** intval, floatval, strval, boolval, gettype, is_null, is_bool, is_int, is_float, is_string, is_array, is_numeric, isset, empty
-- **Output Functions (4):** print, var_dump, print_r, printf
-- **Reflection API (8):** get_class_attributes, get_method_attributes, get_property_attributes, get_function_attributes, get_parameter_attributes, get_method_parameter_attributes, get_interface_attributes, get_trait_attributes
-- **JSON Functions (2):** json_encode, json_decode
-- **File I/O Functions (10):** file_get_contents, file_put_contents, file_exists, is_file, is_dir, filemtime, filesize, unlink, is_readable, is_writable
-
-### Run Real Codebases, Today
-
-This isn't a toy. VHP targets **PHP 8.x compatibility**, which means:
-
-- 🔷 Run **WordPress** plugins and themes
-- 🔷 Execute **Laravel** applications  
-- 🔷 Deploy **Drupal** sites
-- 🔷 Port **existing PHP codebases** with zero changes
-
-All with the speed and safety of Rust.
-
 ## 🤖 The "Vibe Coding" Revolution
 
 Here's where it gets wild: **VHP is proof that AI can build production-grade systems.**
@@ -233,7 +203,7 @@ That's the difference between a tool and an ecosystem.
 - ✅ Enums - pure and backed (PHP 8.1)
 - ✅ Pipe operator (PHP 8.5)
 - ✅ Fibers for concurrency (PHP 8.1)
-- ✅ Generators with yield/yield from (PHP 5.5/7.0)
+- ✅ Generators with yield/yield from (PHP 5.5/7.0) - parsing complete, full execution in progress
 
 **Object-Oriented Programming:**
 - ✅ Classes & Objects (properties, methods, constructors, $this)
@@ -250,7 +220,7 @@ That's the difference between a tool and an ecosystem.
 - ✅ Property hooks with get/set (PHP 8.4)
 - ✅ Asymmetric visibility (PHP 8.4)
 - ✅ #[\Override] attribute (PHP 8.3)
-- ✅ Object cloning with `clone` and `clone with`
+- ✅ Object cloning with `clone` and `clone with` (PHP 8.4)
 - ✅ Magic methods (__toString, __invoke, __get/__set, __call)
 
 **Type System:**
@@ -276,25 +246,15 @@ That's the difference between a tool and an ecosystem.
 - ✅ Throw expressions (PHP 8.0)
 - ✅ Multi-catch blocks
 
-**Built-in Functions (95+):**
-- ✅ String functions (23)
-- ✅ Math functions (9)
-- ✅ Array functions (21)
-- ✅ Type functions (14)
-- ✅ Output functions (4)
-- ✅ Reflection API (8)
-- ✅ JSON functions (2)
-- ✅ File I/O functions (10)
-
 **[→ See complete feature documentation](https://leocavalcante.github.io/vhp/features)**
 
 ## 🎯 What's Next
 
 We're just getting started. Check out [roadmap](https://leocavalcante.github.io/vhp/roadmap) to see what's coming:
 
-- More built-in functions (date/time, regex/PCRE, advanced math)
-- Advanced OOP features
+- More built-in functions (date/time, regex/PCRE, advanced array functions)
 - Full generator execution with send/throw/return methods
+- Complete Fiber support
 - Composer compatibility
 - Performance optimizations
 - And much more...
