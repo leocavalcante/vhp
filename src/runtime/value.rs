@@ -1,8 +1,13 @@
 //! Runtime value representation for VHP
 
 use std::collections::HashMap;
-use std::fmt;
-use std::hash::{Hash, Hasher};
+
+pub mod array_key;
+pub mod object_instance;
+pub mod value_helpers;
+
+pub use array_key::ArrayKey;
+pub use object_instance::{ExceptionValue, ObjectInstance};
 
 /// Closure (arrow function or anonymous function)
 #[derive(Debug, Clone)]
@@ -10,15 +15,14 @@ use std::hash::{Hash, Hasher};
 pub struct Closure {
     pub params: Vec<crate::ast::FunctionParam>,
     pub body: ClosureBody,
-    pub captured_vars: Vec<(String, Value)>, // Captured variables by value
+    pub captured_vars: Vec<(String, Value)>,
 }
 
-/// Closure body type
 #[derive(Debug, Clone)]
-#[allow(dead_code)] // Expression, MethodRef, StaticMethodRef parsed but not yet used
+#[allow(dead_code)]
 pub enum ClosureBody {
-    Expression(Box<crate::ast::Expr>), // For arrow functions: fn($x) => $x * 2
-    FunctionRef(String),               // For first-class callables: strlen(...)
+    Expression(Box<crate::ast::Expr>),
+    FunctionRef(String),
     MethodRef {
         class_name: String,
         method_name: String,
@@ -29,23 +33,21 @@ pub enum ClosureBody {
     },
 }
 
-/// Fiber instance representation
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub struct FiberInstance {
     pub id: usize,
     pub state: FiberState,
-    pub callback: Option<crate::runtime::UserFunction>, // The callback function to execute
-    pub call_stack: Vec<CallFrame>,                     // Fiber's own call stack
-    pub variables: HashMap<String, Value>,              // Fiber's local variables
-    pub suspended_value: Option<Box<Value>>,            // Value passed to Fiber::suspend()
-    pub return_value: Option<Box<Value>>,               // Final return value
-    pub error: Option<String>,                          // Error if fiber failed
+    pub callback: Option<crate::runtime::UserFunction>,
+    pub call_stack: Vec<CallFrame>,
+    pub variables: HashMap<String, Value>,
+    pub suspended_value: Option<Box<Value>>,
+    pub return_value: Option<Box<Value>>,
+    pub error: Option<String>,
 }
 
-/// Fiber execution state
 #[derive(Debug, Clone, PartialEq)]
-#[allow(dead_code)] // All variants parsed but not yet used
+#[allow(dead_code)]
 pub enum FiberState {
     NotStarted,
     Running,
@@ -53,7 +55,6 @@ pub enum FiberState {
     Terminated,
 }
 
-/// Call frame for fiber execution context
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub struct CallFrame {
@@ -63,114 +64,20 @@ pub struct CallFrame {
     pub current_statement: usize,
 }
 
-/// Generator instance representation
 #[derive(Debug, Clone)]
 pub struct GeneratorInstance {
     pub id: usize,
-    pub position: usize,                   // Current position in the generator
-    pub values: Vec<Value>,                // Values yielded so far
-    pub statements: Vec<crate::ast::Stmt>, // Generator body statements
-    pub current_statement: usize,          // Current statement position
-    pub variables: HashMap<String, Value>, // Generator's local variables
-    pub finished: bool,                    // Whether the generator has finished
-}
-
-/// Array key type - PHP arrays support both integer and string keys
-#[derive(Debug, Clone)]
-pub enum ArrayKey {
-    Integer(i64),
-    String(String),
-}
-
-impl PartialEq for ArrayKey {
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (ArrayKey::Integer(a), ArrayKey::Integer(b)) => a == b,
-            (ArrayKey::String(a), ArrayKey::String(b)) => a == b,
-            _ => false,
-        }
-    }
-}
-
-impl Eq for ArrayKey {}
-
-impl Hash for ArrayKey {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        match self {
-            ArrayKey::Integer(n) => {
-                0u8.hash(state);
-                n.hash(state);
-            }
-            ArrayKey::String(s) => {
-                1u8.hash(state);
-                s.hash(state);
-            }
-        }
-    }
-}
-
-impl fmt::Display for ArrayKey {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            ArrayKey::Integer(n) => write!(f, "{}", n),
-            ArrayKey::String(s) => write!(f, "{}", s),
-        }
-    }
-}
-
-impl ArrayKey {
-    /// Convert a Value to an ArrayKey following PHP's key coercion rules
-    pub fn from_value(value: &Value) -> ArrayKey {
-        match value {
-            Value::Integer(n) => ArrayKey::Integer(*n),
-            Value::Float(n) => ArrayKey::Integer(*n as i64),
-            Value::Bool(b) => ArrayKey::Integer(if *b { 1 } else { 0 }),
-            Value::Null => ArrayKey::String(String::new()),
-            Value::String(s) => {
-                // PHP converts numeric strings to integer keys
-                if let Ok(n) = s.parse::<i64>() {
-                    ArrayKey::Integer(n)
-                } else {
-                    ArrayKey::String(s.clone())
-                }
-            }
-            Value::Array(_) => ArrayKey::String("Array".to_string()),
-            Value::Object(obj) => ArrayKey::String(format!("Object({})", obj.class_name)),
-            Value::Fiber(fiber) => ArrayKey::String(format!("Object(Fiber#{:06})", fiber.id)),
-            Value::Closure(_) => ArrayKey::String("Object(Closure)".to_string()),
-            Value::Generator(gen) => ArrayKey::String(format!("Object(Generator#{:06})", gen.id)),
-            Value::EnumCase {
-                enum_name,
-                case_name,
-                ..
-            } => ArrayKey::String(format!("{}::{}", enum_name, case_name)),
-            Value::Exception(exc) => ArrayKey::String(format!("Object({})", exc.class_name)),
-        }
-    }
-
-    /// Convert ArrayKey to a Value
-    pub fn to_value(&self) -> Value {
-        match self {
-            ArrayKey::Integer(n) => Value::Integer(*n),
-            ArrayKey::String(s) => Value::String(s.clone()),
-        }
-    }
-}
-
-/// Exception value
-#[derive(Debug, Clone, PartialEq)]
-pub struct ExceptionValue {
-    pub class_name: String,
-    pub message: String,
-    pub code: i64,
-    pub file: String,
-    pub line: usize,
-    pub previous: Option<Box<ExceptionValue>>,
+    pub position: usize,
+    pub values: Vec<Value>,
+    pub statements: Vec<crate::ast::Stmt>,
+    pub current_statement: usize,
+    pub variables: HashMap<String, Value>,
+    pub finished: bool,
 }
 
 /// Runtime value representation
 #[derive(Debug, Clone)]
-#[allow(dead_code)] // Fiber and Exception variants parsed but not yet used
+#[allow(dead_code)]
 pub enum Value {
     Null,
     Bool(bool),
@@ -179,77 +86,15 @@ pub enum Value {
     String(String),
     Array(Vec<(ArrayKey, Value)>),
     Object(ObjectInstance),
-    Fiber(Box<FiberInstance>),         // Add Fiber support
-    Closure(Box<Closure>),             // Arrow function or closure
-    Generator(Box<GeneratorInstance>), // Generator (PHP 5.5+)
+    Fiber(Box<FiberInstance>),
+    Closure(Box<Closure>),
+    Generator(Box<GeneratorInstance>),
     EnumCase {
         enum_name: String,
         case_name: String,
-        backing_value: Option<Box<Value>>, // Some(value) for backed enums, None for pure
+        backing_value: Option<Box<Value>>,
     },
-    Exception(ExceptionValue), // Exception instance
-}
-
-/// Object instance representation
-#[derive(Debug, Clone)]
-pub struct ObjectInstance {
-    pub class_name: String,
-    pub properties: HashMap<String, Value>,
-    pub readonly_properties: std::collections::HashSet<String>, // Track readonly property names (PHP 8.1)
-    pub initialized_readonly: std::collections::HashSet<String>, // Track which readonly props are initialized
-    pub parent_class: Option<String>, // Parent class name (for inheritance checking)
-    pub interfaces: Vec<String>,      // Implemented interfaces (for DNF type checking)
-}
-
-impl ObjectInstance {
-    #[allow(dead_code)] // Kept for backwards compatibility
-    pub fn new(class_name: String) -> Self {
-        Self {
-            class_name,
-            properties: HashMap::new(),
-            readonly_properties: std::collections::HashSet::new(),
-            initialized_readonly: std::collections::HashSet::new(),
-            parent_class: None,
-            interfaces: Vec::new(),
-        }
-    }
-
-    pub fn with_hierarchy(
-        class_name: String,
-        parent: Option<String>,
-        interfaces: Vec<String>,
-    ) -> Self {
-        Self {
-            class_name,
-            properties: HashMap::new(),
-            readonly_properties: std::collections::HashSet::new(),
-            initialized_readonly: std::collections::HashSet::new(),
-            parent_class: parent,
-            interfaces,
-        }
-    }
-}
-
-impl PartialEq for ObjectInstance {
-    fn eq(&self, other: &Self) -> bool {
-        if self.class_name != other.class_name {
-            return false;
-        }
-        if self.properties.len() != other.properties.len() {
-            return false;
-        }
-        for (key, val) in &self.properties {
-            match other.properties.get(key) {
-                Some(other_val) => {
-                    if val != other_val {
-                        return false;
-                    }
-                }
-                None => return false,
-            }
-        }
-        true
-    }
+    Exception(ExceptionValue),
 }
 
 impl PartialEq for Value {
@@ -259,7 +104,6 @@ impl PartialEq for Value {
 }
 
 impl Value {
-    /// Convert value to string for output
     pub fn to_output_string(&self) -> String {
         match self {
             Value::Null => String::new(),
@@ -293,373 +137,19 @@ impl Value {
         }
     }
 
-    /// Convert to boolean (PHP truthiness)
-    pub fn to_bool(&self) -> bool {
-        match self {
-            Value::Null => false,
-            Value::Bool(b) => *b,
-            Value::Integer(n) => *n != 0,
-            Value::Float(n) => *n != 0.0,
-            Value::String(s) => !s.is_empty() && s != "0",
-            Value::Array(arr) => !arr.is_empty(),
-            Value::Object(_) => true,       // Objects are always truthy
-            Value::Fiber(_) => true,        // Fibers are always truthy
-            Value::Closure(_) => true,      // Closures are always truthy
-            Value::Generator(_) => true,    // Generators are always truthy
-            Value::EnumCase { .. } => true, // Enum cases are always truthy
-            Value::Exception(_) => true,    // Exceptions are always truthy
-        }
-    }
-
-    /// Convert to integer
-    pub fn to_int(&self) -> i64 {
-        match self {
-            Value::Null => 0,
-            Value::Bool(b) => {
-                if *b {
-                    1
-                } else {
-                    0
-                }
-            }
-            Value::Integer(n) => *n,
-            Value::Float(n) => *n as i64,
-            Value::String(s) => s.parse().unwrap_or(0),
-            Value::Array(arr) => {
-                if arr.is_empty() {
-                    0
-                } else {
-                    1
-                }
-            }
-            Value::Object(_) => 1,
-            Value::Fiber(_) => 0,        // Fibers convert to 0
-            Value::Closure(_) => 1,      // Closures convert to 1
-            Value::Generator(_) => 0,    // Generators convert to 0
-            Value::EnumCase { .. } => 1, // Enum cases convert to 1
-            Value::Exception(_) => 1,    // Exceptions convert to 1
-        }
-    }
-
-    /// Convert to float
-    pub fn to_float(&self) -> f64 {
-        match self {
-            Value::Null => 0.0,
-            Value::Bool(b) => {
-                if *b {
-                    1.0
-                } else {
-                    0.0
-                }
-            }
-            Value::Integer(n) => *n as f64,
-            Value::Float(n) => *n,
-            Value::String(s) => s.parse().unwrap_or(0.0),
-            Value::Array(arr) => {
-                if arr.is_empty() {
-                    0.0
-                } else {
-                    1.0
-                }
-            }
-            Value::Object(_) => 1.0,
-            Value::Fiber(_) => 0.0,        // Fibers convert to 0.0
-            Value::Closure(_) => 1.0,      // Closures convert to 1.0
-            Value::Generator(_) => 0.0,    // Generators convert to 0.0
-            Value::EnumCase { .. } => 1.0, // Enum cases convert to 1.0
-            Value::Exception(_) => 1.0,    // Exceptions convert to 1.0
-        }
-    }
-
-    /// Convert to string
-    pub fn to_string_val(&self) -> String {
-        match self {
-            Value::Null => String::new(),
-            Value::Bool(b) => {
-                if *b {
-                    "1".to_string()
-                } else {
-                    String::new()
-                }
-            }
-            Value::Integer(n) => n.to_string(),
-            Value::Float(n) => {
-                if n.fract() == 0.0 && n.abs() < 1e15 {
-                    format!("{:.0}", n)
-                } else {
-                    n.to_string()
-                }
-            }
-            Value::String(s) => s.clone(),
-            Value::Array(_) => "Array".to_string(),
-            Value::Object(obj) => format!("Object({})", obj.class_name),
-            Value::Fiber(_) => "Object(Fiber)".to_string(),
-            Value::Closure(_) => "Object(Closure)".to_string(),
-            Value::Generator(_) => "Object(Generator)".to_string(),
-            Value::EnumCase {
-                enum_name,
-                case_name,
-                ..
-            } => format!("{}::{}", enum_name, case_name),
-            Value::Exception(exc) => format!("Object({})", exc.class_name),
-        }
-    }
-
-    /// Check if value is numeric (used by is_numeric built-in function)
     #[allow(dead_code)]
     pub fn is_numeric(&self) -> bool {
         matches!(self, Value::Integer(_) | Value::Float(_))
     }
 
-    /// Check if value is an array
     pub fn is_array(&self) -> bool {
         matches!(self, Value::Array(_))
     }
 
-    /// Check if value is an object
-    #[allow(dead_code)] // Will be used for is_object() built-in function
+    #[allow(dead_code)]
     pub fn is_object(&self) -> bool {
         matches!(self, Value::Object(_))
     }
-
-    /// Check type equality for === and !==
-    pub fn type_equals(&self, other: &Value) -> bool {
-        match (self, other) {
-            (Value::Null, Value::Null) => true,
-            (Value::Bool(a), Value::Bool(b)) => a == b,
-            (Value::Integer(a), Value::Integer(b)) => a == b,
-            (Value::Float(a), Value::Float(b)) => a == b,
-            (Value::String(a), Value::String(b)) => a == b,
-            (Value::Array(a), Value::Array(b)) => {
-                if a.len() != b.len() {
-                    return false;
-                }
-                for ((k1, v1), (k2, v2)) in a.iter().zip(b.iter()) {
-                    if k1 != k2 || !v1.type_equals(v2) {
-                        return false;
-                    }
-                }
-                true
-            }
-            (Value::Object(a), Value::Object(b)) => {
-                // Objects are equal if they have the same class and same properties
-                a.class_name == b.class_name && a.properties == b.properties
-            }
-            (Value::Fiber(a), Value::Fiber(b)) => {
-                // Fibers are equal if they have the same ID
-                a.id == b.id
-            }
-            (Value::Closure(_), Value::Closure(_)) => {
-                // Closures are never strictly equal (even to themselves in this comparison)
-                false
-            }
-            (Value::Generator(a), Value::Generator(b)) => {
-                // Generators are equal if they have the same ID
-                a.id == b.id
-            }
-            (
-                Value::EnumCase {
-                    enum_name: en1,
-                    case_name: cn1,
-                    ..
-                },
-                Value::EnumCase {
-                    enum_name: en2,
-                    case_name: cn2,
-                    ..
-                },
-            ) => en1 == en2 && cn1 == cn2, // Enum cases are identical by name
-            (Value::Exception(a), Value::Exception(b)) => {
-                // Exceptions are equal if they have the same class and message
-                a.class_name == b.class_name && a.message == b.message
-            }
-            _ => false,
-        }
-    }
-
-    /// Loose equality for == and !=
-    pub fn loose_equals(&self, other: &Value) -> bool {
-        match (self, other) {
-            (Value::Null, Value::Null) => true,
-            (Value::Null, Value::Bool(b)) | (Value::Bool(b), Value::Null) => !b,
-            (Value::Bool(a), Value::Bool(b)) => a == b,
-            (Value::Integer(a), Value::Integer(b)) => a == b,
-            (Value::Float(a), Value::Float(b)) => a == b,
-            (Value::Integer(a), Value::Float(b)) | (Value::Float(b), Value::Integer(a)) => {
-                (*a as f64) == *b
-            }
-            (Value::String(a), Value::String(b)) => a == b,
-            // Numeric string comparisons
-            (Value::Integer(n), Value::String(s)) | (Value::String(s), Value::Integer(n)) => {
-                if let Ok(sn) = s.parse::<i64>() {
-                    *n == sn
-                } else if let Ok(sf) = s.parse::<f64>() {
-                    (*n as f64) == sf
-                } else {
-                    false
-                }
-            }
-            (Value::Float(n), Value::String(s)) | (Value::String(s), Value::Float(n)) => {
-                if let Ok(sf) = s.parse::<f64>() {
-                    *n == sf
-                } else {
-                    false
-                }
-            }
-            // Array comparisons
-            (Value::Array(a), Value::Array(b)) => {
-                if a.len() != b.len() {
-                    return false;
-                }
-                for ((k1, v1), (k2, v2)) in a.iter().zip(b.iter()) {
-                    if k1 != k2 || !v1.loose_equals(v2) {
-                        return false;
-                    }
-                }
-                true
-            }
-            // Object comparisons
-            (Value::Object(a), Value::Object(b)) => {
-                a.class_name == b.class_name && a.properties == b.properties
-            }
-            // Fiber comparisons
-            (Value::Fiber(a), Value::Fiber(b)) => a.id == b.id,
-            // Closure comparisons
-            (Value::Closure(_), Value::Closure(_)) => {
-                false // Closures are never loosely equal
-            }
-            (Value::Generator(a), Value::Generator(b)) => a.id == b.id,
-            // Enum case comparisons
-            (
-                Value::EnumCase {
-                    enum_name: en1,
-                    case_name: cn1,
-                    ..
-                },
-                Value::EnumCase {
-                    enum_name: en2,
-                    case_name: cn2,
-                    ..
-                },
-            ) => en1 == en2 && cn1 == cn2,
-            // Exception comparisons
-            (Value::Exception(a), Value::Exception(b)) => {
-                a.class_name == b.class_name && a.message == b.message
-            }
-            _ => self.to_bool() == other.to_bool(),
-        }
-    }
-
-    /// Get the PHP type name
-    pub fn get_type(&self) -> &'static str {
-        match self {
-            Value::Null => "NULL",
-            Value::Bool(_) => "boolean",
-            Value::Integer(_) => "integer",
-            Value::Float(_) => "double",
-            Value::String(_) => "string",
-            Value::Array(_) => "array",
-            Value::Object(_) => "object",
-            Value::Fiber(_) => "object", // Fibers are treated as objects for type purposes
-            Value::Closure(_) => "object", // Closures are treated as objects for type purposes
-            Value::Generator(_) => "object", // Generators are treated as objects for type purposes
-            Value::EnumCase { .. } => "object", // Enum cases are treated as objects for type purposes
-            Value::Exception(_) => "object", // Exceptions are treated as objects for type purposes
-        }
-    }
-
-    /// Get type name for error messages (shorter format)
-    #[allow(dead_code)]
-    pub fn type_name(&self) -> &'static str {
-        match self {
-            Value::Null => "null",
-            Value::Bool(_) => "bool",
-            Value::Integer(_) => "int",
-            Value::Float(_) => "float",
-            Value::String(_) => "string",
-            Value::Array(_) => "array",
-            Value::Object(obj) => Box::leak(obj.class_name.clone().into_boxed_str()),
-            Value::Fiber(_) => "Fiber",
-            Value::Closure(_) => "Closure",
-            Value::Generator(_) => "Generator",
-            Value::EnumCase { enum_name, .. } => Box::leak(enum_name.clone().into_boxed_str()),
-            Value::Exception(exc) => Box::leak(exc.class_name.clone().into_boxed_str()),
-        }
-    }
-    /// Strict type matching (no coercion) - PHP 7.0+ strict_types mode
-    #[allow(dead_code)]
-    pub fn matches_type_strict(&self, type_hint: &crate::ast::TypeHint) -> bool {
-        use crate::ast::TypeHint;
-        match type_hint {
-            TypeHint::Simple(name) => match (name.as_str(), self) {
-                ("int", Value::Integer(_)) => true,
-                ("float", Value::Float(_)) => true,
-                ("float", Value::Integer(_)) => true, // int is subtype of float (widening allowed)
-                ("string", Value::String(_)) => true,
-                ("bool", Value::Bool(_)) => true,
-                ("array", Value::Array(_)) => true,
-                ("object", Value::Object(_)) => true,
-                ("object", Value::Fiber(_)) => true,
-                ("object", Value::Closure(_)) => true,
-                ("object", Value::EnumCase { .. }) => true,
-                ("callable", Value::Closure(_)) => true,
-                ("callable", Value::String(_)) => true,
-                ("iterable", Value::Array(_)) => true,
-                ("mixed", _) => true,
-                ("null", Value::Null) => true,
-                ("false", Value::Bool(false)) => true,
-                ("true", Value::Bool(true)) => true,
-                _ => false,
-            },
-            TypeHint::Nullable(inner) => {
-                matches!(self, Value::Null) || self.matches_type_strict(inner)
-            }
-            TypeHint::Union(types) => types.iter().any(|t| self.matches_type_strict(t)),
-            TypeHint::Intersection(types) => types.iter().all(|t| self.matches_type_strict(t)),
-            TypeHint::DNF(intersections) => {
-                // DNF: (A&B)|(C&D)|E
-                // Value must match at least one intersection group
-                intersections.iter().any(|group| {
-                    // All types in the group must match
-                    group.iter().all(|t| self.matches_type_strict(t))
-                })
-            }
-            TypeHint::Class(class_name) => {
-                if let Value::Object(obj) = self {
-                    obj.is_instance_of(class_name)
-                } else {
-                    false
-                }
-            }
-            TypeHint::Void => false,
-            TypeHint::Never => false,
-            TypeHint::Static => false,
-            TypeHint::SelfType => false,
-            TypeHint::ParentType => false,
-        }
-    }
 }
 
-impl ObjectInstance {
-    /// Check if this object is an instance of a given class or interface
-    /// Checks: exact match, parent class, and implemented interfaces
-    #[allow(dead_code)]
-    pub fn is_instance_of(&self, class_name: &str) -> bool {
-        // Check exact class name match (case-insensitive)
-        if self.class_name.eq_ignore_ascii_case(class_name) {
-            return true;
-        }
-
-        // Check parent class (case-insensitive)
-        if let Some(ref parent) = self.parent_class {
-            if parent.eq_ignore_ascii_case(class_name) {
-                return true;
-            }
-        }
-
-        // Check implemented interfaces (case-insensitive)
-        self.interfaces
-            .iter()
-            .any(|iface| iface.eq_ignore_ascii_case(class_name))
-    }
-}
+impl ObjectInstance {}
