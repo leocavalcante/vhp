@@ -2,14 +2,18 @@
 //!
 //! This module compiles PHP AST into bytecode for the VM to execute.
 
+mod assignment_compilation;
+mod class_compilation;
 mod compiler_types;
-mod definitions;
 mod expr;
 mod expr_helpers;
 mod functions;
 mod if_match;
+mod interface_compilation;
 mod loops;
+mod object_access_compilation;
 mod stmt;
+mod trait_enum_compilation;
 mod try_catch;
 
 use crate::ast::{BinaryOp, Expr, FunctionParam, Method, Program, Stmt, UnaryOp};
