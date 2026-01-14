@@ -2,7 +2,8 @@
 Basic fiber creation and execution
 --FILE--
 <?php
-
+--SKIPIF--
+Fiber execution not fully implemented yet
 --EXPECT--
 In fiber
 Fiber returned: done

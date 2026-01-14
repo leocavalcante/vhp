@@ -2,8 +2,8 @@
 //!
 //! Handles parsing of PHP 8.0+ attributes: #[AttributeName(args)]
 
-use super::{ExprParser, Precedence, StmtParser};
-use crate::ast::{Attribute, AttributeArgument, Expr, Stmt};
+use super::{Precedence, StmtParser};
+use crate::ast::{Attribute, AttributeArgument, Stmt};
 use crate::token::TokenKind;
 
 impl<'a> StmtParser<'a> {

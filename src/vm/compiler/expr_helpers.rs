@@ -66,7 +66,7 @@ impl Compiler {
                     }
                     Expr::CallableFromFunction(func_name) => {
                         use crate::vm::builtins;
-                        let is_builtin = builtins::is_builtin(&func_name);
+                        let is_builtin = builtins::is_builtin(func_name);
                         let func_idx = self.intern_string(func_name.clone());
                         self.compile_expr(left)?;
                         self.emit(if is_builtin {

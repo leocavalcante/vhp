@@ -1,9 +1,5 @@
-use crate::ast::Visibility;
 use crate::runtime::{ArrayKey, Closure, ClosureBody, Value};
-use crate::vm::frame::{ExceptionHandler, LoopContext, ThisSource};
 use crate::vm::opcode::CastType;
-
-use crate::vm::opcode::Constant;
 
 pub fn execute_load_var<W: std::io::Write>(vm: &mut super::super::VM<W>, name: String) {
     let value = vm.globals.get(&name).cloned().unwrap_or(Value::Null);

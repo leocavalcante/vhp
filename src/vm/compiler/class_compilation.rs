@@ -1,10 +1,11 @@
 use super::Compiler;
 
-use crate::ast::{Attribute, Expr, Method, QualifiedName, TraitUse};
+use crate::ast::{Attribute, Method, QualifiedName, TraitUse};
 use crate::vm::opcode::Opcode;
 use std::sync::Arc;
 
 impl Compiler {
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn compile_class_internal(
         &mut self,
         name: &str,
@@ -29,8 +30,9 @@ impl Compiler {
         let resolved_parent = parent.as_ref().map(|p| self.resolve_qualified_name(p));
 
         if let Some(ref parent_name) = resolved_parent {
+            let parent_name_str: &str = parent_name.as_str();
             let is_builtin = matches!(
-                parent_name.as_str(),
+                parent_name_str,
                 "Exception"
                     | "Error"
                     | "TypeError"
@@ -215,17 +217,13 @@ impl Compiler {
             }
         }
 
-        let interfaces_to_check: Vec<&str> =
-            resolved_interfaces.iter().map(|s| s.as_str()).collect();
+        let interfaces_to_check: Vec<&str> = resolved_interfaces
+            .iter()
+            .map(|s: &String| s.as_str())
+            .collect();
         let mut interfaces: Vec<String> = interfaces_to_check
             .iter()
-            .filter_map(|n| {
-                if let Some(iface) = self.interfaces.get(*n) {
-                    Some(iface.name.clone())
-                } else {
-                    None
-                }
-            })
+            .filter_map(|n| self.interfaces.get(*n).map(|iface| iface.name.clone()))
             .collect();
 
         let mut parent_interfaces: Vec<String> = Vec::new();
@@ -248,13 +246,11 @@ impl Compiler {
         compiled_class.interfaces = interfaces.clone();
 
         for method in methods {
-            if method.is_abstract {
-                if !is_abstract {
-                    return Err(format!(
-                        "Cannot declare method {}::{} as abstract if class is not abstract",
-                        name, method.name
-                    ));
-                }
+            if method.is_abstract && !is_abstract {
+                return Err(format!(
+                    "Cannot declare method {}::{} as abstract if class is not abstract",
+                    name, method.name
+                ));
             }
 
             if method.is_final && !is_abstract {

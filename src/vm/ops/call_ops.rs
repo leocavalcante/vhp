@@ -1,4 +1,4 @@
-use crate::runtime::{ArrayKey, Closure, ClosureBody, Value};
+use crate::runtime::{ArrayKey, Value};
 use crate::vm::frame::CallFrame;
 
 pub fn execute_call<W: std::io::Write>(
@@ -36,18 +36,16 @@ pub fn execute_call<W: std::io::Write>(
                                 given_type
                             ));
                         }
-                    } else {
-                        if !vm.value_matches_type(arg, type_hint) {
-                            let type_name = vm.format_type_hint(type_hint);
-                            let given_type = vm.get_value_type_name(arg);
-                            return Err(format!(
-                                "Argument {} passed to {}() must be of type {}, {} given",
-                                i + 1,
-                                func.name,
-                                type_name,
-                                given_type
-                            ));
-                        }
+                    } else if !vm.value_matches_type(arg, type_hint) {
+                        let type_name = vm.format_type_hint(type_hint);
+                        let given_type = vm.get_value_type_name(arg);
+                        return Err(format!(
+                            "Argument {} passed to {}() must be of type {}, {} given",
+                            i + 1,
+                            func.name,
+                            type_name,
+                            given_type
+                        ));
                     }
                 }
             }

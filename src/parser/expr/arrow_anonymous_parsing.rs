@@ -2,7 +2,7 @@
 //!
 //! Handles parsing of PHP arrow functions (fn) and anonymous classes.
 
-use super::{parse_postfix, ExprParser};
+use super::ExprParser;
 use crate::ast::{Expr, Visibility};
 use crate::token::TokenKind;
 

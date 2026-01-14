@@ -81,11 +81,8 @@ impl Compiler {
             }
             crate::ast::Stmt::Declare { directives, body } => {
                 for directive in directives {
-                    match directive {
-                        crate::ast::DeclareDirective::StrictTypes(enabled) => {
-                            self.strict_types = *enabled;
-                        }
-                        _ => {}
+                    if let crate::ast::DeclareDirective::StrictTypes(enabled) = directive {
+                        self.strict_types = *enabled;
                     }
                 }
                 if let Some(stmts) = body {

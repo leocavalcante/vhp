@@ -5,9 +5,7 @@
 //! - Value comparison operations
 //! - Builtin function dispatcher
 
-use crate::ast::TypeHint;
 use crate::runtime::Value;
-use crate::vm::opcode::Constant;
 use crate::vm::{builtins, reflection, VM};
 
 impl<W: std::io::Write> VM<W> {

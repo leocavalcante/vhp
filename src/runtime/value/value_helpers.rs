@@ -253,6 +253,7 @@ impl super::Value {
     }
 
     #[allow(dead_code)]
+    #[allow(clippy::match_like_matches_macro)]
     pub fn matches_type_strict(&self, type_hint: &crate::ast::TypeHint) -> bool {
         use crate::ast::TypeHint;
         match type_hint {

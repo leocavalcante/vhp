@@ -1,4 +1,4 @@
-use crate::runtime::{ArrayKey, Closure, ClosureBody, Value};
+use crate::runtime::{ArrayKey, Value};
 use crate::vm::frame::CallFrame;
 
 pub fn execute_call_static_method<W: std::io::Write>(

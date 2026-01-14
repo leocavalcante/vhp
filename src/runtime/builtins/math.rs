@@ -157,6 +157,7 @@ pub fn tan(args: &[Value]) -> Result<Value, String> {
 }
 
 /// log - Natural logarithm
+#[allow(dead_code)]
 pub fn log(args: &[Value]) -> Result<Value, String> {
     if args.is_empty() {
         return Err("log() expects exactly 1 parameter".to_string());

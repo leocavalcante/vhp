@@ -26,17 +26,16 @@ pub fn execute_load_property<W: std::io::Write>(
 
             if let Some(value) = instance.properties.get(&prop_name).cloned() {
                 vm.stack.push(value);
+            } else if let Some(get_method) = vm.find_method_in_chain(&instance.class_name, "__get")
+            {
+                vm.stack.push(Value::String(prop_name));
+                let stack_base = vm.stack.len();
+                let mut frame = super::super::frame::CallFrame::new(get_method, stack_base);
+                frame.locals[0] = Value::Object(instance);
+                frame.locals[1] = vm.stack.pop().unwrap();
+                vm.frames.push(frame);
             } else {
-                if let Some(get_method) = vm.find_method_in_chain(&instance.class_name, "__get") {
-                    vm.stack.push(Value::String(prop_name));
-                    let stack_base = vm.stack.len();
-                    let mut frame = super::super::frame::CallFrame::new(get_method, stack_base);
-                    frame.locals[0] = Value::Object(instance);
-                    frame.locals[1] = vm.stack.pop().unwrap();
-                    vm.frames.push(frame);
-                } else {
-                    vm.stack.push(Value::Null);
-                }
+                vm.stack.push(Value::Null);
             }
         }
         Value::EnumCase {

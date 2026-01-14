@@ -21,6 +21,7 @@ pub struct ObjectInstance {
 }
 
 impl ObjectInstance {
+    #[allow(dead_code)]
     pub fn new(class_name: String) -> Self {
         Self {
             class_name,

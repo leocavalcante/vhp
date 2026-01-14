@@ -40,9 +40,7 @@ fn value_to_json(value: &Value, depth: u32) -> Result<String, String> {
         Value::Integer(n) => Ok(n.to_string()),
         Value::Float(f) => {
             // Handle special float values
-            if f.is_nan() {
-                Ok("null".to_string())
-            } else if f.is_infinite() {
+            if f.is_nan() || f.is_infinite() {
                 Ok("null".to_string())
             } else {
                 // Format float without unnecessary decimal places
@@ -138,7 +136,7 @@ fn value_to_json(value: &Value, depth: u32) -> Result<String, String> {
     }
 }
 
-fn parse_value<'a>(input: &'a str) -> Result<(Value, &'a str), String> {
+fn parse_value(input: &str) -> Result<(Value, &str), String> {
     let trimmed = input.trim_start();
 
     if trimmed.is_empty() {
@@ -176,7 +174,7 @@ fn parse_json(json_str: &str) -> Result<Value, String> {
     Ok(value)
 }
 
-fn parse_string<'a>(input: &'a str) -> Result<(Value, &'a str), String> {
+fn parse_string(input: &str) -> Result<(Value, &str), String> {
     if !input.starts_with('"') {
         return Err("Expected string".to_string());
     }
@@ -230,7 +228,7 @@ fn parse_string<'a>(input: &'a str) -> Result<(Value, &'a str), String> {
     Err("Unterminated string".to_string())
 }
 
-fn parse_object<'a>(input: &'a str) -> Result<(Value, &'a str), String> {
+fn parse_object(input: &str) -> Result<(Value, &str), String> {
     if !input.starts_with('{') {
         return Err("Expected object".to_string());
     }
@@ -242,8 +240,8 @@ fn parse_object<'a>(input: &'a str) -> Result<(Value, &'a str), String> {
     let whitespace_count = rest.chars().take_while(|c| c.is_ascii_whitespace()).count();
     rest = &rest[whitespace_count..];
 
-    if rest.starts_with('}') {
-        return Ok((Value::Array(arr), &rest[1..]));
+    if let Some(stripped) = rest.strip_prefix('}') {
+        return Ok((Value::Array(arr), stripped));
     }
 
     loop {
@@ -283,17 +281,17 @@ fn parse_object<'a>(input: &'a str) -> Result<(Value, &'a str), String> {
         }
 
         // Check for comma or closing brace
-        if rest.starts_with(',') {
-            rest = &rest[1..];
-        } else if rest.starts_with('}') {
-            return Ok((Value::Array(arr), &rest[1..]));
+        if let Some(stripped) = rest.strip_prefix(',') {
+            rest = stripped;
+        } else if let Some(stripped) = rest.strip_prefix('}') {
+            return Ok((Value::Array(arr), stripped));
         } else {
             return Err("Expected ',' or '}' in object".to_string());
         }
     }
 }
 
-fn parse_array<'a>(input: &'a str) -> Result<(Value, &'a str), String> {
+fn parse_array(input: &str) -> Result<(Value, &str), String> {
     if !input.starts_with('[') {
         return Err("Expected array".to_string());
     }
@@ -305,8 +303,8 @@ fn parse_array<'a>(input: &'a str) -> Result<(Value, &'a str), String> {
     let whitespace_count = rest.chars().take_while(|c| c.is_ascii_whitespace()).count();
     rest = &rest[whitespace_count..];
 
-    if rest.starts_with(']') {
-        return Ok((Value::Array(arr), &rest[1..]));
+    if let Some(stripped) = rest.strip_prefix(']') {
+        return Ok((Value::Array(arr), stripped));
     }
 
     let mut index: i64 = 0;
@@ -329,10 +327,10 @@ fn parse_array<'a>(input: &'a str) -> Result<(Value, &'a str), String> {
         index += 1;
 
         // Check for comma or closing bracket
-        if rest.starts_with(',') {
-            rest = &rest[1..];
-        } else if rest.starts_with(']') {
-            return Ok((Value::Array(arr), &rest[1..]));
+        if let Some(stripped) = rest.strip_prefix(',') {
+            rest = stripped;
+        } else if let Some(stripped) = rest.strip_prefix(']') {
+            return Ok((Value::Array(arr), stripped));
         } else {
             return Err("Expected ',' or ']' in array".to_string());
         }
@@ -344,14 +342,14 @@ fn parse_literal<'a>(
     literal: &str,
     value: Value,
 ) -> Result<(Value, &'a str), String> {
-    if input.starts_with(literal) {
-        Ok((value, &input[literal.len()..]))
+    if let Some(stripped) = input.strip_prefix(literal) {
+        Ok((value, stripped))
     } else {
         Err(format!("Expected literal: {}", literal))
     }
 }
 
-fn parse_number<'a>(input: &'a str) -> Result<(Value, &'a str), String> {
+fn parse_number(input: &str) -> Result<(Value, &str), String> {
     let chars: Vec<char> = input.chars().collect();
     let mut pos = 0;
 

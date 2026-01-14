@@ -1,6 +1,6 @@
 use super::Compiler;
 
-use crate::ast::{Attribute, Expr, Method, QualifiedName};
+use crate::ast::{Attribute, Expr, Method};
 use crate::vm::opcode::Opcode;
 use std::sync::Arc;
 

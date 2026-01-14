@@ -65,6 +65,7 @@ pub struct CallFrame {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct GeneratorInstance {
     pub id: usize,
     pub position: usize,

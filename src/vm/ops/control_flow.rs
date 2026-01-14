@@ -86,14 +86,14 @@ pub fn execute_yield_from<W: std::io::Write>(vm: &mut super::super::VM<W>) -> Re
 
 pub fn execute_return_null<W: std::io::Write>(vm: &mut super::super::VM<W>) -> Result<(), String> {
     if let Some(ref return_type) = vm.current_frame().function.return_type.clone() {
-        if !matches!(return_type, TypeHint::Void) {
-            if !vm.value_matches_type_strict(&Value::Null, return_type) {
-                let type_name = vm.format_type_hint(return_type);
-                return Err(format!(
-                    "Return value must be of type {}, null returned",
-                    type_name
-                ));
-            }
+        if !matches!(return_type, TypeHint::Void)
+            && !vm.value_matches_type_strict(&Value::Null, return_type)
+        {
+            let type_name = vm.format_type_hint(return_type);
+            return Err(format!(
+                "Return value must be of type {}, null returned",
+                type_name
+            ));
         }
     }
     Err("__RETURN__null".to_string())

@@ -1,4 +1,4 @@
-use crate::runtime::{ArrayKey, Closure, ClosureBody, Value};
+use crate::runtime::{ArrayKey, ClosureBody, Value};
 use crate::vm::frame::CallFrame;
 
 pub fn execute_call_callable<W: std::io::Write>(

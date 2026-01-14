@@ -22,7 +22,7 @@ pub mod type_parsing;
 
 use super::expr::ExprParser;
 use super::precedence::Precedence;
-use crate::ast::{Attribute, AttributeArgument, Expr, Stmt};
+use crate::ast::{Expr, Stmt};
 use crate::token::{Token, TokenKind};
 
 pub struct StmtParser<'a> {

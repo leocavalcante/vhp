@@ -257,9 +257,9 @@ impl<'a> StmtParser<'a> {
                 let type_hint = if let crate::token::TokenKind::Identifier(_) = &self.current().kind
                 {
                     Some(self.parse_type_hint()?)
-                } else if self.check(&crate::token::TokenKind::QuestionMark) {
-                    Some(self.parse_type_hint()?)
-                } else if self.check(&crate::token::TokenKind::LeftParen) {
+                } else if self.check(&crate::token::TokenKind::QuestionMark)
+                    || self.check(&crate::token::TokenKind::LeftParen)
+                {
                     Some(self.parse_type_hint()?)
                 } else {
                     None

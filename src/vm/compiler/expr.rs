@@ -1,9 +1,7 @@
 use super::Compiler;
 
 use crate::ast::Expr;
-use crate::vm::class::{CompiledClass, CompiledProperty};
 use crate::vm::opcode::Opcode;
-use std::sync::Arc;
 
 impl Compiler {
     pub(crate) fn compile_expr_internal(&mut self, expr: &Expr) -> Result<(), String> {

@@ -4,8 +4,8 @@
 
 use super::VM;
 use crate::runtime::Value;
-use crate::vm::frame::{CallFrame, ExceptionHandler, LoopContext, ThisSource};
-use crate::vm::opcode::{CompiledFunction, Opcode};
+use crate::vm::frame::{CallFrame, ThisSource};
+use crate::vm::opcode::CompiledFunction;
 use std::io::Write;
 use std::sync::Arc;
 
@@ -54,18 +54,17 @@ pub fn execute_vm<W: Write>(
                             None
                         };
 
-                    let value = if is_constructor {
-                        frame.locals[0].clone()
-                    } else if matches!(this_source, ThisSource::PropertySetHook) {
-                        frame.locals[0].clone()
-                    } else {
-                        let value_str = e.strip_prefix("__RETURN__").unwrap();
-                        if value_str == "null" {
-                            Value::Null
+                    let value =
+                        if is_constructor || matches!(this_source, ThisSource::PropertySetHook) {
+                            frame.locals[0].clone()
                         } else {
-                            vm.stack.pop().unwrap_or(Value::Null)
-                        }
-                    };
+                            let value_str = e.strip_prefix("__RETURN__").unwrap();
+                            if value_str == "null" {
+                                Value::Null
+                            } else {
+                                vm.stack.pop().unwrap_or(Value::Null)
+                            }
+                        };
 
                     let finally_jump = vm.handlers.iter().rev().find_map(|h| {
                         if h.frame_depth == vm.frames.len()

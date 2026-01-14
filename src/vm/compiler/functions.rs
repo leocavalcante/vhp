@@ -91,10 +91,11 @@ impl Compiler {
     ) {
         match expr {
             Expr::Variable(name) => {
-                if !param_names.contains(name.as_str()) && !captured.contains(name) {
-                    if self.locals.contains_key(name) || self.is_global_var_internal(name) {
-                        captured.push(name.clone());
-                    }
+                if !param_names.contains(name.as_str())
+                    && !captured.contains(name)
+                    && (self.locals.contains_key(name) || self.is_global_var_internal(name))
+                {
+                    captured.push(name.clone());
                 }
             }
             Expr::Binary { left, right, .. } => {
