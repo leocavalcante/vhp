@@ -13,9 +13,9 @@ array(3) {
   [2]=>
   int(3)
 }
-  array(2) {
-    ["a"]=>
-    string(1) "b"
-    ["c"]=>
-    string(1) "d"
-  }
+array(2) {
+  ["a"]=>
+  string(1) "b"
+  ["c"]=>
+  string(1) "d"
+}

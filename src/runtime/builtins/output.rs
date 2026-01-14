@@ -47,7 +47,7 @@ fn var_dump_value<W: Write>(output: &mut W, value: &Value, indent: usize) -> Res
                         writeln!(output, "{}  [{}]=>", prefix, n).map_err(|e| e.to_string())?;
                     }
                     ArrayKey::String(s) => {
-                        write!(output, "{}  [\"{}\"]=>", prefix, s).map_err(|e| e.to_string())?;
+                        writeln!(output, "{}  [\"{}\"]=>", prefix, s).map_err(|e| e.to_string())?;
                     }
                 }
                 var_dump_value(output, val, indent + 1)?;

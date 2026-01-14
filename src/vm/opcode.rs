@@ -227,6 +227,10 @@ pub enum Opcode {
     LoadThis,
     /// instanceof check: class name index (stack: object -> bool)
     InstanceOf(u32),
+    /// Get current Fiber for Fiber::getCurrent() (stack: -> Fiber|null)
+    GetCurrentFiber,
+    /// Set current Fiber (stack: Fiber|null ->)
+    SetCurrentFiber,
     /// Clone object (stack: object -> cloned_object)
     Clone,
     /// Call constructor on object: arg count (stack: object, args... -> object)
@@ -235,6 +239,10 @@ pub enum Opcode {
     CallConstructorNamed,
     /// Load enum case: enum name index, case name index
     LoadEnumCase(u32, u32),
+    /// Enum::from() - look up case by backing value, throws if not found
+    EnumFromValue(u32),
+    /// Enum::tryFrom() - look up case by backing value, returns null if not found
+    EnumTryFromValue(u32),
 
     // ==================== Stack Manipulation ====================
     /// Pop and discard top of stack
@@ -334,6 +342,7 @@ impl Opcode {
             | Opcode::LoadFast(_)
             | Opcode::LoadGlobal(_)
             | Opcode::LoadThis
+            | Opcode::GetCurrentFiber
             | Opcode::Dup => 1,
 
             // Pops 1, pushes 1: 0
@@ -439,6 +448,8 @@ impl Opcode {
             Opcode::LoadStaticProp(_, _) => 1,
             Opcode::StoreStaticProp(_, _) => -1,
             Opcode::LoadEnumCase(_, _) => 1, // pushes enum case value
+            Opcode::EnumFromValue(_) => 0,   // pops value, pushes case (or throws)
+            Opcode::EnumTryFromValue(_) => 0, // pops value, pushes case or null
 
             // Array
             Opcode::NewArray(n) => 1 - (*n as i32) * 2, // pops n key-value pairs, pushes array
@@ -467,6 +478,9 @@ impl Opcode {
             // Closures
             Opcode::CreateClosure(_, n) => 1 - (*n as i32), // pops captured vars, pushes closure
             Opcode::CaptureVar(_) => 0,
+
+            // Fiber
+            Opcode::SetCurrentFiber => -1, // pops 1 (fiber), pushes 0
         }
     }
 }

@@ -1,32 +1,32 @@
 use crate::ast::TypeHint;
 use crate::runtime::Value;
 
-pub fn execute_jump<W: std::io::Write>(vm: &mut super::super::VM<W>, offset: i32) {
+pub fn execute_jump<W: std::io::Write>(vm: &mut super::super::VM<W>, offset: u32) {
     vm.current_frame_mut().jump_to(offset as usize);
 }
 
-pub fn execute_jump_if_false<W: std::io::Write>(vm: &mut super::super::VM<W>, offset: i32) {
+pub fn execute_jump_if_false<W: std::io::Write>(vm: &mut super::super::VM<W>, offset: u32) {
     let value = vm.stack.pop().unwrap();
     if !value.to_bool() {
         vm.current_frame_mut().jump_to(offset as usize);
     }
 }
 
-pub fn execute_jump_if_true<W: std::io::Write>(vm: &mut super::super::VM<W>, offset: i32) {
+pub fn execute_jump_if_true<W: std::io::Write>(vm: &mut super::super::VM<W>, offset: u32) {
     let value = vm.stack.pop().unwrap();
     if value.to_bool() {
         vm.current_frame_mut().jump_to(offset as usize);
     }
 }
 
-pub fn execute_jump_if_null<W: std::io::Write>(vm: &mut super::super::VM<W>, offset: i32) {
+pub fn execute_jump_if_null<W: std::io::Write>(vm: &mut super::super::VM<W>, offset: u32) {
     let value = vm.stack.last().unwrap();
     if matches!(value, Value::Null) {
         vm.current_frame_mut().jump_to(offset as usize);
     }
 }
 
-pub fn execute_jump_if_not_null<W: std::io::Write>(vm: &mut super::super::VM<W>, offset: i32) {
+pub fn execute_jump_if_not_null<W: std::io::Write>(vm: &mut super::super::VM<W>, offset: u32) {
     let value = vm.stack.last().unwrap();
     if !matches!(value, Value::Null) {
         vm.current_frame_mut().jump_to(offset as usize);
@@ -51,7 +51,7 @@ pub fn execute_return<W: std::io::Write>(vm: &mut super::super::VM<W>) -> Result
             ));
         }
     }
-    Err("__RETURN__".to_string());
+    Err("__RETURN__".to_string())
 }
 
 pub fn execute_yield<W: std::io::Write>(vm: &mut super::super::VM<W>) -> Result<(), String> {
@@ -65,8 +65,8 @@ pub fn execute_yield<W: std::io::Write>(vm: &mut super::super::VM<W>) -> Result<
         variables: std::collections::HashMap::new(),
         finished: false,
     };
-    vm.stack.push(Value::Generator(Box::new(gen));
-    Err("__GENERATOR__".to_string()));
+    vm.stack.push(Value::Generator(Box::new(gen)));
+    Err("__GENERATOR__".to_string())
 }
 
 pub fn execute_yield_from<W: std::io::Write>(vm: &mut super::super::VM<W>) -> Result<(), String> {
@@ -80,8 +80,8 @@ pub fn execute_yield_from<W: std::io::Write>(vm: &mut super::super::VM<W>) -> Re
         variables: std::collections::HashMap::new(),
         finished: false,
     };
-    vm.stack.push(Value::Generator(Box::new(gen));
-    Err("__GENERATOR__".to_string()));
+    vm.stack.push(Value::Generator(Box::new(gen)));
+    Err("__GENERATOR__".to_string())
 }
 
 pub fn execute_return_null<W: std::io::Write>(vm: &mut super::super::VM<W>) -> Result<(), String> {
@@ -109,8 +109,8 @@ pub fn execute_continue<W: std::io::Write>(_vm: &mut super::super::VM<W>) -> Res
 
 pub fn execute_loop_start<W: std::io::Write>(
     vm: &mut super::super::VM<W>,
-    continue_target: i32,
-    break_target: i32,
+    continue_target: u32,
+    break_target: u32,
 ) {
     vm.loops.push(super::super::frame::LoopContext {
         continue_target,

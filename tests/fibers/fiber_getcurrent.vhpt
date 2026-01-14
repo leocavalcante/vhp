@@ -17,9 +17,6 @@ $fiber->start();
 --SKIPIF--
 Instance methods not fully implemented yet
 
---SKIPIF--
---EXPECT--
-
 --EXPECT--
 Outside fiber: null
 Inside fiber: not null

@@ -2,19 +2,6 @@
 Basic fiber creation and execution
 --FILE--
 <?php
-function test() {
-    echo "In fiber\n";
-    return "done";
-}
-
-$fiber = new Fiber('test');
-$result = $fiber->start();
-echo "Fiber returned: " . $result;
---SKIPIF--
-Instance methods not fully implemented yet
-
---SKIPIF--
---EXPECT--
 
 --EXPECT--
 In fiber

@@ -263,6 +263,10 @@ impl<'a> ExprParser<'a> {
                         let id = id.clone();
                         self.advance();
                         id
+                    } else if self.check(&TokenKind::From) {
+                        // from is a keyword but can be used as a method name (e.g., Enum::from())
+                        self.advance();
+                        "from".to_string()
                     } else {
                         return Err(format!(
                             "Expected method, case name, or property after '::' at line {}, column {}",

@@ -4,25 +4,25 @@
 //! Each module implements functions as methods on `VM<W>` via `impl<W: Write> super::super::VM<W>`.
 
 mod arithmetic;
-mod comparison;
-mod strings;
-mod logical_bitwise;
-mod control_flow;
 mod arrays;
-mod object_ops;
-mod functions;
+mod comparison;
+mod control_flow;
 mod exceptions;
-mod closures;
+mod functions;
+mod logical_bitwise;
+mod method_calls;
 mod misc;
+mod object_ops;
+mod strings;
 
 pub use arithmetic::*;
-pub use comparison::*;
-pub use strings::*;
-pub use logical_bitwise::*;
-pub use control_flow::*;
 pub use arrays::*;
-pub use object_ops::*;
-pub use functions::*;
+pub use comparison::*;
+pub use control_flow::*;
 pub use exceptions::*;
-pub use closures::*;
+pub use functions::*;
+pub use logical_bitwise::*;
+pub use method_calls::*;
 pub use misc::*;
+pub use object_ops::*;
+pub use strings::*;

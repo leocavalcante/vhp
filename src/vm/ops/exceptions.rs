@@ -68,8 +68,8 @@ pub fn execute_throw<W: std::io::Write>(vm: &mut super::super::VM<W>) -> Result<
 
 pub fn execute_try_start<W: std::io::Write>(
     vm: &mut super::super::VM<W>,
-    catch_offset: i32,
-    finally_offset: i32,
+    catch_offset: u32,
+    finally_offset: u32,
 ) {
     let try_start = vm.current_frame().ip as u32;
     let frame_depth = vm.frames.len();

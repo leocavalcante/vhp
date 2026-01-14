@@ -22,9 +22,6 @@ echo "isTerminated: " . ($fiber->isTerminated() ? "true" : "false") . "\n";
 --SKIPIF--
 Instance methods not fully implemented yet
 
---SKIPIF--
---EXPECT--
-
 --EXPECT--
 Before start:
 isStarted: false

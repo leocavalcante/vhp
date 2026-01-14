@@ -6,3 +6,4 @@ description = "VHP: Vibe-coded Hypertext Preprocessor - A fast, secure PHP super
 license = "BSD-3-Clause"
 
 [dependencies]
+regex = "1.10"

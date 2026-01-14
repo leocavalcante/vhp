@@ -31,8 +31,9 @@ make test-verbose       # Build and run tests (verbose output)
 # Run performance benchmarks
 make bench              # Compare VHP vs PHP performance
 
-# Lint
-make lint               # Run clippy with warnings as errors
+# Lint and check file sizes
+make lint               # Run clippy with warnings as errors and file size check
+make check-file-sizes   # Check file sizes only
 ```
 
 ## Architecture
@@ -54,11 +55,35 @@ src/
 │   ├── stmt.rs          # Statement parsing
 │   └── precedence.rs    # Operator precedence (Pratt parsing)
 ├── vm/                  # Bytecode Virtual Machine (primary execution engine)
-│   ├── mod.rs           # VM execution loop
-│   ├── compiler.rs      # AST to bytecode compilation
+│   ├── mod.rs           # VM struct, main execution loop dispatcher
+│   ├── execution.rs     # VM execution loop (extracted)
+│   ├── opcode_dispatch.rs # Opcode dispatch logic (extracted)
 │   ├── opcode.rs        # Opcode definitions
 │   ├── frame.rs         # Call frames and loop contexts
 │   ├── class.rs         # CompiledClass, CompiledInterface, etc.
+│   ├── ops/             # Opcode execution modules
+│   │   ├── mod.rs       # Module exports
+│   │   ├── arithmetic.rs # Arithmetic opcode handlers
+│   │   ├── arrays.rs    # Array opcode handlers
+│   │   ├── comparison.rs # Comparison opcode handlers
+│   │   ├── control_flow.rs # Control flow opcode handlers
+│   │   ├── exceptions.rs # Exception opcode handlers
+│   │   ├── functions.rs # Function call opcode handlers
+│   │   ├── misc.rs      # Miscellaneous opcode handlers
+│   │   ├── object_ops.rs # Object property/method handlers
+│   │   ├── strings.rs   # String opcode handlers
+│   │   └── logical_bitwise.rs # Logical/bitwise opcode handlers
+│   ├── compiler.rs      # Core compiler (AST to bytecode), ~355 lines
+│   ├── compiler/        # Compiler sub-modules (~2,693 lines total)
+│   │   ├── compiler_types.rs  # Type/name resolution utilities (~47 lines)
+│   │   ├── definitions.rs     # Class/interface/trait/enum compilation (~779 lines)
+│   │   ├── expr_helpers.rs    # Expression compilation helpers (~253 lines)
+│   │   ├── expr.rs            # Expression compilation (~682 lines)
+│   │   ├── functions.rs       # Function compilation (regular, arrow, closures) (~299 lines)
+│   │   ├── if_match.rs        # if/match/switch statement compilation (~175 lines)
+│   │   ├── loops.rs           # Loop compilation (while, do-while, for, foreach) (~188 lines)
+│   │   ├── stmt.rs            # Statement dispatcher (~206 lines)
+│   │   └── try_catch.rs       # try/catch/finally compilation (~64 lines)
 │   └── builtins.rs      # Bridge to runtime builtins
 └── runtime/         # Value types and built-in functions
     ├── mod.rs           # Value definitions and types
@@ -116,7 +141,7 @@ Source Code → Lexer → Tokens → Parser → AST → Compiler → Bytecode �
 
 1. **Lexer** (`lexer.rs`): Converts source text into tokens, handles PHP/HTML mode switching
 2. **Parser** (`parser/`): Builds AST from tokens using recursive descent with Pratt parsing for operator precedence
-3. **Compiler** (`vm/compiler.rs`): Compiles AST to bytecode instructions
+3. **Compiler** (`vm/compiler.rs` + `vm/compiler/`): Compiles AST to bytecode instructions
 4. **VM** (`vm/mod.rs`): Executes bytecode with stack-based virtual machine (7x faster than tree-walking)
 
 ## Current Features (v0.1.0)
@@ -658,7 +683,31 @@ fn parse_statement(&mut self) -> Result<Option<Stmt>, String> {
 }
 ```
 
-### 5. Update Interpreter (`runtime/`)
+### 5. Update Compiler (`vm/compiler/`)
+
+Add compilation logic:
+
+```rust
+// For statement compilation, add to vm/compiler/stmt.rs
+// For expression compilation, add to vm/compiler/expr_helpers.rs
+// For control flow (if/match), add to vm/compiler/if_match.rs
+// For loops, add to vm/compiler/loops.rs
+
+// Extracted functions use _internal suffix:
+pub(crate) fn compile_my_feature_internal(
+    &mut self,
+    param: &SomeType,
+) -> Result<(), String> {
+    // Compilation logic
+}
+
+// Wrapper in vm/compiler.rs delegates:
+fn compile_my_feature(&mut self, param: &SomeType) -> Result<(), String> {
+    self.compile_my_feature_internal(param)
+}
+```
+
+### 6. Update Runtime (`runtime/`)
 
 Add execution logic:
 
@@ -705,6 +754,45 @@ Error case description
 // Code that should error
 --EXPECT_ERROR--
 partial error message to match
+```
+
+## File Size Guidelines
+
+### Target Sizes
+- **Optimal file size**: 200-400 lines
+- **Maximum file size**: 500 lines (hard limit - builds will fail)
+- **Target maximum**: 300 lines (soft limit - warnings in CI)
+
+### File Organization Principles
+1. **Single Responsibility**: Each file/module should have one clear purpose
+2. **Logical Grouping**: Group related functions/types together
+3. **Clear Boundaries**: Files should have clear interfaces between them
+4. **Minimal Dependencies**: Minimize circular dependencies
+5. **Testable**: Each module should be independently testable
+
+### Creating New Modules
+1. Identify logical grouping for the new code
+2. Create new module file
+3. Add `pub mod module_name;` to the parent `mod.rs`
+4. Move related code to the new file
+5. Update imports across codebase
+6. Run tests
+7. Run `make check-file-sizes` to verify compliance
+
+### Refactoring Large Files
+When a file exceeds 400 lines:
+1. Create refactoring plan
+2. Identify logical boundaries for splitting
+3. Create new module(s)
+4. Move code incrementally
+5. Verify tests still pass
+6. Run `make check-file-sizes` to verify compliance
+
+### CI File Size Check
+File size checks run automatically with `make lint`:
+```bash
+make lint  # Includes file size check
+make check-file-sizes  # Run file size check only
 ```
 
 ## Test Format (.vhpt)
@@ -795,72 +883,23 @@ partial error message to match
 - [x] First-Class Callables (PHP 8.1) - `strlen(...)` syntax for function closures
 - [x] Anonymous Classes (PHP 7.0) - Inline class definitions
 
-### Phase 7: PHP Core Language Compatibility (In Progress)
-Essential PHP features for compatibility with standard PHP code.
+### Phase 7: Compiler Refactoring ✅ Complete
+Refactoring monolithic `vm/compiler.rs` (~3,100 lines) into organized sub-modules for better maintainability.
 
-**Exception Handling:**
-- [x] try/catch/finally statements
-- [x] throw keyword and expressions (PHP 8.0)
-- [x] Exception class and multiple catch blocks
-- [x] Multi-catch (PHP 7.1) - `catch (TypeA | TypeB $e)`
+- [x] Phase 7.1: `compiler_types.rs` - Type/name resolution utilities (~47 lines)
+- [x] Phase 7.2: `expr_helpers.rs` - Expression compilation helpers (~253 lines)
+- [x] Phase 7.3: `stmt.rs` - Statement dispatcher (~206 lines)
+- [x] Phase 7.4: `if_match.rs` - if/match/switch statement compilation (~175 lines)
+- [x] Phase 7.5: `loops.rs` - Loop compilation (while, do-while, for, foreach) (~188 lines)
+- [x] Phase 7.6: `try_catch.rs` - try/catch/finally compilation (~64 lines)
+- [x] Phase 7.7: `functions.rs` - Function compilation (regular, arrow, closures) (~299 lines)
+- [x] Phase 7.8: `definitions.rs` - Class/interface/trait/enum compilation (~779 lines)
+- [x] Phase 7.9: `expr.rs` - Expression compilation (~682 lines)
+- [x] Phase 7.10: Final cleanup - main compiler.rs reduced to ~355 lines
 
-**Type System:**
-- [x] Type declarations - parsing (int, string, float, bool, array, callable, object, mixed, iterable)
-- [x] Nullable types (PHP 7.1) - `?int`
-- [x] Union types (PHP 8.0) - `int|string`
-- [x] Intersection types (PHP 8.1) - `Iterator&Countable` (parsing)
-- [x] DNF types (PHP 8.2) - `(A&B)|C` (Disjunctive Normal Form)
-- [x] void, never, static return types
-- [x] Runtime type validation for parameters and return types
-- [x] Class type hints
+**Result**: compiler.rs reduced by 89% (3,130 → 355 lines)
 
-**Namespaces:**
-- [x] namespace declaration (braced and unbraced syntax)
-- [x] use statements and aliases
-- [x] Group use declarations (PHP 7.0)
-- [x] Qualified names (Foo\Bar, \Foo\Bar)
-- [x] Namespace resolution for classes and interfaces
-
-**Generators:**
-- [x] yield keyword and yield from (PHP 5.5/7.0)
-- [x] Generator object creation and basic structure
-- [ ] Generator execution with resume/send methods
-- [ ] Generator return values (PHP 7.0)
-- [ ] Iterator interfaces
-
-**Abstract & Final:**
-- [x] abstract classes and methods
-- [x] final classes and methods
-- [ ] final constants (PHP 8.1)
-
-**Magic Methods:**
-- [x] __toString() - String conversion of objects
-- [x] __invoke() - Callable objects
-- [x] __get()/__set() - Property overloading for undefined properties
-- [x] __isset()/__unset() - Property checking for isset() and unset()
-- [x] __call()/__callStatic() - Method overloading for undefined methods
-- [x] __clone() - Already implemented (PHP 5.0)
-- [ ] __debugInfo() - var_dump() output customization
-- [ ] __serialize()/__unserialize() (PHP 7.4)
-
-**Additional OOP:**
-- [x] Anonymous classes (PHP 7.0)
-- [x] Property hooks (PHP 8.4)
-- [x] Static properties and late static binding (PHP 5.0/5.3)
-- [x] Asymmetric visibility (PHP 8.4)
-- [x] #[\Override] attribute (PHP 8.3)
-
-**Control Flow:**
-- [x] Alternative syntax (`if:`, `endif;`, etc.) - All control structures
-- [ ] goto statement
-- [x] declare directive (`strict_types`) - PHP 7.0
-
-**Functions:**
-- [x] Arrow functions (PHP 7.4) - `fn($x) => $x * 2`
-- [x] Variadic functions and argument unpacking
-- [x] First-class callables (PHP 8.1) - `strlen(...)`
-
-### Phase 8: PHP 8.5 Features (Planned)
+### Phase 9: PHP 8.5 Features (Planned)
 - [ ] URI Extension - `Uri\Rfc3986\Uri` class
 - [ ] Clone with syntax - `clone($obj, ['prop' => 'value'])`
 - [ ] #[\NoDiscard] attribute
@@ -872,7 +911,7 @@ Essential PHP features for compatibility with standard PHP code.
 - [ ] Attributes on constants
 - [ ] Error backtraces for fatal errors
 
-### Phase 9: Standard Library Expansion (Planned)
+### Phase 10: Standard Library Expansion (Planned)
 - [ ] PCRE regex (preg_match, preg_replace, etc.)
 - [ ] Array functions (array_map, array_filter, array_reduce, sorting)
 - [ ] Math functions (trigonometry, logarithms)

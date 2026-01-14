@@ -1,11 +1,19 @@
 use crate::runtime::Value;
 use crate::vm::frame::ThisSource;
 
+fn normalize_class_name(name: &str) -> String {
+    if let Some(stripped) = name.strip_prefix('\\') {
+        stripped.to_string()
+    } else {
+        name.to_string()
+    }
+}
+
 pub fn execute_new_object<W: std::io::Write>(
     vm: &mut super::super::VM<W>,
     class_name: String,
 ) -> Result<(), String> {
-    let class_name = super::super::VM::normalize_class_name(&class_name);
+    let class_name = normalize_class_name(&class_name);
     let class_def = vm
         .classes
         .get(&class_name)
@@ -78,7 +86,8 @@ pub fn execute_load_property<W: std::io::Write>(
                     if let Some(ref hook_method_name) = prop_def.get_hook {
                         if let Some(hook_method) = class.methods.get(hook_method_name).cloned() {
                             let stack_base = vm.stack.len();
-                            let mut frame = super::super::frame::CallFrame::new(hook_method, stack_base);
+                            let mut frame =
+                                super::super::frame::CallFrame::new(hook_method, stack_base);
                             frame.locals[0] = Value::Object(instance);
                             vm.frames.push(frame);
                             return Ok(());
@@ -90,9 +99,7 @@ pub fn execute_load_property<W: std::io::Write>(
             if let Some(value) = instance.properties.get(&prop_name).cloned() {
                 vm.stack.push(value);
             } else {
-                if let Some(get_method) =
-                    vm.find_method_in_chain(&instance.class_name, "__get")
-                {
+                if let Some(get_method) = vm.find_method_in_chain(&instance.class_name, "__get") {
                     vm.stack.push(Value::String(prop_name));
                     let stack_base = vm.stack.len();
                     let mut frame = super::super::frame::CallFrame::new(get_method, stack_base);
@@ -121,12 +128,7 @@ pub fn execute_load_property<W: std::io::Write>(
                         ));
                     }
                 }
-                _ => {
-                    return Err(format!(
-                        "Undefined property: {}::{}",
-                        enum_name, prop_name
-                    ))
-                }
+                _ => return Err(format!("Undefined property: {}::{}", enum_name, prop_name)),
             };
             vm.stack.push(value);
         }
@@ -151,11 +153,8 @@ pub fn execute_load_this<W: std::io::Write>(vm: &mut super::super::VM<W>) -> Res
     Ok(())
 }
 
-pub fn execute_instance_of<W: std::io::Write>(
-    vm: &mut super::super::VM<W>,
-    class_name: String,
-) {
-    let class_name = super::super::VM::normalize_class_name(&class_name);
+pub fn execute_instance_of<W: std::io::Write>(vm: &mut super::super::VM<W>, class_name: String) {
+    let class_name = normalize_class_name(&class_name);
     let object = vm.stack.pop().unwrap();
 
     let result = match object {
@@ -186,7 +185,7 @@ pub fn execute_load_enum_case<W: std::io::Write>(
     enum_name: String,
     case_name: String,
 ) -> Result<(), String> {
-    let enum_name = super::super::VM::normalize_class_name(&enum_name);
+    let enum_name = normalize_class_name(&enum_name);
     let enum_def = vm
         .enums
         .get(&enum_name)
@@ -196,9 +195,7 @@ pub fn execute_load_enum_case<W: std::io::Write>(
     let backing_value = enum_def
         .cases
         .get(&case_name)
-        .ok_or_else(|| {
-            format!("Undefined case '{}' for enum '{}'", case_name, enum_name)
-        })?
+        .ok_or_else(|| format!("Undefined case '{}' for enum '{}'", case_name, enum_name))?
         .clone()
         .map(Box::new);
 
@@ -244,16 +241,14 @@ pub fn execute_unset_property<W: std::io::Write>(
 
     match object {
         Value::Object(mut instance) => {
-            let prop_defined_in_class =
-                if let Some(class) = vm.classes.get(&instance.class_name) {
-                    class.properties.iter().any(|p| p.name == prop_name)
-                } else {
-                    false
-                };
+            let prop_defined_in_class = if let Some(class) = vm.classes.get(&instance.class_name) {
+                class.properties.iter().any(|p| p.name == prop_name)
+            } else {
+                false
+            };
 
             if !prop_defined_in_class {
-                if let Some(unset_method) =
-                    vm.find_method_in_chain(&instance.class_name, "__unset")
+                if let Some(unset_method) = vm.find_method_in_chain(&instance.class_name, "__unset")
                 {
                     let stack_base = vm.stack.len();
                     let mut frame = super::super::frame::CallFrame::new(unset_method, stack_base);
@@ -274,27 +269,22 @@ pub fn execute_unset_property<W: std::io::Write>(
     Ok(())
 }
 
-pub fn execute_isset_property<W: std::io::Write>(
-    vm: &mut super::super::VM<W>,
-    prop_name: String,
-) {
+pub fn execute_isset_property<W: std::io::Write>(vm: &mut super::super::VM<W>, prop_name: String) {
     let object = vm.stack.pop().unwrap();
 
     match object {
         Value::Object(instance) => {
-            let prop_defined_in_class =
-                if let Some(class) = vm.classes.get(&instance.class_name) {
-                    class.properties.iter().any(|p| p.name == prop_name)
-                } else {
-                    false
-                };
+            let prop_defined_in_class = if let Some(class) = vm.classes.get(&instance.class_name) {
+                class.properties.iter().any(|p| p.name == prop_name)
+            } else {
+                false
+            };
 
             if let Some(value) = instance.properties.get(&prop_name) {
                 let is_set = !matches!(value, Value::Null);
                 vm.stack.push(Value::Bool(is_set));
             } else if !prop_defined_in_class {
-                if let Some(isset_method) =
-                    vm.find_method_in_chain(&instance.class_name, "__isset")
+                if let Some(isset_method) = vm.find_method_in_chain(&instance.class_name, "__isset")
                 {
                     let stack_base = vm.stack.len();
                     let mut frame = super::super::frame::CallFrame::new(isset_method, stack_base);
@@ -326,16 +316,14 @@ pub fn execute_unset_property_on_local<W: std::io::Write>(
 
     match object {
         Value::Object(mut instance) => {
-            let prop_defined_in_class =
-                if let Some(class) = vm.classes.get(&instance.class_name) {
-                    class.properties.iter().any(|p| p.name == prop_name)
-                } else {
-                    false
-                };
+            let prop_defined_in_class = if let Some(class) = vm.classes.get(&instance.class_name) {
+                class.properties.iter().any(|p| p.name == prop_name)
+            } else {
+                false
+            };
 
             if !prop_defined_in_class {
-                if let Some(unset_method) =
-                    vm.find_method_in_chain(&instance.class_name, "__unset")
+                if let Some(unset_method) = vm.find_method_in_chain(&instance.class_name, "__unset")
                 {
                     let stack_base = vm.stack.len();
                     let mut frame = super::super::frame::CallFrame::new(unset_method, stack_base);
@@ -368,19 +356,17 @@ pub fn execute_isset_property_on_local<W: std::io::Write>(
 
     match object {
         Value::Object(instance) => {
-            let prop_defined_in_class =
-                if let Some(class) = vm.classes.get(&instance.class_name) {
-                    class.properties.iter().any(|p| p.name == prop_name)
-                } else {
-                    false
-                };
+            let prop_defined_in_class = if let Some(class) = vm.classes.get(&instance.class_name) {
+                class.properties.iter().any(|p| p.name == prop_name)
+            } else {
+                false
+            };
 
             if let Some(value) = instance.properties.get(&prop_name) {
                 let is_set = !matches!(value, Value::Null);
                 vm.stack.push(Value::Bool(is_set));
             } else if !prop_defined_in_class {
-                if let Some(isset_method) =
-                    vm.find_method_in_chain(&instance.class_name, "__isset")
+                if let Some(isset_method) = vm.find_method_in_chain(&instance.class_name, "__isset")
                 {
                     let stack_base = vm.stack.len();
                     let mut frame = super::super::frame::CallFrame::new(isset_method, stack_base);
@@ -413,16 +399,14 @@ pub fn execute_unset_property_on_global<W: std::io::Write>(
 
     match object {
         Value::Object(mut instance) => {
-            let prop_defined_in_class =
-                if let Some(class) = vm.classes.get(&instance.class_name) {
-                    class.properties.iter().any(|p| p.name == prop_name)
-                } else {
-                    false
-                };
+            let prop_defined_in_class = if let Some(class) = vm.classes.get(&instance.class_name) {
+                class.properties.iter().any(|p| p.name == prop_name)
+            } else {
+                false
+            };
 
             if !prop_defined_in_class {
-                if let Some(unset_method) =
-                    vm.find_method_in_chain(&instance.class_name, "__unset")
+                if let Some(unset_method) = vm.find_method_in_chain(&instance.class_name, "__unset")
                 {
                     let stack_base = vm.stack.len();
                     let mut frame = super::super::frame::CallFrame::new(unset_method, stack_base);
@@ -453,19 +437,17 @@ pub fn execute_isset_property_on_global<W: std::io::Write>(
 
     match object {
         Value::Object(instance) => {
-            let prop_defined_in_class =
-                if let Some(class) = vm.classes.get(&instance.class_name) {
-                    class.properties.iter().any(|p| p.name == prop_name)
-                } else {
-                    false
-                };
+            let prop_defined_in_class = if let Some(class) = vm.classes.get(&instance.class_name) {
+                class.properties.iter().any(|p| p.name == prop_name)
+            } else {
+                false
+            };
 
             if let Some(value) = instance.properties.get(&prop_name) {
                 let is_set = !matches!(value, Value::Null);
                 vm.stack.push(Value::Bool(is_set));
             } else if !prop_defined_in_class {
-                if let Some(isset_method) =
-                    vm.find_method_in_chain(&instance.class_name, "__isset")
+                if let Some(isset_method) = vm.find_method_in_chain(&instance.class_name, "__isset")
                 {
                     let stack_base = vm.stack.len();
                     let mut frame = super::super::frame::CallFrame::new(isset_method, stack_base);
@@ -487,4 +469,127 @@ pub fn execute_isset_property_on_global<W: std::io::Write>(
             vm.stack.push(Value::Bool(false));
         }
     }
+}
+
+pub fn execute_store_property<W: std::io::Write>(
+    vm: &mut super::super::VM<W>,
+    prop_name: String,
+) -> Result<(), String> {
+    let value = vm.stack.pop().ok_or("Stack underflow")?;
+    let object = vm.stack.pop().ok_or("Stack underflow")?;
+
+    match object {
+        Value::Object(instance) => {
+            if let Some(class) = vm.classes.get(&instance.class_name).cloned() {
+                if let Some(prop_def) = class.properties.iter().find(|p| p.name == prop_name) {
+                    if let Some(write_vis) = &prop_def.write_visibility {
+                        let current_class = vm.get_current_class();
+                        let can_write = match write_vis {
+                            crate::ast::Visibility::Private => {
+                                current_class.as_ref() == Some(&instance.class_name)
+                            }
+                            crate::ast::Visibility::Protected => {
+                                if let Some(ref curr) = current_class {
+                                    curr == &instance.class_name
+                                        || vm.is_subclass_of(curr, &instance.class_name)
+                                } else {
+                                    false
+                                }
+                            }
+                            crate::ast::Visibility::Public => true,
+                        };
+                        if !can_write {
+                            let vis_str = match write_vis {
+                                crate::ast::Visibility::Private => "private",
+                                crate::ast::Visibility::Protected => "protected",
+                                crate::ast::Visibility::Public => "public",
+                            };
+                            return Err(format!(
+                                "Cannot modify {} property {}",
+                                vis_str, prop_name
+                            ));
+                        }
+                    }
+
+                    if prop_def.get_hook.is_some() && prop_def.set_hook.is_none() {
+                        return Err(format!("Cannot write to read-only property {}", prop_name));
+                    }
+
+                    if let Some(ref hook_method_name) = prop_def.set_hook {
+                        if let Some(hook_method) = class.methods.get(hook_method_name).cloned() {
+                            let stack_base = vm.stack.len();
+                            let mut frame =
+                                super::super::frame::CallFrame::new(hook_method, stack_base);
+                            frame.locals[0] = Value::Object(instance);
+                            frame.locals[1] = value;
+                            frame.this_source = ThisSource::PropertySetHook;
+                            vm.frames.push(frame);
+                            return Ok(());
+                        }
+                    }
+                }
+            }
+
+            let prop_defined_in_class = if let Some(class) = vm.classes.get(&instance.class_name) {
+                class.properties.iter().any(|p| p.name == prop_name)
+            } else {
+                false
+            };
+
+            if !prop_defined_in_class && !instance.properties.contains_key(&prop_name) {
+                if let Some(set_method) = vm.find_method_in_chain(&instance.class_name, "__set") {
+                    let stack_base = vm.stack.len();
+                    let mut frame = super::super::frame::CallFrame::new(set_method, stack_base);
+                    frame.locals[0] = Value::Object(instance);
+                    frame.locals[1] = Value::String(prop_name);
+                    frame.locals[2] = value;
+                    frame.this_source = ThisSource::PropertySetHook;
+                    vm.frames.push(frame);
+                    return Ok(());
+                }
+            }
+
+            let mut instance = instance;
+            if instance.readonly_properties.contains(&prop_name)
+                && instance.initialized_readonly.contains(&prop_name)
+            {
+                return Err(format!("Cannot modify readonly property {}", prop_name));
+            }
+            instance.properties.insert(prop_name.clone(), value.clone());
+            if instance.readonly_properties.contains(&prop_name) {
+                instance.initialized_readonly.insert(prop_name);
+            }
+            vm.stack.push(Value::Object(instance));
+        }
+        _ => return Err("Cannot set property on non-object".to_string()),
+    }
+    Ok(())
+}
+
+pub fn execute_store_clone_property<W: std::io::Write>(
+    vm: &mut super::super::VM<W>,
+    prop_idx: u32,
+) -> Result<(), String> {
+    let prop_name = vm.current_frame().get_string(prop_idx).to_string();
+    let value = vm.stack.pop().ok_or("Stack underflow")?;
+    let object = vm.stack.pop().ok_or("Stack underflow")?;
+
+    match object {
+        Value::Object(mut instance) => {
+            if !instance.properties.contains_key(&prop_name) {
+                return Err(format!(
+                    "Property '{}' does not exist on class '{}'",
+                    prop_name, instance.class_name
+                ));
+            }
+
+            instance.properties.insert(prop_name.clone(), value.clone());
+            if instance.readonly_properties.contains(&prop_name) {
+                instance.initialized_readonly.insert(prop_name);
+            }
+            vm.stack.push(Value::Object(instance));
+        }
+        _ => return Err("Cannot set property on non-object".to_string()),
+    }
+    Ok(())
 }

@@ -2,9 +2,9 @@
 is_dir - check if path is a directory
 --FILE--
 <?php
-file_put_contents("/tmp/test_dir", "test");
-var_dump(is_dir("/tmp/test_dir"));
-var_dump(is_dir("/tmp/nonexistent"));
+file_put_contents("/tmp/test_file", "test");
+var_dump(is_dir("/tmp/test_file"));  // Should be false - it's a file, not a directory
+var_dump(is_dir("/tmp/nonexistent")); // Should be false - doesn't exist
 --EXPECT--
-bool(true)
+bool(false)
 bool(false)

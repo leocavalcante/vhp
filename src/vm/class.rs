@@ -174,6 +174,7 @@ pub struct CompiledEnum {
     pub cases: HashMap<String, Option<crate::runtime::Value>>,
     pub case_order: Vec<String>, // Preserves insertion order for cases() method
     pub methods: HashMap<String, Arc<CompiledFunction>>,
+    pub static_methods: HashMap<String, Arc<CompiledFunction>>,
     pub attributes: Vec<Attribute>,
 }
 
@@ -185,6 +186,7 @@ impl CompiledEnum {
             cases: HashMap::new(),
             case_order: Vec::new(),
             methods: HashMap::new(),
+            static_methods: HashMap::new(),
             attributes: Vec::new(),
         }
     }

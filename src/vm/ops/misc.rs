@@ -2,7 +2,6 @@ use crate::ast::Visibility;
 use crate::runtime::{ArrayKey, Value};
 use crate::vm::frame::{ExceptionHandler, LoopContext, ThisSource};
 use crate::vm::opcode::CastType;
-use crate::vm::opcode::CastType;
 
 pub fn execute_load_var<W: std::io::Write>(vm: &mut super::super::VM<W>, name: String) {
     let value = vm.globals.get(&name).cloned().unwrap_or(Value::Null);
@@ -166,5 +165,4 @@ pub fn execute_unset_array_element<W: std::io::Write>(
         _ => return Err("Cannot unset element of non-array".to_string()),
     }
     Ok(())
-}
 }
