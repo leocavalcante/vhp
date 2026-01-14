@@ -141,11 +141,12 @@ pub fn execute_array_get_value_at<W: std::io::Write>(vm: &mut super::super::VM<W
     }
 }
 
-pub fn execute_array_unpack<W: std::io::Write>(vm: &mut super::super::VM<W>) {
-    let array = vm.stack.pop().unwrap();
+pub fn execute_array_unpack<W: std::io::Write>(vm: &mut super::super::VM<W>) -> Result<(), String> {
+    let array = vm.stack.pop().ok_or("Stack underflow")?;
     if let Value::Array(elements) = array {
         for (_, value) in elements {
             vm.stack.push(value);
         }
     }
+    Ok(())
 }

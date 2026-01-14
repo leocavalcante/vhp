@@ -1,7 +1,9 @@
 use crate::ast::Visibility;
-use crate::runtime::{ArrayKey, Value};
+use crate::runtime::{ArrayKey, Closure, ClosureBody, Value};
 use crate::vm::frame::{ExceptionHandler, LoopContext, ThisSource};
 use crate::vm::opcode::CastType;
+
+use crate::vm::opcode::Constant;
 
 pub fn execute_load_var<W: std::io::Write>(vm: &mut super::super::VM<W>, name: String) {
     let value = vm.globals.get(&name).cloned().unwrap_or(Value::Null);
@@ -164,5 +166,87 @@ pub fn execute_unset_array_element<W: std::io::Write>(
         }
         _ => return Err("Cannot unset element of non-array".to_string()),
     }
+    Ok(())
+}
+
+pub fn execute_create_closure<W: std::io::Write>(
+    vm: &mut super::super::VM<W>,
+    func_name: String,
+    capture_count: u8,
+) -> Result<(), String> {
+    let mut captured_vars: Vec<(String, Value)> = Vec::new();
+    for _ in 0..capture_count {
+        let value = vm.stack.pop().ok_or("Stack underflow")?;
+        let var_name = vm.stack.pop().ok_or("Stack underflow")?;
+        if let Value::String(name) = var_name {
+            captured_vars.push((name, value));
+        } else {
+            return Err("CaptureVar expects variable name as string".to_string());
+        }
+    }
+
+    let closure = Closure {
+        params: Vec::new(),
+        body: ClosureBody::FunctionRef(func_name),
+        captured_vars,
+    };
+    vm.stack.push(Value::Closure(Box::new(closure)));
+    Ok(())
+}
+
+pub fn execute_capture_var<W: std::io::Write>(vm: &mut super::super::VM<W>, var_name: String) {
+    let value = {
+        let frame = vm.current_frame();
+        let slot = frame
+            .function
+            .local_names
+            .iter()
+            .position(|name| name == &var_name)
+            .map(|i| i as u16);
+
+        if let Some(slot) = slot {
+            frame.locals[slot as usize].clone()
+        } else {
+            vm.globals.get(&var_name).cloned().unwrap_or(Value::Null)
+        }
+    };
+
+    vm.stack.push(Value::String(var_name));
+    vm.stack.push(value);
+}
+
+pub fn execute_new_fiber<W: std::io::Write>(vm: &mut super::super::VM<W>) -> Result<(), String> {
+    let callback = vm.stack.pop().ok_or("Stack underflow")?;
+
+    let fiber_class = vm
+        .classes
+        .get("Fiber")
+        .ok_or("Fiber class not found")?
+        .clone();
+
+    let mut instance = crate::runtime::ObjectInstance::with_hierarchy(
+        "Fiber".to_string(),
+        fiber_class.parent.clone(),
+        fiber_class.interfaces.clone(),
+    );
+
+    for prop in &fiber_class.properties {
+        let default_val = prop.default.clone().unwrap_or(Value::Null);
+        instance
+            .properties
+            .insert(prop.name.clone(), default_val.clone());
+        if prop.readonly {
+            instance.readonly_properties.insert(prop.name.clone());
+            if prop.default.is_some() {
+                instance.initialized_readonly.insert(prop.name.clone());
+            }
+        }
+    }
+
+    instance
+        .properties
+        .insert("__callback".to_string(), callback);
+
+    vm.stack.push(Value::Object(instance));
     Ok(())
 }
