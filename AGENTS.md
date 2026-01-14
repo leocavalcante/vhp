@@ -992,11 +992,47 @@ Refactoring monolithic VM execution into modular opcode handlers.
 
 ## Code Style Guidelines
 
-- **No external dependencies** unless absolutely necessary
-- **Comprehensive tests** for every feature
-- **Clear error messages** with line/column information
-- **PHP compatibility** - existing PHP 8.x code should work
-- **Incremental development** - small, focused changes
+### Core Philosophy: Proactive Module Creation
+
+- **Create new modules early**, not after files become too large
+- Small, focused modules are easier to understand, test, and maintain
+- Refactoring large files is more expensive than planning structure upfront
+
+### Daily Coding Habits
+
+1. **Before adding code**: Check if existing file is near 200 lines
+2. **When adding new feature**: Consider creating a dedicated module from the start
+3. **When file grows**: Immediately split into logical sub-modules
+4. **Run `make check-file-sizes`** after each major addition
+
+### When to Create a New Module
+
+Create a new file when:
+
+- Adding a new language feature (operator, statement, expression type)
+- Implementing a new opcode category
+- Adding a new built-in function category
+- File exceeds 250 lines (before hitting soft limit)
+- Multiple related functions can be grouped logically
+- Code has a distinct responsibility
+
+### File Size Rules
+
+- **Optimal**: 200-400 lines per file
+- **Warning zone**: 400-500 lines (plan refactoring immediately)
+- **Hard limit**: 500 lines (builds fail)
+
+### Existing Guidelines
+
+- No external dependencies unless absolutely necessary
+- Comprehensive tests for every feature
+- Clear error messages with line/column information
+- PHP compatibility - existing PHP 8.x code should work
+- Incremental development - small, focused changes
+
+### See Also
+
+- [File Size Guidelines](#file-size-guidelines) for detailed refactoring workflows
 
 ## Common Patterns
 
