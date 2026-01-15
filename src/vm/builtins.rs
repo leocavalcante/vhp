@@ -147,6 +147,11 @@ pub const BUILTIN_FUNCTIONS: &[&str] = &[
     "array_chunk",
     "array_pad",
     "array_splice",
+    "array_diff",
+    "array_intersect",
+    "array_column",
+    "array_flip",
+    "array_count_values",
     // SPL autoload functions
     "spl_autoload_register",
     "spl_autoload_unregister",
@@ -321,6 +326,11 @@ pub fn call_builtin<W: Write>(name: &str, args: &[Value], output: &mut W) -> Res
         "array_chunk" => builtins::array_extra::array_chunk(args),
         "array_pad" => builtins::array_extra::array_pad(args),
         "array_splice" => builtins::array_extra::array_splice(args),
+        "array_diff" => builtins::array_extra::array_diff(args),
+        "array_intersect" => builtins::array_extra::array_intersect(args),
+        "array_column" => builtins::array_extra::array_column(args),
+        "array_flip" => builtins::array_extra::array_flip(args),
+        "array_count_values" => builtins::array_extra::array_count_values(args),
 
         // SPL autoload functions
         "spl_autoload_register" => builtins::spl::spl_autoload_register(args),

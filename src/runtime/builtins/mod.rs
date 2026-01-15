@@ -23,7 +23,8 @@ pub use array::{
 
 #[allow(unused_imports)]
 pub use array_extra::{
-    array_chunk, array_combine, array_fill, array_fill_keys, array_pad, array_splice,
+    array_chunk, array_column, array_combine, array_count_values, array_diff, array_fill,
+    array_fill_keys, array_flip, array_intersect, array_pad, array_splice,
 };
 
 #[allow(unused_imports)]
