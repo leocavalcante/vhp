@@ -1,0 +1,28 @@
+--TEST--
+Array functions - array_first, array_last (PHP 8.0+)
+--FILE--
+<?php
+// array_first
+$arr = [1, 2, 3];
+echo "array_first: " . array_first($arr) . "\n";
+echo "array_first empty: ";
+var_dump(array_first([]));
+
+// array_last
+echo "array_last: " . array_last($arr) . "\n";
+echo "array_last empty: ";
+var_dump(array_last([]));
+
+// With associative arrays
+$assoc = ["a" => 1, "b" => 2, "c" => 3];
+echo "array_first assoc: " . array_first($assoc) . "\n";
+echo "array_last assoc: " . array_last($assoc) . "\n";
+?>
+--EXPECT--
+array_first: 1
+array_first empty: NULL
+array_last: 3
+array_last empty: NULL
+array_first assoc: 1
+array_last assoc: 3
+

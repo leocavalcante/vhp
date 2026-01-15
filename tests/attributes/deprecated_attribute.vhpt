@@ -1,0 +1,20 @@
+--TEST--
+#[\Deprecated] attribute usage
+--FILE--
+<?php
+#[Deprecated]
+function oldFunction() {
+    return "old";
+}
+
+function newFunction() {
+    return "new";
+}
+
+echo "Deprecated function returned: " . oldFunction() . "\n";
+echo "New function returned: " . newFunction() . "\n";
+?>
+--EXPECT--
+Deprecated function returned: old
+New function returned: new
+

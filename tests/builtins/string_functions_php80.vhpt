@@ -1,0 +1,24 @@
+--TEST--
+String functions - str_contains, str_starts_with, str_ends_with
+--FILE--
+<?php
+// str_contains
+echo "str_contains: " . (str_contains("hello world", "world") ? "yes" : "no") . "\n";
+echo "str_contains false: " . (str_contains("hello world", "xyz") ? "yes" : "no") . "\n";
+
+// str_starts_with
+echo "str_starts_with: " . (str_starts_with("hello world", "hello") ? "yes" : "no") . "\n";
+echo "str_starts_with false: " . (str_starts_with("hello world", "world") ? "yes" : "no") . "\n";
+
+// str_ends_with
+echo "str_ends_with: " . (str_ends_with("hello world", "world") ? "yes" : "no") . "\n";
+echo "str_ends_with false: " . (str_ends_with("hello world", "hello") ? "yes" : "no") . "\n";
+?>
+--EXPECT--
+str_contains: yes
+str_contains false: no
+str_starts_with: yes
+str_starts_with false: no
+str_ends_with: yes
+str_ends_with false: no
+
