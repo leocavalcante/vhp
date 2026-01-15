@@ -54,7 +54,10 @@ impl Compiler {
                 .iter()
                 .filter(|p| p.default.is_none() && !p.is_variadic)
                 .count() as u8;
-            method_compiler.function.return_type = method.return_type.clone();
+            method_compiler.function.return_type = method
+                .return_type
+                .as_ref()
+                .map(|t| method_compiler.resolve_type_hint(t));
 
             method_compiler.function.parameters = method.params.clone();
             method_compiler.function.attributes = method.attributes.clone();
@@ -172,7 +175,10 @@ impl Compiler {
                 .iter()
                 .filter(|p| p.default.is_none() && !p.is_variadic)
                 .count() as u8;
-            method_compiler.function.return_type = method.return_type.clone();
+            method_compiler.function.return_type = method
+                .return_type
+                .as_ref()
+                .map(|t| method_compiler.resolve_type_hint(t));
 
             method_compiler.function.parameters = method.params.clone();
             method_compiler.function.attributes = method.attributes.clone();

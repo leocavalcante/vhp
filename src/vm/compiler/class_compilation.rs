@@ -338,6 +338,10 @@ impl Compiler {
             let method_name = format!("{}::{}", qualified_name, method.name);
             let mut method_compiler = Compiler::new(method_name.clone());
 
+            // Copy namespace and use aliases from parent compiler
+            method_compiler.current_namespace = self.current_namespace.clone();
+            method_compiler.use_aliases = self.use_aliases.clone();
+
             if !method.is_static {
                 method_compiler.locals.insert("this".to_string(), 0);
                 method_compiler
@@ -364,7 +368,10 @@ impl Compiler {
                 .iter()
                 .filter(|p| p.default.is_none() && !p.is_variadic)
                 .count() as u8;
-            method_compiler.function.return_type = method.return_type.clone();
+            method_compiler.function.return_type = method
+                .return_type
+                .as_ref()
+                .map(|t| method_compiler.resolve_type_hint(t));
             method_compiler.function.is_variadic = method.params.iter().any(|p| p.is_variadic);
 
             method_compiler.function.parameters = method.params.clone();

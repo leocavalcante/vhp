@@ -71,6 +71,56 @@ pub fn execute_call_method<W: std::io::Write>(
                 ));
             }
         }
+        Value::Generator(_) => {
+            let gen = if let Value::Generator(g) = object {
+                g
+            } else {
+                unreachable!()
+            };
+            match method_name.as_str() {
+                "current" => {
+                    let current = if gen.current_index < gen.yielded_values.len() {
+                        gen.yielded_values[gen.current_index]
+                            .1
+                            .clone()
+                            .unwrap_or(Value::Null)
+                    } else {
+                        Value::Null
+                    };
+                    vm.stack.push(current);
+                }
+                "key" => {
+                    let key = if gen.current_index < gen.yielded_values.len() {
+                        gen.yielded_values[gen.current_index]
+                            .0
+                            .clone()
+                            .unwrap_or(Value::Null)
+                    } else {
+                        Value::Null
+                    };
+                    vm.stack.push(key);
+                }
+                "next" => {
+                    vm.stack.push(Value::Bool(
+                        gen.current_index + 1 < gen.yielded_values.len(),
+                    ));
+                }
+                "rewind" => {
+                    // Rewind is handled by resetting current_index
+                }
+                "valid" => {
+                    let valid = gen.current_index < gen.yielded_values.len() && !gen.finished;
+                    vm.stack.push(Value::Bool(valid));
+                }
+                "getReturn" => {
+                    let ret = gen.return_value.clone().unwrap_or(Value::Null);
+                    vm.stack.push(ret);
+                }
+                _ => {
+                    return Err(format!("Method '{}' not found on Generator", method_name));
+                }
+            }
+        }
         _ => return Err("Cannot call method on non-object".to_string()),
     }
 
@@ -150,6 +200,61 @@ pub fn execute_call_method_on_local<W: std::io::Write>(
                 ));
             }
         }
+        Value::Generator(_) => {
+            let mut gen = if let Value::Generator(g) = object {
+                g
+            } else {
+                unreachable!()
+            };
+            match method_name.as_str() {
+                "current" => {
+                    let current = if gen.current_index < gen.yielded_values.len() {
+                        gen.yielded_values[gen.current_index]
+                            .1
+                            .clone()
+                            .unwrap_or(Value::Null)
+                    } else {
+                        Value::Null
+                    };
+                    vm.stack.push(current);
+                }
+                "key" => {
+                    let key = if gen.current_index < gen.yielded_values.len() {
+                        gen.yielded_values[gen.current_index]
+                            .0
+                            .clone()
+                            .unwrap_or(Value::Null)
+                    } else {
+                        Value::Null
+                    };
+                    vm.stack.push(key);
+                }
+                "next" => {
+                    gen.current_index += 1;
+                    vm.stack
+                        .push(Value::Bool(gen.current_index < gen.yielded_values.len()));
+                    vm.current_frame_mut()
+                        .set_local(var_slot, Value::Generator(gen));
+                }
+                "rewind" => {
+                    gen.current_index = 0;
+                    gen.is_rewound = true;
+                    vm.current_frame_mut()
+                        .set_local(var_slot, Value::Generator(gen));
+                }
+                "valid" => {
+                    let valid = gen.current_index < gen.yielded_values.len() && !gen.finished;
+                    vm.stack.push(Value::Bool(valid));
+                }
+                "getReturn" => {
+                    let ret = gen.return_value.clone().unwrap_or(Value::Null);
+                    vm.stack.push(ret);
+                }
+                _ => {
+                    return Err(format!("Method '{}' not found on Generator", method_name));
+                }
+            }
+        }
         _ => return Err("Cannot call method on non-object".to_string()),
     }
 
@@ -227,6 +332,59 @@ pub fn execute_call_method_on_global<W: std::io::Write>(
                     "Method '{}' not found on class '{}'",
                     method_name, class_name
                 ));
+            }
+        }
+        Value::Generator(_) => {
+            let mut gen = if let Value::Generator(g) = object {
+                g
+            } else {
+                unreachable!()
+            };
+            match method_name.as_str() {
+                "current" => {
+                    let current = if gen.current_index < gen.yielded_values.len() {
+                        gen.yielded_values[gen.current_index]
+                            .1
+                            .clone()
+                            .unwrap_or(Value::Null)
+                    } else {
+                        Value::Null
+                    };
+                    vm.stack.push(current);
+                }
+                "key" => {
+                    let key = if gen.current_index < gen.yielded_values.len() {
+                        gen.yielded_values[gen.current_index]
+                            .0
+                            .clone()
+                            .unwrap_or(Value::Null)
+                    } else {
+                        Value::Null
+                    };
+                    vm.stack.push(key);
+                }
+                "next" => {
+                    gen.current_index += 1;
+                    vm.stack
+                        .push(Value::Bool(gen.current_index < gen.yielded_values.len()));
+                    vm.globals.insert(var_name.clone(), Value::Generator(gen));
+                }
+                "rewind" => {
+                    gen.current_index = 0;
+                    gen.is_rewound = true;
+                    vm.globals.insert(var_name.clone(), Value::Generator(gen));
+                }
+                "valid" => {
+                    let valid = gen.current_index < gen.yielded_values.len() && !gen.finished;
+                    vm.stack.push(Value::Bool(valid));
+                }
+                "getReturn" => {
+                    let ret = gen.return_value.clone().unwrap_or(Value::Null);
+                    vm.stack.push(ret);
+                }
+                _ => {
+                    return Err(format!("Method '{}' not found on Generator", method_name));
+                }
             }
         }
         _ => return Err("Cannot call method on non-object".to_string()),

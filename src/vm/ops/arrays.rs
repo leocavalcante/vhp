@@ -150,3 +150,28 @@ pub fn execute_array_unpack<W: std::io::Write>(vm: &mut super::super::VM<W>) -> 
     }
     Ok(())
 }
+
+pub fn execute_to_array<W: std::io::Write>(vm: &mut super::super::VM<W>) {
+    let iterable = vm.stack.pop().unwrap();
+
+    match iterable {
+        Value::Array(arr) => {
+            vm.stack.push(Value::Array(arr));
+        }
+        Value::Generator(gen) => {
+            let arr: Vec<(ArrayKey, Value)> = gen
+                .yielded_values
+                .into_iter()
+                .enumerate()
+                .map(|(i, (k, v))| {
+                    let key = k.map_or(ArrayKey::Integer(i as i64), |kv| ArrayKey::from_value(&kv));
+                    (key, v.unwrap_or(Value::Null))
+                })
+                .collect();
+            vm.stack.push(Value::Array(arr));
+        }
+        _ => {
+            vm.stack.push(Value::Array(Vec::new()));
+        }
+    }
+}

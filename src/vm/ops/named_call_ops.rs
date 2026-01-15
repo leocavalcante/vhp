@@ -1,7 +1,7 @@
 use crate::runtime::{ArrayKey, Value};
 use crate::vm::frame::CallFrame;
 
-pub fn execute_call_named<W: std::io::Write>(
+pub fn execute_call_named_args<W: std::io::Write>(
     vm: &mut super::super::VM<W>,
     func_name_idx: u32,
 ) -> Result<(), String> {

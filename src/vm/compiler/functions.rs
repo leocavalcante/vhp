@@ -243,6 +243,10 @@ impl Compiler {
 
         func_compiler.function.strict_types = self.strict_types;
 
+        // Copy namespace and use aliases from parent compiler
+        func_compiler.current_namespace = self.current_namespace.clone();
+        func_compiler.use_aliases = self.use_aliases.clone();
+
         func_compiler.function.parameters = params.to_vec();
         func_compiler.function.attributes = attributes.to_vec();
 
@@ -257,7 +261,9 @@ impl Compiler {
             .iter()
             .filter(|p| p.default.is_none() && !p.is_variadic)
             .count() as u8;
-        func_compiler.function.return_type = return_type.clone();
+        func_compiler.function.return_type = return_type
+            .as_ref()
+            .map(|t| func_compiler.resolve_type_hint(t));
         func_compiler.function.is_variadic = params.iter().any(|p| p.is_variadic);
 
         for param in params {
@@ -286,6 +292,8 @@ impl Compiler {
             func_compiler.compile_stmt(stmt)?;
         }
 
+        func_compiler.function.is_generator = func_compiler.contains_yield(body);
+
         func_compiler.emit(Opcode::ReturnNull);
 
         for (inner_name, inner_func) in func_compiler.functions.drain() {
@@ -296,5 +304,129 @@ impl Compiler {
         self.functions.insert(name.to_string(), compiled);
 
         Ok(())
+    }
+
+    fn contains_yield(&self, stmts: &[Stmt]) -> bool {
+        self.contains_yield_in_stmts(stmts)
+    }
+
+    fn contains_yield_in_stmts(&self, stmts: &[Stmt]) -> bool {
+        for stmt in stmts {
+            if self.contains_yield_in_stmt(stmt) {
+                return true;
+            }
+        }
+        false
+    }
+
+    fn contains_yield_in_stmt(&self, stmt: &Stmt) -> bool {
+        match stmt {
+            Stmt::Expression(expr) => {
+                if let Expr::Yield { .. } = expr {
+                    true
+                } else if let Expr::YieldFrom(_inner) = expr {
+                    // yield from itself makes this a generator
+                    true
+                } else {
+                    false
+                }
+            }
+            Stmt::If {
+                then_branch,
+                else_branch,
+                ..
+            } => {
+                self.contains_yield_in_stmts(then_branch)
+                    || else_branch
+                        .as_ref()
+                        .is_some_and(|b| self.contains_yield_in_stmts(b))
+            }
+            Stmt::While { body, .. } | Stmt::DoWhile { body, .. } => {
+                self.contains_yield_in_stmts(body)
+            }
+            Stmt::For { body, .. } | Stmt::Foreach { body, .. } => {
+                self.contains_yield_in_stmts(body)
+            }
+            Stmt::Switch { cases, default, .. } => {
+                cases.iter().any(|c| self.contains_yield_in_stmts(&c.body))
+                    || default
+                        .as_ref()
+                        .is_some_and(|d| self.contains_yield_in_stmts(d))
+            }
+            _ => false,
+        }
+    }
+
+    #[allow(dead_code)]
+    fn contains_yield_in_expr(&self, expr: &Expr) -> bool {
+        match expr {
+            Expr::Yield { .. } => true,
+            Expr::YieldFrom(inner) => self.contains_yield_in_expr(inner),
+            Expr::Binary { left, right, .. } => {
+                self.contains_yield_in_expr(left) || self.contains_yield_in_expr(right)
+            }
+            Expr::Unary { expr, .. } => self.contains_yield_in_expr(expr),
+            Expr::Ternary {
+                condition,
+                then_expr,
+                else_expr,
+            } => {
+                self.contains_yield_in_expr(condition)
+                    || self.contains_yield_in_expr(then_expr)
+                    || self.contains_yield_in_expr(else_expr)
+            }
+            Expr::FunctionCall { args, .. } => {
+                args.iter().any(|a| self.contains_yield_in_expr(&a.value))
+            }
+            Expr::MethodCall { object, args, .. } => {
+                self.contains_yield_in_expr(object)
+                    || args.iter().any(|a| self.contains_yield_in_expr(&a.value))
+            }
+            Expr::PropertyAccess { object, .. } => self.contains_yield_in_expr(object),
+            Expr::ArrayAccess { array, index } => {
+                self.contains_yield_in_expr(array) || self.contains_yield_in_expr(index)
+            }
+            Expr::Array(elements) => {
+                let key_has_yield = elements.iter().any(|e| {
+                    if let Some(ref k) = e.key {
+                        self.contains_yield_in_expr(k)
+                    } else {
+                        false
+                    }
+                });
+                let value_has_yield = elements
+                    .iter()
+                    .any(|e| self.contains_yield_in_expr(&e.value));
+                key_has_yield || value_has_yield
+            }
+            Expr::Grouped(inner)
+            | Expr::Spread(inner)
+            | Expr::ArrowFunction { body: inner, .. } => self.contains_yield_in_expr(inner),
+            Expr::CallableCall { callable, args } => {
+                self.contains_yield_in_expr(callable)
+                    || args.iter().any(|a| self.contains_yield_in_expr(&a.value))
+            }
+            Expr::CallableFromMethod { object, .. } => self.contains_yield_in_expr(object),
+            Expr::New { args, .. } => args.iter().any(|a| self.contains_yield_in_expr(&a.value)),
+            Expr::Throw(expr) => self.contains_yield_in_expr(expr),
+            Expr::Match {
+                expr,
+                arms,
+                default,
+            } => {
+                self.contains_yield_in_expr(expr)
+                    || arms.iter().any(|arm| {
+                        arm.conditions
+                            .iter()
+                            .any(|c| self.contains_yield_in_expr(c))
+                            || self.contains_yield_in_expr(&arm.result)
+                    })
+                    || match default.as_ref() {
+                        Some(d) => self.contains_yield_in_expr(d),
+                        None => false,
+                    }
+            }
+            _ => false,
+        }
     }
 }

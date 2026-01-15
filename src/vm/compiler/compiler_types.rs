@@ -1,7 +1,7 @@
 //! Type and name resolution utilities for the compiler
 
 use super::Compiler;
-use crate::ast::QualifiedName;
+use crate::ast::{QualifiedName, TypeHint};
 
 impl Compiler {
     /// Resolve a QualifiedName to a fully qualified class name string
@@ -42,6 +42,51 @@ impl Compiler {
             format!("{}\\{}", ns, name)
         } else {
             name.to_string()
+        }
+    }
+
+    /// Resolve a TypeHint to fully qualified class names
+    /// Simple type names like "User" are converted to Class with qualified name
+    pub fn resolve_type_hint(&self, type_hint: &TypeHint) -> TypeHint {
+        match type_hint {
+            TypeHint::Simple(name) => {
+                let scalar_types = [
+                    "int", "string", "float", "bool", "array", "object", "callable", "mixed",
+                    "null", "iterable", "false", "true", "void", "never",
+                ];
+                if scalar_types.contains(&name.as_str()) {
+                    TypeHint::Simple(name.clone())
+                } else {
+                    TypeHint::Class(self.qualify_class_name(name))
+                }
+            }
+            TypeHint::Nullable(inner) => {
+                TypeHint::Nullable(Box::new(self.resolve_type_hint(inner)))
+            }
+            TypeHint::Union(types) => {
+                TypeHint::Union(types.iter().map(|t| self.resolve_type_hint(t)).collect())
+            }
+            TypeHint::Intersection(types) => {
+                TypeHint::Intersection(types.iter().map(|t| self.resolve_type_hint(t)).collect())
+            }
+            TypeHint::DNF(groups) => TypeHint::DNF(
+                groups
+                    .iter()
+                    .map(|group| group.iter().map(|t| self.resolve_type_hint(t)).collect())
+                    .collect(),
+            ),
+            TypeHint::Class(name) => {
+                if name.starts_with('\\') {
+                    TypeHint::Class(name.strip_prefix('\\').unwrap().to_string())
+                } else {
+                    TypeHint::Class(self.qualify_class_name(name))
+                }
+            }
+            TypeHint::Void => TypeHint::Void,
+            TypeHint::Never => TypeHint::Never,
+            TypeHint::Static => TypeHint::Static,
+            TypeHint::SelfType => TypeHint::SelfType,
+            TypeHint::ParentType => TypeHint::ParentType,
         }
     }
 }

@@ -122,6 +122,8 @@ impl Compiler {
         body: &[Stmt],
     ) -> Result<(), String> {
         self.compile_expr(array)?;
+        // Convert to array (handles both arrays and generators)
+        self.emit(Opcode::ToArray);
         let array_slot = self.allocate_local("__foreach_array__".to_string());
         self.emit(Opcode::StoreFast(array_slot));
 

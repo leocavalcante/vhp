@@ -15,38 +15,8 @@ pub fn execute_call_static_method<W: std::io::Write>(
 
     let resolved_class = vm.resolve_class_keyword(&class_name)?;
 
-    if let Some((method, is_instance_method)) =
-        vm.find_static_method_in_chain(&resolved_class, &method_name)
-    {
-        let stack_base = vm.stack.len();
-        let mut frame = CallFrame::new(method, stack_base);
-        frame.called_class = Some(resolved_class.clone());
-
-        let param_start = if is_instance_method { 1 } else { 0 };
-        for (i, arg) in args.into_iter().enumerate() {
-            let slot = param_start + i;
-            if slot < frame.locals.len() {
-                frame.locals[slot] = arg;
-            }
-        }
-
-        vm.frames.push(frame);
-    } else if let Some((magic_call_static, _)) =
-        vm.find_static_method_in_chain(&resolved_class, "__callStatic")
-    {
-        let stack_base = vm.stack.len();
-        let mut frame = CallFrame::new(magic_call_static, stack_base);
-        frame.called_class = Some(resolved_class.clone());
-        frame.locals[0] = Value::String(method_name);
-        let args_array: Vec<(ArrayKey, Value)> = args
-            .into_iter()
-            .enumerate()
-            .map(|(i, v)| (ArrayKey::Integer(i as i64), v))
-            .collect();
-        frame.locals[1] = Value::Array(args_array);
-
-        vm.frames.push(frame);
-    } else if let Some(enum_def) = vm.enums.get(&resolved_class).cloned() {
+    // First check if it's an enum - don't try autoloading for enums
+    if let Some(enum_def) = vm.enums.get(&resolved_class).cloned() {
         match method_name.as_str() {
             "cases" => {
                 let cases: Vec<(ArrayKey, Value)> = enum_def
@@ -125,23 +95,51 @@ pub fn execute_call_static_method<W: std::io::Write>(
                 }
             }
             _ => {
-                if let Some(method) = enum_def.methods.get(&method_name) {
-                    let stack_base = vm.stack.len();
-                    let mut frame = CallFrame::new(method.clone(), stack_base);
-                    for (i, arg) in args.into_iter().enumerate() {
-                        if i < frame.locals.len() {
-                            frame.locals[i] = arg;
-                        }
-                    }
-                    vm.frames.push(frame);
-                } else {
-                    return Err(format!(
-                        "Static method '{}' not found on enum '{}'",
-                        method_name, resolved_class
-                    ));
-                }
+                return Err(format!(
+                    "Undefined enum method '{}' on enum '{}'",
+                    method_name, resolved_class
+                ));
             }
         }
+        return Ok(());
+    }
+
+    // For classes, try autoloading if class doesn't exist
+    let _class_def = vm
+        .get_class_with_autoload(&resolved_class)
+        .ok_or_else(|| format!("Class '{}' not found", resolved_class))?;
+
+    if let Some((method, is_instance_method)) =
+        vm.find_static_method_in_chain(&resolved_class, &method_name)
+    {
+        let stack_base = vm.stack.len();
+        let mut frame = CallFrame::new(method, stack_base);
+        frame.called_class = Some(resolved_class.clone());
+
+        let param_start = if is_instance_method { 1 } else { 0 };
+        for (i, arg) in args.into_iter().enumerate() {
+            let slot = param_start + i;
+            if slot < frame.locals.len() {
+                frame.locals[slot] = arg;
+            }
+        }
+
+        vm.frames.push(frame);
+    } else if let Some((magic_call_static, _)) =
+        vm.find_static_method_in_chain(&resolved_class, "__callStatic")
+    {
+        let stack_base = vm.stack.len();
+        let mut frame = CallFrame::new(magic_call_static, stack_base);
+        frame.called_class = Some(resolved_class.clone());
+        frame.locals[0] = Value::String(method_name);
+        let args_array: Vec<(ArrayKey, Value)> = args
+            .into_iter()
+            .enumerate()
+            .map(|(i, v)| (ArrayKey::Integer(i as i64), v))
+            .collect();
+        frame.locals[1] = Value::Array(args_array);
+
+        vm.frames.push(frame);
     } else {
         return Err(format!(
             "Static method '{}' not found on class '{}'",
@@ -159,6 +157,10 @@ pub fn execute_call_static_method_named<W: std::io::Write>(
 ) -> Result<(), String> {
     let args_array = vm.stack.pop().ok_or("Stack underflow")?;
     let resolved_class = vm.resolve_class_keyword(&class_name)?;
+
+    let _class_def = vm
+        .get_class_with_autoload(&resolved_class)
+        .ok_or_else(|| format!("Class '{}' not found", resolved_class))?;
 
     let args_map = if let Value::Array(arr) = args_array {
         arr
@@ -232,10 +234,11 @@ pub fn execute_load_static_prop<W: std::io::Write>(
 ) -> Result<(), String> {
     let resolved_class = vm.resolve_class_keyword(&class_name)?;
 
-    let class_def = vm
-        .classes
-        .get(&resolved_class)
-        .ok_or_else(|| format!("Class '{}' not found", resolved_class))?;
+    let class_def = vm.classes.get(&resolved_class).ok_or_else(|| {
+        let msg = format!("STATIC OPS Line 247: Class '{}' not found", resolved_class);
+        eprintln!("DEBUG: {}", msg);
+        msg
+    })?;
 
     let value = class_def
         .static_properties

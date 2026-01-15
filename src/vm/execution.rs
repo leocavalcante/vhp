@@ -135,6 +135,9 @@ pub fn execute_vm<W: Write>(
                         return Err(e);
                     }
                     return Err(e);
+                } else if e == "__GENERATOR__" {
+                    vm.frames.pop();
+                    return Err("__GENERATOR__".to_string());
                 } else if e == "__FINALLY_RETURN__" {
                     if let Some(value) = vm.pending_return.take() {
                         let frame = vm.frames.last().expect("No frame");

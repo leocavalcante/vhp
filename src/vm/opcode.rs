@@ -27,7 +27,6 @@ pub enum Opcode {
     PushString(u32),
     /// Load constant from pool by index
     LoadConst(u32),
-
     // ==================== Variables ====================
     /// Load variable by name index (from string pool)
     LoadVar(u32),
@@ -143,6 +142,16 @@ pub enum Opcode {
     Yield,
     /// Yield from iterator
     YieldFrom,
+    /// Generator::current() - get current yielded value
+    GeneratorCurrent,
+    /// Generator::key() - get current yielded key
+    GeneratorKey,
+    /// Generator::next() - advance to next yield
+    GeneratorNext,
+    /// Generator::rewind() - rewind to beginning
+    GeneratorRewind,
+    /// Generator::valid() - check if generator is still valid
+    GeneratorValid,
 
     // ==================== Loop Control ====================
     /// Break out of loop
@@ -173,6 +182,9 @@ pub enum Opcode {
     ArrayGetKeyAt,
     /// Get value at iterator index (stack: array, index -> value)
     ArrayGetValueAt,
+    /// Convert iterable to array (handles arrays and generators)
+    /// Stack: iterable -> array
+    ToArray,
 
     // ==================== Objects ====================
     /// Create new object: class name index
@@ -392,6 +404,9 @@ impl Opcode {
             | Opcode::ArrayGetKeyAt
             | Opcode::ArrayGetValueAt => -1,
 
+            // Pops 1, pushes 1: 0
+            Opcode::ToArray => 0,
+
             // Pops 3, pushes 1: -2
             Opcode::ArraySet => -2,
 
@@ -432,57 +447,54 @@ impl Opcode {
             Opcode::CallConstructor(n) => -(*n as i32), // pops args, uses object in-place
             Opcode::CallConstructorNamed => -1,       // pops args array, uses object in-place
 
-            // Object operations
-            Opcode::NewObject(_) => 1,
-            Opcode::NewFiber => 0,        // pops callback, pushes Fiber object
-            Opcode::LoadProperty(_) => 0, // pops object, pushes value
-            Opcode::StoreProperty(_) => -1, // pops object and value, pushes object
-            Opcode::StoreThisProperty(_) => 0, // pops value, modifies $this in slot 0, pushes value back
-            Opcode::StoreCloneProperty(_) => -1, // pops object and value, pushes modified object
-            Opcode::UnsetProperty(_) => -1,    // pops object
-            Opcode::UnsetPropertyOnLocal(_, _) => 0, // reads from local, no stack change
-            Opcode::UnsetPropertyOnGlobal(_, _) => 0, // reads from global, no stack change
-            Opcode::IssetProperty(_) => 0,     // pops object, pushes bool
-            Opcode::IssetPropertyOnLocal(_, _) => 1, // reads from local, pushes bool
-            Opcode::IssetPropertyOnGlobal(_, _) => 1, // reads from global, pushes bool
-            Opcode::UnsetVar(_) => 0,          // no stack effect
-            Opcode::UnsetArrayElement => -2,   // pops array and key
-            Opcode::LoadStaticProp(_, _) => 1,
-            Opcode::StoreStaticProp(_, _) => -1,
-            Opcode::LoadEnumCase(_, _) => 1, // pushes enum case value
-            Opcode::EnumFromValue(_) => 0,   // pops value, pushes case (or throws)
-            Opcode::EnumTryFromValue(_) => 0, // pops value, pushes case or null
-
-            // Array
-            Opcode::NewArray(n) => 1 - (*n as i32) * 2, // pops n key-value pairs, pushes array
-            Opcode::ArrayAppend => -1,                  // pops array and value, pushes array
-            Opcode::ArrayUnpack => 0,                   // varies at runtime
-            Opcode::ArrayMerge => -1,                   // pops two arrays, pushes merged array
-
-            // Null coalescing jumps
-            Opcode::JumpIfNull(_) | Opcode::JumpIfNotNull(_) => 0, // doesn't pop
-
-            // Print returns 1
-            Opcode::Print => 0, // pops 1, pushes 1
-
-            // Ternary
-            Opcode::Ternary => 0,
-
-            // Match
-            Opcode::MatchStart(_) => 0,
-            Opcode::MatchArm => -1,
-            Opcode::MatchDefault => 0,
-
-            // Exception handling
-            Opcode::Catch(_, _) => 1, // pushes caught exception
-            Opcode::FinallyStart | Opcode::FinallyEnd => 0,
-
-            // Closures
-            Opcode::CreateClosure(_, n) => 1 - (*n as i32), // pops captured vars, pushes closure
-            Opcode::CaptureVar(_) => 0,
-
+            // Object/Array/Generator operations grouped by stack effect
+            // Push 1: NewObject, IssetProperty*, LoadStatic*, LoadEnum*
+            Opcode::NewObject(_)
+            | Opcode::IssetPropertyOnLocal(_, _)
+            | Opcode::IssetPropertyOnGlobal(_, _)
+            | Opcode::LoadStaticProp(_, _)
+            | Opcode::LoadEnumCase(_, _)
+            | Opcode::Catch(_, _) => 1,
+            // Push 0: Most others
+            Opcode::NewFiber
+            | Opcode::LoadProperty(_)
+            | Opcode::UnsetPropertyOnLocal(_, _)
+            | Opcode::UnsetPropertyOnGlobal(_, _)
+            | Opcode::StoreThisProperty(_)
+            | Opcode::IssetProperty(_)
+            | Opcode::UnsetVar(_)
+            | Opcode::EnumFromValue(_)
+            | Opcode::EnumTryFromValue(_)
+            | Opcode::ArrayUnpack
+            | Opcode::GeneratorCurrent
+            | Opcode::GeneratorKey
+            | Opcode::GeneratorNext
+            | Opcode::GeneratorRewind
+            | Opcode::GeneratorValid
+            | Opcode::JumpIfNull(_)
+            | Opcode::JumpIfNotNull(_)
+            | Opcode::Ternary
+            | Opcode::MatchStart(_)
+            | Opcode::MatchDefault
+            | Opcode::FinallyStart
+            | Opcode::FinallyEnd
+            | Opcode::CaptureVar(_)
+            | Opcode::Print => 0,
+            // Pop 1: Store*, UnsetProperty, ArrayAppend/Merge, MatchArm
+            Opcode::StoreProperty(_)
+            | Opcode::StoreStaticProp(_, _)
+            | Opcode::StoreCloneProperty(_)
+            | Opcode::UnsetProperty(_)
+            | Opcode::ArrayAppend
+            | Opcode::ArrayMerge
+            | Opcode::MatchArm => -1,
+            // Pop 2: UnsetArrayElement
+            Opcode::UnsetArrayElement => -2,
+            // Special: NewArray, CreateClosure
+            Opcode::NewArray(n) => 1 - (*n as i32) * 2,
+            Opcode::CreateClosure(_, n) => 1 - (*n as i32),
             // Fiber
-            Opcode::SetCurrentFiber => -1, // pops 1 (fiber), pushes 0
+            Opcode::SetCurrentFiber => -1,
         }
     }
 }

@@ -183,17 +183,33 @@ impl<'a> ExprParser<'a> {
                 }
             }
             TokenKind::Identifier(name) => {
-                let name = name.clone();
                 self.advance();
 
+                // Check if this is a qualified name (namespace/class path)
+                let mut qualified_name = name.clone();
+                while self.check(&TokenKind::Backslash) {
+                    self.advance(); // consume '\'
+                    if let TokenKind::Identifier(next_part) = &self.current().kind {
+                        qualified_name.push('\\');
+                        qualified_name.push_str(next_part);
+                        self.advance();
+                    } else {
+                        return Err(format!(
+                            "Expected identifier after '\\' at line {}, column {}",
+                            self.current().line,
+                            self.current().column
+                        ));
+                    }
+                }
+
                 if self.check(&TokenKind::DoubleColon) {
-                    self.parse_static_access(name)
+                    self.parse_static_access(qualified_name)
                 } else if self.check(&TokenKind::LeftParen) {
-                    self.parse_function_call(name)
+                    self.parse_function_call(qualified_name)
                 } else {
                     Err(format!(
                         "Unexpected identifier '{}' at line {}, column {}",
-                        name, token.line, token.column
+                        qualified_name, token.line, token.column
                     ))
                 }
             }

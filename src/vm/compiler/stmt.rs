@@ -106,7 +106,9 @@ impl Compiler {
                         self.current_namespace = prev_namespace;
                         self.use_aliases = prev_use_aliases;
                     }
-                    crate::ast::NamespaceBody::Unbraced => {}
+                    crate::ast::NamespaceBody::Unbraced => {
+                        // For unbraced namespaces, the namespace applies to subsequent statements
+                    }
                 }
             }
             crate::ast::Stmt::Use(use_clauses) => {

@@ -25,21 +25,39 @@ impl Lexer {
             if ch == quote {
                 self.advance(); // consume closing quote
                 return Ok(value);
-            } else if ch == '\\' {
+            } else if ch == '\\' && quote == '"' {
+                // Only process escape sequences in double-quoted strings
                 self.advance();
                 if let Some(escaped) = self.current() {
-                    let escaped_char = match escaped {
-                        'n' => '\n',
-                        't' => '\t',
-                        'r' => '\r',
-                        '\\' => '\\',
-                        '\'' => '\'',
-                        '"' => '"',
-                        '$' => '$',
-                        _ => escaped,
+                    let (push_backslash, push_escaped) = match escaped {
+                        'n' => (false, '\n'),
+                        't' => (false, '\t'),
+                        'r' => (false, '\r'),
+                        '\\' => (false, '\\'),
+                        '\'' => (false, '\''),
+                        '"' => (false, '"'),
+                        '$' => (false, '$'),
+                        _ => (true, escaped), // Keep backslash for unrecognized escapes
                     };
-                    value.push(escaped_char);
+                    if push_backslash {
+                        value.push('\\');
+                    }
+                    value.push(push_escaped);
                     self.advance();
+                }
+            } else if ch == '\\' && quote == '\'' {
+                // In single-quoted strings, only \' and \\ are escapes
+                self.advance();
+                if let Some(escaped) = self.current() {
+                    if escaped == '\'' || escaped == '\\' {
+                        value.push(escaped);
+                        self.advance();
+                    } else {
+                        // Backslash followed by other char - keep both
+                        value.push('\\');
+                        value.push(escaped);
+                        self.advance();
+                    }
                 }
             } else {
                 value.push(ch);

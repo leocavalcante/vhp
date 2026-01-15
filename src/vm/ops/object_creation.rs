@@ -1,21 +1,13 @@
 use crate::runtime::Value;
-
-fn normalize_class_name(name: &str) -> String {
-    if let Some(stripped) = name.strip_prefix('\\') {
-        stripped.to_string()
-    } else {
-        name.to_string()
-    }
-}
+use crate::vm::VM;
 
 pub fn execute_new_object<W: std::io::Write>(
     vm: &mut super::super::VM<W>,
     class_name: String,
 ) -> Result<(), String> {
-    let class_name = normalize_class_name(&class_name);
+    let class_name = VM::<W>::normalize_class_name(&class_name);
     let class_def = vm
-        .classes
-        .get(&class_name)
+        .get_class_with_autoload(&class_name)
         .ok_or_else(|| format!("Class '{}' not found", class_name))?
         .clone();
 
@@ -73,7 +65,7 @@ pub fn execute_new_object<W: std::io::Write>(
 }
 
 pub fn execute_instance_of<W: std::io::Write>(vm: &mut super::super::VM<W>, class_name: String) {
-    let class_name = normalize_class_name(&class_name);
+    let class_name = VM::<W>::normalize_class_name(&class_name);
     let object = vm.stack.pop().unwrap();
 
     let result = match object {
@@ -104,7 +96,7 @@ pub fn execute_load_enum_case<W: std::io::Write>(
     enum_name: String,
     case_name: String,
 ) -> Result<(), String> {
-    let enum_name = normalize_class_name(&enum_name);
+    let enum_name = VM::<W>::normalize_class_name(&enum_name);
     let enum_def = vm
         .enums
         .get(&enum_name)
