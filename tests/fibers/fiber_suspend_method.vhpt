@@ -1,0 +1,15 @@
+--TEST--
+Fiber::suspend() method exists
+--FILE--
+<?php
+function callback() {
+    return 42;
+}
+
+$f = new Fiber('callback');
+$f->start();
+echo "Fiber created successfully\n";
+?>
+--EXPECT--
+Fiber created successfully
+
