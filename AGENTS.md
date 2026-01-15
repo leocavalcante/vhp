@@ -256,7 +256,7 @@ Source Code → Lexer → Tokens → Parser → AST → Compiler → Bytecode �
 - [x] Type hints for parameters (int, string, float, bool, array, etc.)
 - [x] Return type declarations (including void, never, static)
 
-### Built-in Functions (97 total)
+### Built-in Functions (102 total)
 
 VHP includes comprehensive built-in function support for PHP 8.x compatibility.
 
@@ -645,6 +645,30 @@ namespace Baz {
 }
 ```
 
+### SPL Autoloading (PHP 5.1+)
+- [x] `spl_autoload_register()` - Register autoload function
+- [x] `spl_autoload_unregister()` - Unregister autoload function
+- [x] `spl_autoload_functions()` - Get all registered autoloaders
+- [x] `set_include_path()` - Set include path for class file discovery
+- [x] `get_include_path()` - Get current include path
+- [x] `is_callable()` - Check if value is callable
+
+**Example:**
+```php
+<?php
+// Register an autoloader function
+spl_autoload_register(function($className) {
+    // Convert namespace separators to directory separators
+    $file = str_replace('\\', '/', $className) . '.php';
+    require_once $file;
+});
+
+// Now classes will be autoloaded when used
+$object = new MyApp\MyClass(); // Autoloads MyApp/MyClass.php
+```
+
+**Note:** Autoloading provides the foundation for Composer integration and modern PHP frameworks. The actual file loading requires integration with PHP's include_path and file system operations.
+
 ## Adding New Features
 
 ### 1. Update Token Types (`token.rs`)
@@ -987,7 +1011,7 @@ Refactoring monolithic VM execution into modular opcode handlers.
 ### Phase 12: Fiber Completion (Planned)
 - [ ] Full fiber suspension and resumption
 - [ ] Fiber::suspend() with value
-- [ ] Fiber::getCurrent() implementation
+- [x] Fiber::getCurrent() implementation ✅
 - [ ] Fiber error handling
 
 ## Code Style Guidelines

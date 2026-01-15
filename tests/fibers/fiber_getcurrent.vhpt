@@ -14,9 +14,6 @@ function testCurrent() {
 
 $fiber = new Fiber('testCurrent');
 $fiber->start();
---SKIPIF--
-Instance methods not fully implemented yet
-
 --EXPECT--
 Outside fiber: null
 Inside fiber: not null

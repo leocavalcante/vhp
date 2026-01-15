@@ -287,6 +287,9 @@ fn register_fiber_class(classes: &mut std::collections::HashMap<String, Arc<Comp
     start.strings.push("__callback".to_string());
     start.bytecode.push(Opcode::LoadThis);
     start.bytecode.push(Opcode::LoadProperty(2));
+    // Set current fiber before calling callback
+    start.bytecode.push(Opcode::Dup);
+    start.bytecode.push(Opcode::SetCurrentFiber);
     start.bytecode.push(Opcode::CallCallable(0));
     start.bytecode.push(Opcode::Dup);
     start.bytecode.push(Opcode::LoadFast(0));
@@ -349,7 +352,7 @@ fn register_fiber_class(classes: &mut std::collections::HashMap<String, Arc<Comp
     let mut get_current = CompiledFunction::new("Fiber::getCurrent".to_string());
     get_current.param_count = 0;
     get_current.local_count = 0;
-    get_current.bytecode.push(Opcode::PushNull);
+    get_current.bytecode.push(Opcode::GetCurrentFiber);
     get_current.bytecode.push(Opcode::Return);
     fiber
         .static_methods

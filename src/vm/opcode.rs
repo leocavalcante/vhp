@@ -471,6 +471,7 @@ impl Opcode {
             | Opcode::GeneratorNext
             | Opcode::GeneratorRewind
             | Opcode::GeneratorValid
+            | Opcode::SetCurrentFiber
             | Opcode::JumpIfNull(_)
             | Opcode::JumpIfNotNull(_)
             | Opcode::Ternary
@@ -493,8 +494,6 @@ impl Opcode {
             // Special: NewArray, CreateClosure
             Opcode::NewArray(n) => 1 - (*n as i32) * 2,
             Opcode::CreateClosure(_, n) => 1 - (*n as i32),
-            // Fiber
-            Opcode::SetCurrentFiber => -1,
         }
     }
 }
