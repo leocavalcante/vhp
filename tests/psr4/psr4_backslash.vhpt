@@ -1,0 +1,10 @@
+--TEST--
+PSR-4 debug - check backslash handling
+--FILE--
+<?php
+echo "Testing backslash:\n";
+$text = "Hello\World";
+echo "Text: " . $text . "\n";
+--EXPECT--
+Testing backslash:
+Text: Hello\World

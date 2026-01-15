@@ -1,0 +1,27 @@
+--TEST--
+Clear autoloaders - Reset state for testing
+--FILE--
+<?php
+// Clear any previously registered autoloaders
+// Note: We need to run multiple passes since new closures are created each time
+for ($i = 0; $i < 10; $i++) {
+    $autoloaders = spl_autoload_functions();
+    if (count($autoloaders) == 0) {
+        break;
+    }
+    foreach ($autoloaders as $autoloader) {
+        spl_autoload_unregister($autoloader);
+    }
+}
+
+echo "Cleared all autoloaders\n";
+
+// Verify they're cleared
+$remaining = spl_autoload_functions();
+echo "Remaining: ";
+echo count($remaining);
+echo "\n";
+?>
+--EXPECT--
+Cleared all autoloaders
+Remaining: 0

@@ -1,0 +1,30 @@
+--TEST--
+Autoloader callback execution - function callback is called when class not found
+--FILE--
+<?php
+// Clear any previous autoloaders
+foreach (spl_autoload_functions() as $autoloader) {
+    spl_autoload_unregister($autoloader);
+}
+
+// Register a named function as autoloader
+function my_autoloader($className) {
+    echo "AUTOLOADER CALLED WITH: " . $className . "\n";
+}
+
+spl_autoload_register('my_autoloader');
+
+// Verify it's registered
+$autoloaders = spl_autoload_functions();
+echo "Autoloader count: ";
+echo count($autoloaders);
+echo "\n";
+
+// Try to instantiate a non-existent class - should trigger autoloader
+// The autoloader will be called but class won't be found
+$obj = new NonExistentClass12345;
+--EXPECT--
+Autoloader count: 1
+AUTOLOADER CALLED WITH: NonExistentClass12345
+--EXPECT_ERROR--
+VM error: Class 'NonExistentClass12345' not found

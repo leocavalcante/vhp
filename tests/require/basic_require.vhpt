@@ -1,0 +1,9 @@
+--TEST--
+require() basic functionality - load a class file
+--FILE--
+<?php
+require('tests/require/test_classes/MyClass.php');
+$obj = new MyClass();
+echo $obj->greet();
+--EXPECT--
+Hello from MyClass!

@@ -1,0 +1,15 @@
+--TEST--
+Autoloading with require() in callback
+--FILE--
+<?php
+function autoloader($className) {
+    $file = 'tests/require/' . $className . '.php';
+    require($file);
+}
+
+spl_autoload_register('autoloader');
+
+$obj = new SimpleClass();
+echo $obj->getMessage();
+--EXPECT--
+Loaded via autoloader!

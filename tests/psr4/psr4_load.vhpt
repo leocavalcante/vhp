@@ -1,0 +1,17 @@
+--TEST--
+PSR-4 class loading
+--FILE--
+<?php
+// Register PSR-4 mapping
+spl_autoload_register_psr4('MyApp\\', '/home/leo/projects/vhp/tests/psr4/MyApp/');
+
+// Load the class directly
+$loaded = load_psr4_class('MyApp\Models\User');
+echo "Loaded: " . ($loaded ? "OK" : "FAIL") . "\n";
+
+// Create instance
+$user = new MyApp\Models\User("Alice", "alice@example.com");
+echo $user->getGreeting();
+--EXPECT--
+Loaded: OK
+Hello, I am Alice (alice@example.com)

@@ -1,0 +1,14 @@
+--TEST--
+PSR-4 registration and listing
+--FILE--
+<?php
+// Test PSR-4 registration
+$result = spl_autoload_register_psr4('MyApp\\', '/home/leo/projects/vhp/tests/psr4/MyApp/');
+echo "Registration: " . ($result ? "OK" : "FAIL") . "\n";
+
+// Test listing
+$mappings = spl_autoload_registered_psr4();
+echo "Mappings: " . count($mappings) . "\n";
+--EXPECT--
+Registration: OK
+Mappings: 1

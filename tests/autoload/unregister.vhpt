@@ -1,0 +1,31 @@
+--TEST--
+spl_autoload_unregister() - Remove a registered autoloader
+--FILE--
+<?php
+// Clear previous autoloaders first
+for ($i = 0; $i < 10; $i++) {
+    $autoloaders = spl_autoload_functions();
+    if (count($autoloaders) == 0) {
+        break;
+    }
+    foreach ($autoloaders as $autoloader) {
+        spl_autoload_unregister($autoloader);
+    }
+}
+
+spl_autoload_register(trim(...));
+
+$before = count(spl_autoload_functions());
+spl_autoload_unregister(trim(...));
+$after = count(spl_autoload_functions());
+
+echo "Before: ";
+echo $before;
+echo "\n";
+echo "After: ";
+echo $after;
+echo "\n";
+?>
+--EXPECT--
+Before: 1
+After: 0

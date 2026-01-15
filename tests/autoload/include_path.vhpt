@@ -1,0 +1,39 @@
+--TEST--
+get_include_path() and set_include_path() - Get and set include path
+--FILE--
+<?php
+// Get initial include path
+$initial = get_include_path();
+echo "Initial include path: ";
+echo $initial;
+echo "\n";
+
+// Set new include path
+$old = set_include_path('/usr/lib/php:/home/user/lib');
+echo "Old include path: ";
+echo $old;
+echo "\n";
+
+// Get new include path
+$new = get_include_path();
+echo "New include path: ";
+echo $new;
+echo "\n";
+
+// Reset to empty
+$old2 = set_include_path('');
+echo "After empty set: ";
+echo $old2;
+echo "\n";
+
+$current = get_include_path();
+echo "Current: ";
+echo $current;
+echo "\n";
+?>
+--EXPECT--
+Initial include path: .
+Old include path: .
+New include path: /usr/lib/php:/home/user/lib
+After empty set: /usr/lib/php:/home/user/lib
+Current: 

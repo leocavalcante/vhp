@@ -1,0 +1,12 @@
+--TEST--
+PSR-4 class instantiation test
+--FILE--
+<?php
+// Register PSR-4 mapping
+spl_autoload_register_psr4('MyApp\\', '/home/leo/projects/vhp/tests/psr4/MyApp/');
+
+// Test that namespaced class names work
+$user = new MyApp\Models\User("Alice", "alice@example.com");
+echo $user->getGreeting();
+--EXPECT--
+Hello, I am Alice (alice@example.com)

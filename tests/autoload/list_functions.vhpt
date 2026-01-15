@@ -1,0 +1,41 @@
+--TEST--
+spl_autoload_functions() - Returns array of all registered autoloaders
+--FILE--
+<?php
+// Clear previous autoloaders first
+for ($i = 0; $i < 10; $i++) {
+    $autoloaders = spl_autoload_functions();
+    if (count($autoloaders) == 0) {
+        break;
+    }
+    foreach ($autoloaders as $autoloader) {
+        spl_autoload_unregister($autoloader);
+    }
+}
+
+// Initially empty
+$autoloaders = spl_autoload_functions();
+echo "Initially: ";
+echo count($autoloaders);
+echo " autoloaders\n";
+
+// Register first
+spl_autoload_register(trim(...));
+
+$autoloaders = spl_autoload_functions();
+echo "After 1st: ";
+echo count($autoloaders);
+echo " autoloaders\n";
+
+// Register second
+spl_autoload_register(strlen(...));
+
+$autoloaders = spl_autoload_functions();
+echo "After 2nd: ";
+echo count($autoloaders);
+echo " autoloaders\n";
+?>
+--EXPECT--
+Initially: 0 autoloaders
+After 1st: 1 autoloaders
+After 2nd: 2 autoloaders

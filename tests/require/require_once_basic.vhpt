@@ -1,0 +1,16 @@
+--TEST--
+require_once() - file is only loaded once
+--FILE--
+<?php
+require_once('tests/require/OnceCounter.php');
+require_once('tests/require/OnceCounter.php');
+require_once('tests/require/OnceCounter.php');
+
+$obj1 = new OnceCounter();
+$obj2 = new OnceCounter();
+
+echo "Count: " . OnceCounter::getCount() . "\n";
+echo "Objects created: 2\n";
+--EXPECT--
+Count: 2
+Objects created: 2

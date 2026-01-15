@@ -1,0 +1,28 @@
+--TEST--
+Autoloader registration works (callback execution pending VM integration)
+--FILE--
+<?php
+// Clear any previous autoloaders
+foreach (spl_autoload_functions() as $autoloader) {
+    spl_autoload_unregister($autoloader);
+}
+
+// Register a named function as autoloader
+function my_autoloader($className) {
+    echo "AUTOLOADER CALLED WITH: " . $className . "\n";
+}
+
+spl_autoload_register('my_autoloader');
+
+// Verify it's registered
+$autoloaders = spl_autoload_functions();
+echo "Autoloader count: ";
+echo count($autoloaders);
+echo "\n";
+
+// Note: The autoloader callback execution is not yet integrated with VM
+// So 'new NonExistentClass' will fail with "Class not found"
+// But the infrastructure is in place for when callback execution is implemented
+--EXPECT--
+Autoloader count: 1
+

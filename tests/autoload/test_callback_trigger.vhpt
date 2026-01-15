@@ -1,0 +1,15 @@
+--TEST--
+Autoloader callback is triggered when class not found
+--FILE--
+<?php
+function autoload($className) {
+    echo "CALLED: " . $className . "\n";
+}
+
+spl_autoload_register('autoload');
+
+echo "Before\n";
+new DoesNotExistXYZ;
+echo "After\n";
+--EXPECT_ERROR--
+VM error: Class 'DoesNotExistXYZ' not found

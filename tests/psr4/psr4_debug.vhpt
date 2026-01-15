@@ -1,0 +1,10 @@
+--TEST--
+PSR-4 debug - check class name parsing
+--FILE--
+<?php
+echo "Testing class name:\n";
+$className = 'MyApp\Models\User';
+echo "Class name: " . $className . "\n";
+--EXPECT--
+Testing class name:
+Class name: MyApp\Models\User

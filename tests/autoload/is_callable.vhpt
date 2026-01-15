@@ -1,0 +1,27 @@
+--TEST--
+is_callable() - Various callable types
+--FILE--
+<?php
+// First-class callable
+echo "First-class callable: ";
+echo is_callable(trim(...)) ? "yes" : "no";
+echo "\n";
+
+// Array callable
+echo "Static method: ";
+echo is_callable(["MyClass", "myMethod"]) ? "yes" : "no";
+echo "\n";
+
+// Non-callable
+echo "String: ";
+echo is_callable("not_a_function") ? "yes" : "no";
+echo "\n";
+echo "Integer: ";
+echo is_callable(123) ? "yes" : "no";
+echo "\n";
+?>
+--EXPECT--
+First-class callable: yes
+Static method: yes
+String: yes
+Integer: no

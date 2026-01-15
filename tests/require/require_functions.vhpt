@@ -1,0 +1,8 @@
+--TEST--
+require() with functions and constants
+--FILE--
+<?php
+require('tests/require/test_classes/MyFunctions.php');
+echo my_function();
+--EXPECT--
+Hello from my_function!

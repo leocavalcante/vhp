@@ -1,0 +1,36 @@
+--TEST--
+require() vs require_once() - require_once returns true on repeated calls
+--FILE--
+<?php
+// First require_once - should load the file and return its value
+$result1 = require_once('tests/require/SideEffectCounter.php');
+echo "First require_once: ";
+var_dump($result1);
+
+// Second require_once - should return true without re-running
+$result2 = require_once('tests/require/SideEffectCounter.php');
+echo "Second require_once: ";
+var_dump($result2);
+
+// Reset again for require test
+SideEffectCounter::$sideEffects = 0;
+
+// Now test with require() - it should run the file again each time
+$result3 = require('tests/require/SideEffectCounter.php');
+echo "First require: ";
+var_dump($result3);
+
+SideEffectCounter::$sideEffects = 0;
+
+$result4 = require('tests/require/SideEffectCounter.php');
+echo "Second require: ";
+var_dump($result4);
+
+echo "Side effects: " . SideEffectCounter::getSideEffects() . "\n";
+--EXPECT--
+First require_once: int(1)
+Second require_once: bool(true)
+First require: int(1)
+Second require: int(1)
+Side effects: 1
+

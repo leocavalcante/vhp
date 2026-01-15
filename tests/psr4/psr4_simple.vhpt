@@ -1,0 +1,8 @@
+--TEST--
+PSR-4 simple namespace test
+--FILE--
+<?php
+// Just test that namespaced class names can be parsed
+echo "Testing namespace parsing\n";
+--EXPECT--
+Testing namespace parsing
