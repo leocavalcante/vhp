@@ -5,6 +5,7 @@ pub mod array_extra;
 pub mod fileio;
 pub mod json;
 pub mod math;
+pub mod math_extra;
 pub mod output;
 pub mod spl;
 pub mod string;
@@ -28,10 +29,15 @@ pub use array_extra::{
 };
 
 #[allow(unused_imports)]
-pub use string::{
-    chr, explode, implode, lcfirst, ord, sprintf, str_contains, str_ends_with, str_pad, str_repeat,
-    str_replace, str_starts_with, strlen, strpos, strrev, strtolower, strtoupper, substr, trim,
-    ucfirst, ucwords,
+pub use math::{
+    abs, ceil, cos, exp, floor, log, log10, max, min, pi, pow, rand, round, sin, sqrt, tan,
+};
+
+#[allow(unused_imports)]
+pub use math_extra::{
+    acos, asin, atan, atan2, base_convert, bindec, cosh, decbin, dechex, decoct, deg2rad, fmod,
+    getrandmax, getrandseed, hexdec, hypot, intdiv, is_finite, is_infinite, is_nan, lcg_value,
+    octdec, rad2deg, sinh, srand, tanh,
 };
 
 #[allow(unused_imports)]
