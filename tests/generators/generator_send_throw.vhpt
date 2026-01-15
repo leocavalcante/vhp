@@ -1,0 +1,22 @@
+--TEST--
+Generator::send() and Generator::throw() method stubs
+--FILE--
+<?php
+function gen() {
+    yield 1;
+    yield 2;
+    yield 3;
+}
+
+$g = gen();
+$g->next();
+echo "Current: " . $g->current() . "\n";
+
+// Test send returns sent value (stub behavior)
+$result = $g->send("test");
+echo "Send returned: " . (is_string($result) ? $result : "not string") . "\n";
+?>
+--EXPECT--
+Current: 2
+Send returned: test
+

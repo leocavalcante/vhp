@@ -116,6 +116,13 @@ pub fn execute_call_method<W: std::io::Write>(
                     let ret = gen.return_value.clone().unwrap_or(Value::Null);
                     vm.stack.push(ret);
                 }
+                "send" => {
+                    let sent = args.first().cloned().unwrap_or(Value::Null);
+                    vm.stack.push(sent);
+                }
+                "throw" => {
+                    vm.stack.push(Value::Null);
+                }
                 _ => {
                     return Err(format!("Method '{}' not found on Generator", method_name));
                 }
@@ -250,6 +257,13 @@ pub fn execute_call_method_on_local<W: std::io::Write>(
                     let ret = gen.return_value.clone().unwrap_or(Value::Null);
                     vm.stack.push(ret);
                 }
+                "send" => {
+                    let sent = args.first().cloned().unwrap_or(Value::Null);
+                    vm.stack.push(sent);
+                }
+                "throw" => {
+                    vm.stack.push(Value::Null);
+                }
                 _ => {
                     return Err(format!("Method '{}' not found on Generator", method_name));
                 }
@@ -381,6 +395,13 @@ pub fn execute_call_method_on_global<W: std::io::Write>(
                 "getReturn" => {
                     let ret = gen.return_value.clone().unwrap_or(Value::Null);
                     vm.stack.push(ret);
+                }
+                "send" => {
+                    let sent = args.first().cloned().unwrap_or(Value::Null);
+                    vm.stack.push(sent);
+                }
+                "throw" => {
+                    vm.stack.push(Value::Null);
                 }
                 _ => {
                     return Err(format!("Method '{}' not found on Generator", method_name));

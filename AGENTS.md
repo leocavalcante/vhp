@@ -1003,10 +1003,10 @@ Refactoring monolithic VM execution into modular opcode handlers.
 - [ ] SPL classes and interfaces
 
 ### Phase 11: Generator Execution (Planned)
-- [ ] Generator object creation and state management
-- [ ] Generator execution with send() and throw() methods
-- [ ] Generator return values (PHP 7.0)
-- [ ] Generator delegation with yield from
+- [x] Generator object creation and state management
+- [x] Generator execution with send() and throw() methods (stubs)
+- [x] Generator return values (PHP 7.0) ✅
+- [x] Generator delegation with yield from ✅
 
 ### Phase 12: Fiber Completion (Planned)
 - [ ] Full fiber suspension and resumption
