@@ -1,5 +1,6 @@
 //! Runtime value representation for VHP
 
+use std::cell::RefCell;
 use std::collections::HashMap;
 
 pub mod array_key;
@@ -8,6 +9,23 @@ pub mod value_helpers;
 
 pub use array_key::ArrayKey;
 pub use object_instance::{ExceptionValue, ObjectInstance};
+
+thread_local! {
+    pub static YIELD_COLLECTOR: RefCell<GeneratorYieldCollector> = const { RefCell::new(GeneratorYieldCollector { yielded_values: Vec::new(), return_value: None }) };
+}
+
+#[derive(Debug, Clone)]
+pub struct GeneratorYieldCollector {
+    pub yielded_values: Vec<(Option<Value>, Option<Value>)>,
+    pub return_value: Option<Value>,
+}
+
+impl GeneratorYieldCollector {
+    pub fn clear(&mut self) {
+        self.yielded_values.clear();
+        self.return_value = None;
+    }
+}
 
 /// Closure (arrow function or anonymous function)
 #[derive(Debug, Clone)]
@@ -68,12 +86,12 @@ pub struct CallFrame {
 #[allow(dead_code)]
 pub struct GeneratorInstance {
     pub id: usize,
-    pub position: usize,
-    pub values: Vec<Value>,
-    pub statements: Vec<crate::ast::Stmt>,
-    pub current_statement: usize,
-    pub variables: HashMap<String, Value>,
+    pub function_name: String,
+    pub yielded_values: Vec<(Option<Value>, Option<Value>)>,
+    pub current_index: usize,
+    pub is_rewound: bool,
     pub finished: bool,
+    pub return_value: Option<Value>,
 }
 
 /// Runtime value representation

@@ -12,7 +12,10 @@ function inner() {
 $g = outer();
 var_dump($g);
 ?>
---DESCRIPTION--
-Generators parse and create generator objects (execution not yet fully implemented)
---EXPECT_ERROR--
-VM error: __GENERATOR__
+--EXPECT--
+object(Generator)#000000 {
+  yielded_values: 2
+  current_index: 0
+  finished: false
+  return_value: Null
+}

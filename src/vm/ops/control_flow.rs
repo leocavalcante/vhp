@@ -1,5 +1,6 @@
 use crate::ast::TypeHint;
 use crate::runtime::Value;
+use crate::runtime::YIELD_COLLECTOR;
 
 pub fn execute_jump<W: std::io::Write>(vm: &mut super::super::VM<W>, offset: u32) {
     vm.current_frame_mut().jump_to(offset as usize);
@@ -56,32 +57,45 @@ pub fn execute_return<W: std::io::Write>(vm: &mut super::super::VM<W>) -> Result
 
 pub fn execute_yield<W: std::io::Write>(vm: &mut super::super::VM<W>) -> Result<(), String> {
     let value = vm.stack.pop().unwrap_or(Value::Null);
-    let gen = crate::runtime::GeneratorInstance {
-        id: 0,
-        position: 0,
-        values: vec![value.clone()],
-        statements: vec![],
-        current_statement: 0,
-        variables: std::collections::HashMap::new(),
-        finished: false,
+
+    let key = if vm
+        .stack
+        .last()
+        .map(|v| !matches!(v, Value::Null))
+        .unwrap_or(false)
+    {
+        Some(vm.stack.pop().unwrap())
+    } else {
+        None
     };
-    vm.stack.push(Value::Generator(Box::new(gen)));
+
+    YIELD_COLLECTOR.with(|collector| {
+        collector
+            .borrow_mut()
+            .yielded_values
+            .push((key, Some(value)));
+    });
+
     Err("__GENERATOR__".to_string())
 }
 
 pub fn execute_yield_from<W: std::io::Write>(vm: &mut super::super::VM<W>) -> Result<(), String> {
-    let value = vm.stack.pop().unwrap_or(Value::Null);
-    let gen = crate::runtime::GeneratorInstance {
-        id: 0,
-        position: 0,
-        values: vec![value.clone()],
-        statements: vec![],
-        current_statement: 0,
-        variables: std::collections::HashMap::new(),
-        finished: false,
+    let iterable = vm.stack.pop().unwrap_or(Value::Null);
+
+    let yielded_values: Vec<(Option<Value>, Option<Value>)> = match iterable {
+        Value::Array(arr) => arr
+            .into_iter()
+            .map(|(k, v)| (Some(k.to_value()), Some(v)))
+            .collect(),
+        Value::Generator(gen) => gen.yielded_values.into_iter().collect(),
+        _ => Vec::new(),
     };
-    vm.stack.push(Value::Generator(Box::new(gen)));
-    Err("__GENERATOR__".to_string())
+
+    YIELD_COLLECTOR.with(|collector| {
+        collector.borrow_mut().yielded_values.extend(yielded_values);
+    });
+
+    Ok(())
 }
 
 pub fn execute_return_null<W: std::io::Write>(vm: &mut super::super::VM<W>) -> Result<(), String> {
