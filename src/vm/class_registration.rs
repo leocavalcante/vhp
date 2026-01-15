@@ -369,6 +369,24 @@ fn register_fiber_class(classes: &mut std::collections::HashMap<String, Arc<Comp
         .methods
         .insert("suspend".to_string(), Arc::new(suspend));
 
+    let mut resume = CompiledFunction::new("Fiber::resume".to_string());
+    resume.param_count = 1;
+    resume.required_param_count = 0;
+    resume.local_count = 1;
+    resume.local_names = vec!["this".to_string(), "value".to_string()];
+    resume.bytecode.push(Opcode::PushNull);
+    resume.bytecode.push(Opcode::Return);
+    fiber.methods.insert("resume".to_string(), Arc::new(resume));
+
+    let mut throw = CompiledFunction::new("Fiber::throw".to_string());
+    throw.param_count = 1;
+    throw.required_param_count = 1;
+    throw.local_count = 1;
+    throw.local_names = vec!["this".to_string(), "exception".to_string()];
+    throw.bytecode.push(Opcode::PushNull);
+    throw.bytecode.push(Opcode::Return);
+    fiber.methods.insert("throw".to_string(), Arc::new(throw));
+
     classes.insert("Fiber".to_string(), Arc::new(fiber));
 }
 

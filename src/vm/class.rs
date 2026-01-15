@@ -53,18 +53,13 @@ impl CompiledClass {
         }
     }
 
-    /// Get a method by name (case-insensitive for magic methods)
+    /// Get a method by name (case-insensitive per PHP spec)
     pub fn get_method(&self, name: &str) -> Option<&Arc<CompiledFunction>> {
         self.methods.get(name).or_else(|| {
-            // Try case-insensitive for magic methods
-            if name.starts_with("__") {
-                self.methods
-                    .iter()
-                    .find(|(k, _)| k.eq_ignore_ascii_case(name))
-                    .map(|(_, v)| v)
-            } else {
-                None
-            }
+            self.methods
+                .iter()
+                .find(|(k, _)| k.eq_ignore_ascii_case(name))
+                .map(|(_, v)| v)
         })
     }
 }

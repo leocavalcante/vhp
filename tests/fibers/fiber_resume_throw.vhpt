@@ -1,0 +1,20 @@
+--TEST--
+Fiber::resume() and Fiber::throw() method stubs
+--FILE--
+<?php
+function callback() {
+    return 42;
+}
+
+$fiber = new Fiber('callback');
+$start_result = $fiber->start();
+echo "Start returned: " . $start_result . "\n";
+
+// Test resume returns null (stub)
+$result = $fiber->resume();
+echo "Resume returned: " . (is_null($result) ? "null" : "not null") . "\n";
+?>
+--EXPECT--
+Start returned: 42
+Resume returned: null
+

@@ -1010,8 +1010,10 @@ Refactoring monolithic VM execution into modular opcode handlers.
 
 ### Phase 12: Fiber Completion (Planned)
 - [ ] Full fiber suspension and resumption
-- [ ] Fiber::suspend() with value
+- [x] Fiber::suspend() method (stub) ✅
 - [x] Fiber::getCurrent() implementation ✅
+- [x] Fiber::resume() method (stub) ✅
+- [x] Fiber::throw() method (stub) ✅
 - [ ] Fiber error handling
 
 ## Code Style Guidelines

@@ -64,7 +64,7 @@ impl<W: Write> super::VM<W> {
         None
     }
 
-    /// Look up static method through inheritance chain
+    /// Look up static method through inheritance chain (case-insensitive per PHP spec)
     /// Returns (method, is_instance_method) where is_instance_method indicates
     /// if we had to fall back to an instance method (PHP allows static calls to instance methods)
     pub fn find_static_method_in_chain(
@@ -76,8 +76,17 @@ impl<W: Write> super::VM<W> {
 
         while let Some(class) = current_class {
             if let Some(class_def) = self.classes.get(&class) {
-                // Try static methods first
+                // Try static methods first (case-insensitive)
                 if let Some(method) = class_def.static_methods.get(method_name) {
+                    return Some((method.clone(), false));
+                }
+                // Try case-insensitive static method lookup
+                if let Some((_, method)) = class_def
+                    .static_methods
+                    .iter()
+                    .find(|(k, _)| k.eq_ignore_ascii_case(method_name))
+                    .map(|(k, v)| (k.clone(), v.clone()))
+                {
                     return Some((method.clone(), false));
                 }
                 // Try instance methods (PHP allows calling them statically)
