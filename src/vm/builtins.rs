@@ -104,6 +104,9 @@ pub const BUILTIN_FUNCTIONS: &[&str] = &[
     "range",
     "array_first",
     "array_last",
+    "array_map",
+    "array_filter",
+    "array_reduce",
     // SPL autoload functions
     "spl_autoload_register",
     "spl_autoload_unregister",
