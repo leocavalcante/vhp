@@ -7,3 +7,5 @@ license = "BSD-3-Clause"
 
 [dependencies]
 regex = "1.10"
+lazy_static = "1.4"
+thread_local = "1.1"

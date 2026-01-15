@@ -5,6 +5,7 @@ pub mod fileio;
 pub mod json;
 pub mod math;
 pub mod output;
+pub mod spl;
 pub mod string;
 pub mod types;
 
@@ -26,4 +27,16 @@ pub use math::{
 pub use fileio::{
     file_exists, file_get_contents, file_put_contents, filemtime, filesize, is_dir, is_file,
     is_readable, is_writable, unlink,
+};
+
+#[allow(unused_imports)]
+pub use spl::{
+    get_include_path, set_include_path, spl_autoload_functions, spl_autoload_register,
+    spl_autoload_register_psr4, spl_autoload_registered_psr4, spl_autoload_unregister,
+};
+
+#[allow(unused_imports)]
+pub use types::{
+    boolval, empty, floatval, gettype, intval, is_array, is_bool, is_callable, is_float, is_int,
+    is_null, is_numeric, is_string, isset, strval, unset,
 };

@@ -4,6 +4,7 @@
 //! compiled PHP bytecode. The VM is designed to be faster than
 //! tree-walking interpretation for hot paths and repeated execution.
 
+pub mod autoload;
 pub mod builtins;
 pub mod class;
 pub mod class_registration;
@@ -19,6 +20,8 @@ pub mod reflection;
 mod helpers;
 mod ops;
 mod type_validation;
+
+pub use helpers::clear_required_files;
 
 use crate::runtime::Value;
 use class::{CompiledClass, CompiledEnum, CompiledInterface, CompiledTrait};
@@ -212,6 +215,7 @@ impl<W: Write> VM<W> {
             Opcode::ArrayCount => ops::execute_array_count(self),
             Opcode::ArrayGetKeyAt => ops::execute_array_get_key_at(self),
             Opcode::ArrayGetValueAt => ops::execute_array_get_value_at(self),
+            Opcode::ToArray => ops::execute_to_array(self),
 
             // ==================== Stack Manipulation ====================
             Opcode::Pop => ops::execute_pop(self),
@@ -235,11 +239,11 @@ impl<W: Write> VM<W> {
             }
 
             Opcode::CallSpread(name_idx) => {
-                ops::execute_call_spread(self, name_idx)?;
+                crate::vm::ops::execute_call_spread(self, name_idx)?;
             }
 
             Opcode::CallNamed(name_idx) => {
-                ops::execute_call_named(self, name_idx)?;
+                crate::vm::ops::execute_call_named_args(self, name_idx)?;
             }
 
             Opcode::CallBuiltin(name_idx, arg_count) => {
@@ -391,7 +395,9 @@ impl<W: Write> VM<W> {
                 ops::execute_load_enum_case(self, enum_name, case_name)?
             }
 
-            Opcode::CallConstructor(arg_count) => ops::execute_call_constructor(self, arg_count)?,
+            Opcode::CallConstructor(arg_count) => {
+                ops::execute_call_constructor(self, arg_count)?;
+            }
 
             Opcode::CallConstructorNamed => ops::execute_call_constructor_named(self)?,
 
@@ -426,6 +432,23 @@ impl<W: Write> VM<W> {
             // ==================== Array Operations ====================
             Opcode::ArrayUnpack => {
                 ops::execute_array_unpack(self)?;
+            }
+
+            // ==================== Generator Methods ====================
+            Opcode::GeneratorCurrent => {
+                ops::execute_generator_current(self)?;
+            }
+            Opcode::GeneratorKey => {
+                ops::execute_generator_key(self)?;
+            }
+            Opcode::GeneratorNext => {
+                ops::execute_generator_next(self)?;
+            }
+            Opcode::GeneratorRewind => {
+                ops::execute_generator_rewind(self)?;
+            }
+            Opcode::GeneratorValid => {
+                ops::execute_generator_valid(self)?;
             }
 
             // ==================== Not Yet Implemented ====================

@@ -132,3 +132,24 @@ pub fn unset(_args: &[Value]) -> Result<Value, String> {
     // unset() doesn't return a value in PHP, but for VM compatibility we return Null
     Ok(Value::Null)
 }
+
+/// is_callable - Verify that the contents of a variable can be called as a function
+pub fn is_callable(args: &[Value]) -> Result<Value, String> {
+    if args.is_empty() {
+        return Err("is_callable() expects exactly 1 parameter".to_string());
+    }
+
+    let callable = &args[0];
+    let result = match callable {
+        Value::String(_) => true,
+        Value::Array(arr) if arr.len() == 2 => {
+            let first = &arr[0].1;
+            let second = &arr[1].1;
+            matches!((first, second), (Value::String(_), Value::String(_)))
+        }
+        Value::Closure(_) => true,
+        _ => false,
+    };
+
+    Ok(Value::Bool(result))
+}

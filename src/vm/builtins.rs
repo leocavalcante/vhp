@@ -83,6 +83,7 @@ pub const BUILTIN_FUNCTIONS: &[&str] = &[
     "is_string",
     "is_array",
     "is_numeric",
+    "is_callable",
     "isset",
     "empty",
     "unset",
@@ -103,6 +104,18 @@ pub const BUILTIN_FUNCTIONS: &[&str] = &[
     "range",
     "array_first",
     "array_last",
+    // SPL autoload functions
+    "spl_autoload_register",
+    "spl_autoload_unregister",
+    "spl_autoload_functions",
+    "spl_autoload_register_psr4",
+    "spl_autoload_registered_psr4",
+    "load_psr4_class",
+    "set_include_path",
+    "get_include_path",
+    // File inclusion functions
+    "require",
+    "require_once",
     // Output functions (handled separately since they need writer)
     "print",
     "var_dump",
@@ -201,6 +214,7 @@ pub fn call_builtin<W: Write>(name: &str, args: &[Value], output: &mut W) -> Res
         "is_string" => builtins::types::is_string(args),
         "is_array" => builtins::types::is_array(args),
         "is_numeric" => builtins::types::is_numeric(args),
+        "is_callable" => builtins::types::is_callable(args),
         "isset" => builtins::types::isset(args),
         "empty" => builtins::types::empty(args),
         "unset" => builtins::types::unset(args),
@@ -226,6 +240,15 @@ pub fn call_builtin<W: Write>(name: &str, args: &[Value], output: &mut W) -> Res
         "array_reduce" => builtins::array::array_reduce(args),
         "array_sum" => builtins::array::array_sum(args),
         "array_unique" => builtins::array::array_unique(args),
+
+        // SPL autoload functions
+        "spl_autoload_register" => builtins::spl::spl_autoload_register(args),
+        "spl_autoload_unregister" => builtins::spl::spl_autoload_unregister(args),
+        "spl_autoload_functions" => builtins::spl::spl_autoload_functions(args),
+        "spl_autoload_register_psr4" => builtins::spl::spl_autoload_register_psr4(args),
+        "spl_autoload_registered_psr4" => builtins::spl::spl_autoload_registered_psr4(args),
+        "set_include_path" => builtins::spl::set_include_path(args),
+        "get_include_path" => builtins::spl::get_include_path(args),
 
         // Output functions (need writer)
         "print" => builtins::output::print(output, args),

@@ -6,7 +6,9 @@
 pub mod builtins;
 mod value;
 
-pub use value::{ArrayKey, Closure, ClosureBody, GeneratorInstance, ObjectInstance, Value};
+pub use value::{
+    ArrayKey, Closure, ClosureBody, GeneratorInstance, ObjectInstance, Value, YIELD_COLLECTOR,
+};
 
 /// User-defined function definition
 #[derive(Debug, Clone)]

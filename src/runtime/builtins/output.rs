@@ -82,10 +82,21 @@ fn var_dump_value<W: Write>(output: &mut W, value: &Value, indent: usize) -> Res
         Value::Generator(gen) => {
             writeln!(output, "{}object(Generator)#{:06} {{", prefix, gen.id)
                 .map_err(|e| e.to_string())?;
-            writeln!(output, "{}  position: {}", prefix, gen.position)
+            writeln!(
+                output,
+                "{}  yielded_values: {}",
+                prefix,
+                gen.yielded_values.len()
+            )
+            .map_err(|e| e.to_string())?;
+            writeln!(output, "{}  current_index: {}", prefix, gen.current_index)
                 .map_err(|e| e.to_string())?;
-            writeln!(output, "{}  values: {}", prefix, gen.values.len())
+            writeln!(output, "{}  finished: {}", prefix, gen.finished)
                 .map_err(|e| e.to_string())?;
+            if let Some(ref ret) = gen.return_value {
+                writeln!(output, "{}  return_value: {:?}", prefix, ret)
+                    .map_err(|e| e.to_string())?;
+            }
             writeln!(output, "{}}}", prefix).map_err(|e| e.to_string())?;
         }
         Value::EnumCase {

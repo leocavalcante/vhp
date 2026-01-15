@@ -145,6 +145,11 @@ impl TestCase {
 }
 
 fn run_code(source: &str) -> Result<String, String> {
+    // Clear global registries for test isolation
+    crate::runtime::builtins::spl::clear_autoloaders();
+    crate::runtime::builtins::spl::clear_psr4_registry();
+    crate::vm::clear_required_files();
+
     let mut lexer = Lexer::new(source);
     let tokens = lexer.tokenize()?;
 

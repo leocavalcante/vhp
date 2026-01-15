@@ -19,6 +19,8 @@ pub struct CompiledFunction {
     pub required_param_count: u8,
     /// Is variadic
     pub is_variadic: bool,
+    /// Is generator function (contains yield)
+    pub is_generator: bool,
     /// Return type (for validation)
     pub return_type: Option<crate::ast::TypeHint>,
     /// Parameter types for validation
@@ -44,6 +46,7 @@ impl CompiledFunction {
             param_count: 0,
             required_param_count: 0,
             is_variadic: false,
+            is_generator: false,
             return_type: None,
             param_types: Vec::new(),
             parameters: Vec::new(),

@@ -118,4 +118,55 @@ impl<W: Write> super::VM<W> {
             other => Ok(other.to_string()),
         }
     }
+
+    /// Try to autoload a class by calling registered autoloaders
+    /// Returns true if the class was successfully loaded, false otherwise
+    #[allow(dead_code)]
+    pub fn try_autoload_class(&mut self, class_name: &str) -> bool {
+        use crate::runtime::builtins::spl;
+
+        let normalized = Self::normalize_class_name(class_name);
+
+        // First try PSR-4 autoloading if there's a mapping
+        if spl::find_psr4_mapping(&normalized).is_some()
+            && self.load_psr4_class(&normalized).unwrap_or(false)
+        {
+            return true;
+        }
+
+        // Then try registered autoloaders
+        if spl::has_autoloaders() {
+            spl::spl_autoload_call(self, &normalized)
+        } else {
+            false
+        }
+    }
+
+    /// Get a class definition, attempting autoloading if not found
+    /// Returns None if the class is not found even after autoloading
+    #[allow(dead_code)]
+    pub fn get_class_with_autoload(
+        &mut self,
+        class_name: &str,
+    ) -> Option<std::sync::Arc<crate::vm::class::CompiledClass>> {
+        let normalized = Self::normalize_class_name(class_name);
+
+        // First try to get the class directly
+        if let Some(class) = self.classes.get(&normalized) {
+            return Some(class.clone());
+        }
+
+        // Don't try autoloading for enums - they must be defined in code
+        if self.enums.contains_key(&normalized) {
+            return None;
+        }
+
+        // Try autoloading
+        if self.try_autoload_class(&normalized) {
+            // Check again after autoloading
+            self.classes.get(&normalized).cloned()
+        } else {
+            None
+        }
+    }
 }
