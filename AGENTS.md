@@ -988,7 +988,7 @@ Refactoring monolithic VM execution into modular opcode handlers.
 
 ### Phase 9: PHP 8.5+ Features (Planned)
 - [ ] URI Extension - `Uri\Rfc3986\Uri` class
-- [ ] #[\NoDiscard] attribute
+- [x] #[\NoDiscard] attribute ✅
 - [ ] Closures in constant expressions
 - [ ] First-class callables in constants
 - [ ] #[\DelayedTargetValidation]

@@ -1,0 +1,17 @@
+--TEST--
+#[\NoDiscard] attribute basic usage
+--FILE--
+<?php
+#[NoDiscard]
+function getValue() {
+    return 42;
+}
+
+// The attribute is registered as a class
+// Test that function with #[NoDiscard] attribute can be called
+$result = getValue();
+echo "Function returned: " . $result . "\n";
+?>
+--EXPECT--
+Function returned: 42
+

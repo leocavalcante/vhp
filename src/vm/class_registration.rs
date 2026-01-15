@@ -12,6 +12,39 @@ pub fn register_builtin_classes(classes: &mut HashMap<String, Arc<CompiledClass>
     register_invalid_argument_exception(classes);
     register_unhandled_match_error(classes);
     register_fiber_class(classes);
+    register_attribute_classes(classes);
+}
+
+fn register_attribute_classes(classes: &mut std::collections::HashMap<String, Arc<CompiledClass>>) {
+    let mut nodiscard = CompiledClass::new("NoDiscard".to_string());
+    nodiscard.is_abstract = false;
+    nodiscard.is_final = true;
+    classes.insert("NoDiscard".to_string(), Arc::new(nodiscard));
+
+    let mut nodiscard_ns = CompiledClass::new("\\NoDiscard".to_string());
+    nodiscard_ns.is_abstract = false;
+    nodiscard_ns.is_final = true;
+    classes.insert("\\NoDiscard".to_string(), Arc::new(nodiscard_ns));
+
+    let mut override_attr = CompiledClass::new("Override".to_string());
+    override_attr.is_abstract = false;
+    override_attr.is_final = true;
+    classes.insert("Override".to_string(), Arc::new(override_attr));
+
+    let mut override_attr_ns = CompiledClass::new("\\Override".to_string());
+    override_attr_ns.is_abstract = false;
+    override_attr_ns.is_final = true;
+    classes.insert("\\Override".to_string(), Arc::new(override_attr_ns));
+
+    let mut deprecated = CompiledClass::new("Deprecated".to_string());
+    deprecated.is_abstract = false;
+    deprecated.is_final = true;
+    classes.insert("Deprecated".to_string(), Arc::new(deprecated));
+
+    let mut deprecated_ns = CompiledClass::new("\\Deprecated".to_string());
+    deprecated_ns.is_abstract = false;
+    deprecated_ns.is_final = true;
+    classes.insert("\\Deprecated".to_string(), Arc::new(deprecated_ns));
 }
 
 fn register_exception_class(classes: &mut std::collections::HashMap<String, Arc<CompiledClass>>) {
