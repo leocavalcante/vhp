@@ -1,0 +1,219 @@
+--TEST--
+array_fill - Fill array with values
+--FILE--
+<?php
+$result = array_fill(0, 3, "hello");
+var_dump($result);
+--EXPECT--
+array(3) {
+  [0]=>
+  string(5) "hello"
+  [1]=>
+  string(5) "hello"
+  [2]=>
+  string(5) "hello"
+}
+
+--TEST--
+array_fill with start index
+--FILE--
+<?php
+$result = array_fill(5, 3, "test");
+var_dump($result);
+--EXPECT--
+array(3) {
+  [5]=>
+  string(4) "test"
+  [6]=>
+  string(4) "test"
+  [7]=>
+  string(4) "test"
+}
+
+--TEST--
+array_fill_keys - Fill array with values using keys from another array
+--FILE--
+<?php
+$keys = ["a", "b", "c"];
+$result = array_fill_keys($keys, "value");
+var_dump($result);
+--EXPECT--
+array(3) {
+  ["a"]=>
+  string(5) "value"
+  ["b"]=>
+  string(5) "value"
+  ["c"]=>
+  string(5) "value"
+}
+
+--TEST--
+array_combine - Combine arrays as keys and values
+--FILE--
+<?php
+$keys = ["a", "b", "c"];
+$values = [1, 2, 3];
+$result = array_combine($keys, $values);
+var_dump($result);
+--EXPECT--
+array(3) {
+  ["a"]=>
+  int(1)
+  ["b"]=>
+  int(2)
+  ["c"]=>
+  int(3)
+}
+
+--TEST--
+array_combine with integer keys
+--FILE--
+<?php
+$keys = [0, 1, 2];
+$values = ["x", "y", "z"];
+$result = array_combine($keys, $values);
+var_dump($result);
+--EXPECT--
+array(3) {
+  [0]=>
+  string(1) "x"
+  [1]=>
+  string(1) "y"
+  [2]=>
+  string(1) "z"
+}
+
+--TEST--
+array_chunk - Split array into chunks
+--FILE--
+<?php
+$arr = [1, 2, 3, 4, 5];
+$result = array_chunk($arr, 2);
+var_dump($result);
+--EXPECT--
+array(3) {
+  [0]=>
+  array(2) {
+    [0]=>
+    int(1)
+    [1]=>
+    int(2)
+  }
+  [1]=>
+  array(2) {
+    [0]=>
+    int(3)
+    [1]=>
+    int(4)
+  }
+  [2]=>
+  array(1) {
+    [0]=>
+    int(5)
+  }
+}
+
+--TEST--
+array_chunk with preserve keys
+--FILE--
+<?php
+$arr = ["a" => 1, "b" => 2, "c" => 3, "d" => 4];
+$result = array_chunk($arr, 2, true);
+var_dump($result);
+--EXPECT--
+array(2) {
+  [0]=>
+  array(2) {
+    ["a"]=>
+    int(1)
+    ["b"]=>
+    int(2)
+  }
+  [1]=>
+  array(2) {
+    ["c"]=>
+    int(3)
+    ["d"]=>
+    int(4)
+  }
+}
+
+--TEST--
+array_pad - Pad array to specified length
+--FILE--
+<?php
+$arr = [1, 2, 3];
+$result = array_pad($arr, 5, 0);
+var_dump($result);
+--EXPECT--
+array(5) {
+  [0]=>
+  int(1)
+  [1]=>
+  int(2)
+  [2]=>
+  int(3)
+  [3]=>
+  int(0)
+  [4]=>
+  int(0)
+}
+
+--TEST--
+array_pad negative - prepend
+--FILE--
+<?php
+$arr = [1, 2, 3];
+$result = array_pad($arr, -5, 0);
+var_dump($result);
+--EXPECT--
+array(5) {
+  [0]=>
+  int(0)
+  [1]=>
+  int(0)
+  [2]=>
+  int(1)
+  [3]=>
+  int(2)
+  [4]=>
+  int(3)
+}
+
+--TEST--
+array_splice - Remove and replace portion of array
+--FILE--
+<?php
+$arr = [1, 2, 3, 4, 5];
+$spliced = array_splice($arr, 1, 2, ["a", "b"]);
+var_dump($arr);
+--EXPECT--
+array(5) {
+  [0]=>
+  int(1)
+  [1]=>
+  string(1) "a"
+  [2]=>
+  string(1) "b"
+  [3]=>
+  int(4)
+  [4]=>
+  int(5)
+}
+
+--TEST--
+array_splice without replacement
+--FILE--
+<?php
+$arr = [1, 2, 3, 4, 5];
+$result = array_splice($arr, 1, 2);
+var_dump($result);
+--EXPECT--
+array(3) {
+  [0]=>
+  int(1)
+  [1]=>
+  int(4)
+  [2]=>
+  int(5)
+}
