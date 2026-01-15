@@ -450,23 +450,17 @@ impl<W: Write> VM<W> {
             Opcode::GeneratorValid => {
                 ops::execute_generator_valid(self)?;
             }
-
-            // ==================== Fiber Current ====================
             Opcode::SetCurrentFiber => {
-                let fiber = self.stack.pop().ok_or("Stack underflow")?;
-                self.current_fiber = Some(fiber);
+                ops::execute_set_current_fiber(self)?;
             }
             Opcode::GetCurrentFiber => {
-                let current = self.current_fiber.clone().unwrap_or(Value::Null);
-                self.stack.push(current);
+                ops::execute_get_current_fiber(self)?;
             }
-
             // ==================== Not Yet Implemented ====================
             _ => {
                 return Err(format!("Opcode not yet implemented: {:?}", opcode));
             }
         }
-
         Ok(())
     }
 
