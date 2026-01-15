@@ -9,8 +9,6 @@ function returnValue() {
 $fiber = new Fiber('returnValue');
 $fiber->start();
 echo "Return value: " . $fiber->getReturn();
---SKIPIF--
-Instance methods not fully implemented yet
-
+?>
 --EXPECT--
 Return value: final value

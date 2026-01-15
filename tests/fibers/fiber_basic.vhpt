@@ -2,8 +2,15 @@
 Basic fiber creation and execution
 --FILE--
 <?php
---SKIPIF--
-Fiber execution not fully implemented yet
+function test() {
+    echo "In fiber\n";
+    return "done";
+}
+
+$fiber = new Fiber('test');
+$start_result = $fiber->start();
+echo "Fiber returned: " . $start_result . "\n";
+?>
 --EXPECT--
 In fiber
 Fiber returned: done

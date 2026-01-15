@@ -19,9 +19,7 @@ echo "After start (terminated):\n";
 echo "isStarted: " . ($fiber->isStarted() ? "true" : "false") . "\n";
 echo "isSuspended: " . ($fiber->isSuspended() ? "true" : "false") . "\n";
 echo "isTerminated: " . ($fiber->isTerminated() ? "true" : "false") . "\n";
---SKIPIF--
-Instance methods not fully implemented yet
-
+?>
 --EXPECT--
 Before start:
 isStarted: false
