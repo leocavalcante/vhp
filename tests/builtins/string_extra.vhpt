@@ -1,0 +1,99 @@
+--TEST--
+str_contains - Check if string contains substring
+--FILE--
+<?php
+var_dump(str_contains("Hello World", "World"));
+var_dump(str_contains("Hello World", "PHP"));
+var_dump(str_contains("", ""));
+var_dump(str_contains("test", ""));
+--EXPECT--
+bool(true)
+bool(false)
+bool(true)
+bool(true)
+
+--TEST--
+str_starts_with - Check if string starts with substring
+--FILE--
+<?php
+var_dump(str_starts_with("Hello World", "Hello"));
+var_dump(str_starts_with("Hello World", "World"));
+var_dump(str_starts_with("test", ""));
+--EXPECT--
+bool(true)
+bool(false)
+bool(true)
+
+--TEST--
+str_ends_with - Check if string ends with substring
+--FILE--
+<?php
+var_dump(str_ends_with("Hello World", "World"));
+var_dump(str_ends_with("Hello World", "Hello"));
+var_dump(str_ends_with("test", ""));
+--EXPECT--
+bool(true)
+bool(false)
+bool(true)
+
+--TEST--
+lcfirst - Make first character lowercase
+--FILE--
+<?php
+echo lcfirst("Hello World") . "\n";
+echo lcfirst("hello") . "\n";
+echo lcfirst("") . "\n";
+echo lcfirst("123") . "\n";
+--EXPECT--
+hello World
+hello
+
+123
+
+--TEST--
+ucwords - Uppercase first character of each word
+--FILE--
+<?php
+echo ucwords("hello world from php") . "\n";
+echo ucwords("HELLO WORLD") . "\n";
+--EXPECT--
+Hello World From Php
+HELLO WORLD
+
+--TEST--
+strrev - Reverse a string
+--FILE--
+<?php
+echo strrev("Hello") . "\n";
+echo strrev("") . "\n";
+echo strrev("a b c") . "\n";
+--EXPECT--
+olle
+
+c b a
+
+--TEST--
+str_repeat - Repeat a string
+--FILE--
+<?php
+echo str_repeat("x", 5) . "\n";
+echo str_repeat("abc", 2) . "\n";
+echo str_repeat("", 10) . "\n";
+--EXPECT--
+xxxxx
+abcabc
+
+
+--TEST--
+str_pad - Pad a string
+--FILE--
+<?php
+echo "[" . str_pad("Hello", 10) . "]\n";
+echo "[" . str_pad("Hello", 10, "-") . "]\n";
+echo "[" . str_pad("Hello", 10, "-", 0) . "]\n";
+echo "[" . str_pad("Hello", 10, "-", 2) . "]\n";
+--EXPECT--
+[Hello     ]
+[Hello-----]
+[-----Hello]
+[--Hello---]

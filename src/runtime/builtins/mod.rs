@@ -8,6 +8,7 @@ pub mod math;
 pub mod output;
 pub mod spl;
 pub mod string;
+pub mod string_extra;
 pub mod types;
 
 pub use json::{json_decode, json_encode};
@@ -25,8 +26,16 @@ pub use array_extra::{
 };
 
 #[allow(unused_imports)]
-pub use math::{
-    abs, ceil, cos, exp, floor, log, log10, max, min, pi, pow, rand, round, sin, sqrt, tan,
+pub use string::{
+    chr, explode, implode, lcfirst, ord, sprintf, str_contains, str_ends_with, str_pad, str_repeat,
+    str_replace, str_starts_with, strlen, strpos, strrev, strtolower, strtoupper, substr, trim,
+    ucfirst, ucwords,
+};
+
+#[allow(unused_imports)]
+pub use string_extra::{
+    bin2hex, hex2bin, htmlentities, htmlspecialchars, levenshtein, md5, nl2br, number_format, sha1,
+    similar_text, strtr,
 };
 
 #[allow(unused_imports)]
