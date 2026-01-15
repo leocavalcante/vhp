@@ -101,6 +101,24 @@ $doubled = array_map(fn($x) => $x * 2, $numbers);
 $formatter = strtoupper(...);
 echo $formatter("hello"); // HELLO
 
+// Method callables (PHP 8.1) - create closures from methods
+class Calculator {
+    public function add($a, $b) {
+        return $a + $b;
+    }
+    
+    public static function multiply($n) {
+        return $n * 2;
+    }
+}
+
+$calc = new Calculator();
+$add = $calc->add(...);
+echo $add(5, 3); // 8
+
+$double = Calculator::multiply(...);
+echo $double(7); // 14
+
 // Pipe operator (PHP 8.5) - chain operations beautifully
 $result = "hello world"
     |> strtoupper(...)

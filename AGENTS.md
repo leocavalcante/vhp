@@ -403,8 +403,8 @@ echo $g(3); // 18
 - [x] Closures can be stored in variables
 - [x] Closures can be passed as arguments
 - [x] Integration with pipe operator: `$x |> trim(...) |> strtoupper(...)`
-- [ ] Method callables: `$obj->method(...)` (parsing only, not yet callable)
-- [ ] Static method callables: `Class::method(...)` (parsing only, not yet callable)
+- [x] Method callables: `$obj->method(...)`
+- [x] Static method callables: `Class::method(...)`
 
 **Example:**
 ```php
@@ -424,6 +424,24 @@ function apply($value, $func) {
     return $func($value);
 }
 echo apply("hello", strtoupper(...)); // HELLO
+
+// Method callables (PHP 8.1)
+class Calculator {
+    public function add($a, $b) {
+        return $a + $b;
+    }
+    
+    public static function multiply($n) {
+        return $n * 2;
+    }
+}
+
+$calc = new Calculator();
+$add = $calc->add(...);
+echo $add(5, 3); // 8
+
+$double = Calculator::multiply(...);
+echo $double(7); // 14
 ```
 
 ### Generators (PHP 5.5+)

@@ -429,6 +429,14 @@ impl<W: Write> VM<W> {
                 ops::execute_capture_var(self, var_name);
             }
 
+            Opcode::CreateMethodClosure => {
+                ops::execute_create_method_closure(self)?;
+            }
+
+            Opcode::CreateStaticMethodClosure => {
+                ops::execute_create_static_method_closure(self)?;
+            }
+
             // ==================== Array Operations ====================
             Opcode::ArrayUnpack => {
                 ops::execute_array_unpack(self)?;

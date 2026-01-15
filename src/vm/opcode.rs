@@ -307,6 +307,12 @@ pub enum Opcode {
     CreateClosure(u32, u8),
     /// Capture variable for closure
     CaptureVar(u32),
+    /// Create method callable closure (stack: object -> closure)
+    /// Pops object and method name, creates Closure with MethodRef body
+    CreateMethodClosure,
+    /// Create static method callable closure (stack: -> closure)
+    /// Pops class name and method name, creates Closure with StaticMethodRef body
+    CreateStaticMethodClosure,
 
     // ==================== Increment/Decrement ====================
     /// Pre-increment (++$x)
@@ -494,6 +500,10 @@ impl Opcode {
             // Special: NewArray, CreateClosure
             Opcode::NewArray(n) => 1 - (*n as i32) * 2,
             Opcode::CreateClosure(_, n) => 1 - (*n as i32),
+            // CreateMethodClosure: pops 2 (object, method_name), pushes 1 (closure)
+            Opcode::CreateMethodClosure => -1,
+            // CreateStaticMethodClosure: pops 2 (class, method_name), pushes 1 (closure)
+            Opcode::CreateStaticMethodClosure => -1,
         }
     }
 }

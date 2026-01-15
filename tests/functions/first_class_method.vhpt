@@ -1,0 +1,15 @@
+--TEST--
+First-class callable from instance method
+--FILE--
+<?php
+class Greeter {
+    public function greet() {
+        return "Hello!";
+    }
+}
+
+$greeter = new Greeter();
+$fn = $greeter->greet(...);
+echo $fn();
+--EXPECT--
+Hello!

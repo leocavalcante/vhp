@@ -1,0 +1,22 @@
+--TEST--
+First-class callable from static method
+--FILE--
+<?php
+class MathOps {
+    public static function double($n) {
+        return $n * 2;
+    }
+    
+    public static function add($a, $b) {
+        return $a + $b;
+    }
+}
+
+$double = MathOps::double(...);
+echo $double(5) . "\n";
+
+$add = MathOps::add(...);
+echo $add(3, 4);
+--EXPECT--
+10
+7

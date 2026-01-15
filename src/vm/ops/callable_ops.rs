@@ -89,7 +89,63 @@ pub fn execute_call_callable<W: std::io::Write>(
                     "Arrow function expression evaluation not yet supported in VM".to_string(),
                 );
             }
-            _ => return Err("Unsupported closure type".to_string()),
+            ClosureBody::MethodRef {
+                class_name,
+                method_name,
+                object,
+            } => {
+                if let Some(method) = vm.find_method_in_chain(class_name, method_name) {
+                    let stack_base = vm.stack.len();
+                    let mut frame = CallFrame::new(method, stack_base);
+                    frame.locals[0] = *object.clone();
+
+                    // Arguments start at index 1 (after $this)
+                    for (i, arg) in args.into_iter().enumerate() {
+                        let slot = i + 1;
+                        if slot < frame.locals.len() {
+                            frame.locals[slot] = arg;
+                        }
+                    }
+                    vm.frames.push(frame);
+                } else {
+                    return Err(format!(
+                        "Call to undefined method {}::{}",
+                        class_name, method_name
+                    ));
+                }
+            }
+            ClosureBody::StaticMethodRef {
+                class_name,
+                method_name,
+            } => {
+                // Normalize class name (strip leading backslash if present)
+                let resolved_class = if let Some(stripped) = class_name.strip_prefix('\\') {
+                    stripped.to_string()
+                } else {
+                    class_name.clone()
+                };
+
+                // Try autoloading if class doesn't exist
+                vm.get_class_with_autoload(&resolved_class);
+
+                if let Some((method, _)) =
+                    vm.find_static_method_in_chain(&resolved_class, method_name)
+                {
+                    let stack_base = vm.stack.len();
+                    let mut frame = CallFrame::new(method, stack_base);
+                    for (i, arg) in args.into_iter().enumerate() {
+                        if i < frame.locals.len() {
+                            frame.locals[i] = arg;
+                        }
+                    }
+                    vm.frames.push(frame);
+                } else {
+                    return Err(format!(
+                        "Call to undefined static method {}::{}",
+                        class_name, method_name
+                    ));
+                }
+            }
         },
         Value::Object(instance) => {
             let class_name = instance.class_name.clone();
@@ -227,5 +283,64 @@ pub fn execute_call_spread<W: std::io::Write>(
     } else {
         return Err(format!("undefined function: {}", func_name));
     }
+    Ok(())
+}
+
+pub fn execute_create_method_closure<W: std::io::Write>(
+    vm: &mut super::super::VM<W>,
+) -> Result<(), String> {
+    let method_name = vm.stack.pop().ok_or("Stack underflow")?;
+    let object = vm.stack.pop().ok_or("Stack underflow")?;
+
+    let method_name_str = match method_name {
+        Value::String(s) => s,
+        _ => return Err("CreateMethodClosure expects method name as string".to_string()),
+    };
+
+    let class_name = match &object {
+        Value::Object(instance) => instance.class_name.clone(),
+        _ => return Err("CreateMethodClosure expects object on stack".to_string()),
+    };
+
+    let closure = crate::runtime::Closure {
+        params: Vec::new(),
+        body: ClosureBody::MethodRef {
+            class_name,
+            method_name: method_name_str,
+            object: Box::new(object),
+        },
+        captured_vars: Vec::new(),
+    };
+
+    vm.stack.push(Value::Closure(Box::new(closure)));
+    Ok(())
+}
+
+pub fn execute_create_static_method_closure<W: std::io::Write>(
+    vm: &mut super::super::VM<W>,
+) -> Result<(), String> {
+    let method_name = vm.stack.pop().ok_or("Stack underflow")?;
+    let class_name = vm.stack.pop().ok_or("Stack underflow")?;
+
+    let method_name_str = match method_name {
+        Value::String(s) => s,
+        _ => return Err("CreateStaticMethodClosure expects method name as string".to_string()),
+    };
+
+    let class_name_str = match class_name {
+        Value::String(s) => s,
+        _ => return Err("CreateStaticMethodClosure expects class name as string".to_string()),
+    };
+
+    let closure = crate::runtime::Closure {
+        params: Vec::new(),
+        body: ClosureBody::StaticMethodRef {
+            class_name: class_name_str,
+            method_name: method_name_str,
+        },
+        captured_vars: Vec::new(),
+    };
+
+    vm.stack.push(Value::Closure(Box::new(closure)));
     Ok(())
 }

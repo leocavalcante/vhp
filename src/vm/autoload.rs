@@ -46,6 +46,7 @@ impl<W: std::io::Write> VM<W> {
             crate::runtime::ClosureBody::MethodRef {
                 class_name,
                 method_name,
+                object: _,
             } => format!("{}::{}", class_name, method_name),
             crate::runtime::ClosureBody::StaticMethodRef {
                 class_name,

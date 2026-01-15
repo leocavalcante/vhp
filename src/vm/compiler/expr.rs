@@ -170,12 +170,14 @@ impl Compiler {
                 self.compile_expr(object)?;
                 let method_idx = self.intern_string(method.clone());
                 self.emit(Opcode::PushString(method_idx));
+                self.emit(Opcode::CreateMethodClosure);
             }
             Expr::CallableFromStaticMethod { class, method } => {
                 let class_idx = self.intern_string(class.clone());
                 let method_idx = self.intern_string(method.clone());
                 self.emit(Opcode::PushString(class_idx));
                 self.emit(Opcode::PushString(method_idx));
+                self.emit(Opcode::CreateStaticMethodClosure);
             }
             Expr::NewAnonymousClass {
                 constructor_args,

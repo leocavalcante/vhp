@@ -44,6 +44,7 @@ pub enum ClosureBody {
     MethodRef {
         class_name: String,
         method_name: String,
+        object: Box<Value>,
     },
     StaticMethodRef {
         class_name: String,

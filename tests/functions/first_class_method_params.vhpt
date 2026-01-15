@@ -1,0 +1,23 @@
+--TEST--
+First-class callable from instance method with parameters
+--FILE--
+<?php
+class Calculator {
+    public function add($a, $b) {
+        return $a + $b;
+    }
+    
+    public function multiply($n) {
+        return $n * 2;
+    }
+}
+
+$calc = new Calculator();
+$add = $calc->add(...);
+$multiply = $calc->multiply(...);
+
+echo $add(5, 3) . "\n";
+echo $multiply(7);
+--EXPECT--
+8
+14
