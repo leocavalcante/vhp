@@ -1,0 +1,105 @@
+--TEST--
+get_class - Returns the class name of an object
+--FILE--
+<?php
+class TestClass {}
+$obj = new TestClass();
+echo get_class($obj) . "\n";
+echo get_class(new stdClass()) . "\n";
+--EXPECT--
+TestClass
+stdClass
+
+--TEST--
+get_parent_class - Returns parent class name
+--FILE--
+<?php
+class ParentClass {}
+class ChildClass extends ParentClass {}
+$obj = new ChildClass();
+echo get_parent_class($obj) . "\n";
+--EXPECT--
+ParentClass
+
+--TEST--
+get_object_vars - Returns object properties
+--FILE--
+<?php
+class MyClass {
+    public $pub = "public";
+    private $priv = "private";
+}
+$obj = new MyClass();
+$vars = get_object_vars($obj);
+echo "Has pub: " . (isset($vars['pub']) ? "yes" : "no") . "\n";
+--EXPECT--
+Has pub: yes
+
+--TEST--
+is_a - Check if object is instance of class
+--FILE--
+<?php
+class A {}
+class B extends A {}
+$obj = new B();
+var_dump(is_a($obj, "B"));
+var_dump(is_a($obj, "A"));
+var_dump(is_a($obj, "C"));
+--EXPECT--
+bool(true)
+bool(true)
+bool(false)
+
+--TEST--
+is_subclass_of - Check if class is subclass
+--FILE--
+<?php
+class A {}
+class B extends A {}
+var_dump(is_subclass_of("B", "A"));
+var_dump(is_subclass_of("A", "B"));
+--EXPECT--
+bool(true)
+bool(false)
+
+--TEST--
+property_exists - Check if property exists
+--FILE--
+<?php
+class MyClass {
+    public $pub = "value";
+    private $priv = "private";
+}
+$obj = new MyClass();
+var_dump(property_exists($obj, "pub"));
+var_dump(property_exists($obj, "nonexistent"));
+--EXPECT--
+bool(true)
+bool(false)
+
+--TEST--
+class_exists - Check if class is defined
+--FILE--
+<?php
+var_dump(class_exists("TestNonExistent"));
+class TestExists {}
+var_dump(class_exists("TestExists"));
+--EXPECT--
+bool(false)
+bool(true)
+
+--TEST--
+interface_exists - Check if interface is defined
+--FILE--
+<?php
+var_dump(interface_exists("TestInterface"));
+--EXPECT--
+bool(false)
+
+--TEST--
+trait_exists - Check if trait is defined
+--FILE--
+<?php
+var_dump(trait_exists("TestTrait"));
+--EXPECT--
+bool(false)

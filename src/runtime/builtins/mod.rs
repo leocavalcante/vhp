@@ -9,6 +9,7 @@ pub mod output;
 pub mod spl;
 pub mod string;
 pub mod string_extra;
+pub mod type_extra;
 pub mod types;
 
 pub use json::{json_decode, json_encode};
@@ -54,4 +55,12 @@ pub use spl::{
 pub use types::{
     boolval, empty, floatval, gettype, intval, is_array, is_bool, is_callable, is_float, is_int,
     is_null, is_numeric, is_string, isset, strval, unset,
+};
+
+#[allow(unused_imports)]
+pub use type_extra::{
+    class_alias, class_exists, func_get_arg, func_get_args, func_num_args, get_class,
+    get_class_methods, get_class_vars, get_declared_classes, get_declared_interfaces,
+    get_declared_traits, get_defined_functions, get_object_vars, get_parent_class,
+    interface_exists, is_a, is_subclass_of, method_exists, property_exists, trait_exists,
 };
