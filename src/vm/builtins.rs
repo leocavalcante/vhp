@@ -107,6 +107,7 @@ pub const BUILTIN_FUNCTIONS: &[&str] = &[
     "array_map",
     "array_filter",
     "array_reduce",
+    "array_slice",
     // SPL autoload functions
     "spl_autoload_register",
     "spl_autoload_unregister",
@@ -241,6 +242,7 @@ pub fn call_builtin<W: Write>(name: &str, args: &[Value], output: &mut W) -> Res
         "array_map" => builtins::array::array_map(args),
         "array_filter" => builtins::array::array_filter(args),
         "array_reduce" => builtins::array::array_reduce(args),
+        "array_slice" => builtins::array::array_slice(args),
         "array_sum" => builtins::array::array_sum(args),
         "array_unique" => builtins::array::array_unique(args),
 

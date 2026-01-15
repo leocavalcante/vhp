@@ -1,0 +1,57 @@
+--TEST--
+array_slice function
+--FILE--
+<?php
+// Basic slice
+$numbers = [1, 2, 3, 4, 5];
+$result = array_slice($numbers, 2);
+echo "array_slice from index 2: ";
+print_r($result);
+
+// Slice with length
+$result = array_slice($numbers, 1, 2);
+echo "array_slice from index 1, length 2: ";
+print_r($result);
+
+// Negative offset
+$result = array_slice($numbers, -2);
+echo "array_slice -2 from end: ";
+print_r($result);
+
+// Negative length
+$result = array_slice($numbers, 1, -1);
+echo "array_slice 1, -1 (exclude last): ";
+print_r($result);
+
+// Empty result
+$result = array_slice($numbers, 10);
+echo "array_slice beyond end: ";
+print_r($result);
+?>
+--EXPECT--
+array_slice from index 2: Array
+(
+    [0] => 3
+    [1] => 4
+    [2] => 5
+)
+array_slice from index 1, length 2: Array
+(
+    [0] => 2
+    [1] => 3
+)
+array_slice -2 from end: Array
+(
+    [0] => 4
+    [1] => 5
+)
+array_slice 1, -1 (exclude last): Array
+(
+    [0] => 2
+    [1] => 3
+    [2] => 4
+)
+array_slice beyond end: Array
+(
+)
+

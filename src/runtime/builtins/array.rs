@@ -13,13 +13,11 @@ pub fn count(args: &[Value]) -> Result<Value, String> {
         _ => Ok(Value::Integer(1)),
     }
 }
-
 /// array_push - Push one or more elements onto the end of array
 pub fn array_push(args: &[Value]) -> Result<Value, String> {
     if args.len() < 2 {
         return Err("array_push() expects at least 2 parameters".to_string());
     }
-
     match &args[0] {
         Value::Array(arr) => {
             let mut new_arr = arr.clone();
@@ -45,7 +43,6 @@ pub fn array_push(args: &[Value]) -> Result<Value, String> {
         _ => Err("array_push() expects parameter 1 to be array".to_string()),
     }
 }
-
 /// array_pop - Pop element off the end of array
 pub fn array_pop(args: &[Value]) -> Result<Value, String> {
     if args.is_empty() {
@@ -63,7 +60,6 @@ pub fn array_pop(args: &[Value]) -> Result<Value, String> {
         _ => Err("array_pop() expects parameter 1 to be array".to_string()),
     }
 }
-
 /// array_shift - Shift an element off the beginning of array
 pub fn array_shift(args: &[Value]) -> Result<Value, String> {
     if args.is_empty() {
@@ -81,7 +77,6 @@ pub fn array_shift(args: &[Value]) -> Result<Value, String> {
         _ => Err("array_shift() expects parameter 1 to be array".to_string()),
     }
 }
-
 /// array_unshift - Prepend one or more elements to the beginning of an array
 pub fn array_unshift(args: &[Value]) -> Result<Value, String> {
     if args.len() < 2 {
@@ -452,15 +447,54 @@ pub fn array_unique(args: &[Value]) -> Result<Value, String> {
                     Value::Null => "null".to_string(),
                     _ => continue,
                 };
-
                 if !seen.contains(&value_str) {
                     seen.push(value_str);
                     result.push((ArrayKey::Integer(result.len() as i64), value.clone()));
                 }
             }
-
             Ok(Value::Array(result))
         }
         _ => Err("array_unique() expects parameter 1 to be array".to_string()),
+    }
+}
+
+/// array_slice - Returns a slice of an array
+pub fn array_slice(args: &[Value]) -> Result<Value, String> {
+    if args.len() < 2 {
+        return Err("array_slice() expects at least 2 parameters".to_string());
+    }
+    match &args[0] {
+        Value::Array(arr) => {
+            let offset = match &args[1] {
+                Value::Integer(n) => *n,
+                _ => return Err("array_slice() offset must be integer".to_string()),
+            };
+            let length = args.get(2).and_then(|v| match v {
+                Value::Integer(n) => Some(*n),
+                _ => None,
+            });
+            let start = if offset < 0 {
+                (arr.len() as i64 + offset).max(0) as usize
+            } else {
+                offset as usize
+            };
+            if start >= arr.len() {
+                return Ok(Value::Array(Vec::new()));
+            }
+            let arr_len = arr.len() as i64;
+            let end = match length {
+                Some(len) if len < 0 => (arr_len + len).max(0) as usize,
+                Some(len) => (start as i64 + len).min(arr_len) as usize,
+                None => arr_len as usize,
+            }
+            .min(arr.len());
+            let result: Vec<(ArrayKey, Value)> = arr[start..end]
+                .iter()
+                .enumerate()
+                .map(|(i, v)| (ArrayKey::Integer(i as i64), v.1.clone()))
+                .collect();
+            Ok(Value::Array(result))
+        }
+        _ => Err("array_slice() expects parameter 1 to be array".to_string()),
     }
 }

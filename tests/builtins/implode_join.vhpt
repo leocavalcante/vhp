@@ -1,0 +1,27 @@
+--TEST--
+implode and join functions (alias of each other)
+--FILE--
+<?php
+// Basic implode
+$numbers = [1, 2, 3];
+echo "implode comma: " . implode(",", $numbers) . "\n";
+echo "implode empty: " . implode("", $numbers) . "\n";
+
+// implode with associative array (only values)
+$assoc = ["a" => 1, "b" => 2, "c" => 3];
+echo "implode assoc: " . implode("-", $assoc) . "\n";
+
+// join is alias for implode
+echo "join comma: " . join(",", $numbers) . "\n";
+
+// implode with key-value pairs (only values)
+$pairs = ["name" => "John", "age" => "30"];
+echo "implode pairs: " . implode("&", $pairs) . "\n";
+?>
+--EXPECT--
+implode comma: 1,2,3
+implode empty: 123
+implode assoc: 1-2-3
+join comma: 1,2,3
+implode pairs: John&30
+

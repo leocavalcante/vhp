@@ -278,13 +278,37 @@ pub fn explode(args: &[Value]) -> Result<Value, String> {
     Ok(Value::String(string))
 }
 
-/// implode - Join array elements (stub - requires arrays)
+/// implode - Join array elements with a string
 pub fn implode(args: &[Value]) -> Result<Value, String> {
     if args.is_empty() {
         return Err("implode() expects at least 1 parameter".to_string());
     }
-    // Since we don't have arrays yet, return empty string
-    Ok(Value::String(String::new()))
+
+    let separator = if args.len() >= 2 {
+        args[0].to_string_val()
+    } else {
+        String::new()
+    };
+
+    match &args[args.len() - 1] {
+        Value::Array(arr) => {
+            let mut result = String::new();
+            for (i, (_, value)) in arr.iter().enumerate() {
+                if i > 0 {
+                    result.push_str(&separator);
+                }
+                result.push_str(&value.to_string_val());
+            }
+            Ok(Value::String(result))
+        }
+        _ => {
+            if args.len() >= 2 {
+                Err("implode() expects parameter 2 to be array".to_string())
+            } else {
+                Err("implode() expects parameter 1 to be array".to_string())
+            }
+        }
+    }
 }
 
 /// sprintf - Return a formatted string
