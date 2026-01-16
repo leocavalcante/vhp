@@ -72,7 +72,7 @@ pub fn execute_call_method<W: std::io::Write>(
             }
         }
         Value::Generator(_) => {
-            let gen = if let Value::Generator(g) = object {
+            let mut gen = if let Value::Generator(g) = object {
                 g
             } else {
                 unreachable!()
@@ -87,6 +87,7 @@ pub fn execute_call_method<W: std::io::Write>(
                     } else {
                         Value::Null
                     };
+                    vm.stack.push(Value::Generator(gen));
                     vm.stack.push(current);
                 }
                 "key" => {
@@ -98,29 +99,47 @@ pub fn execute_call_method<W: std::io::Write>(
                     } else {
                         Value::Null
                     };
+                    vm.stack.push(Value::Generator(gen));
                     vm.stack.push(key);
                 }
                 "next" => {
-                    vm.stack.push(Value::Bool(
-                        gen.current_index + 1 < gen.yielded_values.len(),
-                    ));
+                    gen.current_index += 1;
+                    let result = Value::Bool(gen.current_index < gen.yielded_values.len());
+                    vm.stack.push(Value::Generator(gen));
+                    vm.stack.push(result);
                 }
                 "rewind" => {
                     // Rewind is handled by resetting current_index
+                    gen.current_index = 0;
+                    vm.stack.push(Value::Generator(gen));
                 }
                 "valid" => {
                     let valid = gen.current_index < gen.yielded_values.len() && !gen.finished;
+                    vm.stack.push(Value::Generator(gen));
                     vm.stack.push(Value::Bool(valid));
                 }
                 "getReturn" => {
                     let ret = gen.return_value.clone().unwrap_or(Value::Null);
+                    vm.stack.push(Value::Generator(gen));
                     vm.stack.push(ret);
                 }
                 "send" => {
-                    let sent = args.first().cloned().unwrap_or(Value::Null);
-                    vm.stack.push(sent);
+                    let _sent = args.first().cloned().unwrap_or(Value::Null);
+                    // Advance to next yield and return its value
+                    gen.current_index += 1;
+                    let result = if gen.current_index < gen.yielded_values.len() {
+                        gen.yielded_values[gen.current_index]
+                            .1
+                            .clone()
+                            .unwrap_or(Value::Null)
+                    } else {
+                        Value::Null
+                    };
+                    vm.stack.push(Value::Generator(gen));
+                    vm.stack.push(result);
                 }
                 "throw" => {
+                    vm.stack.push(Value::Generator(gen));
                     vm.stack.push(Value::Null);
                 }
                 _ => {
@@ -252,17 +271,34 @@ pub fn execute_call_method_on_local<W: std::io::Write>(
                 "valid" => {
                     let valid = gen.current_index < gen.yielded_values.len() && !gen.finished;
                     vm.stack.push(Value::Bool(valid));
+                    vm.current_frame_mut()
+                        .set_local(var_slot, Value::Generator(gen));
                 }
                 "getReturn" => {
                     let ret = gen.return_value.clone().unwrap_or(Value::Null);
                     vm.stack.push(ret);
+                    vm.current_frame_mut()
+                        .set_local(var_slot, Value::Generator(gen));
                 }
                 "send" => {
-                    let sent = args.first().cloned().unwrap_or(Value::Null);
-                    vm.stack.push(sent);
+                    let _sent = args.first().cloned().unwrap_or(Value::Null);
+                    gen.current_index += 1;
+                    let result = if gen.current_index < gen.yielded_values.len() {
+                        gen.yielded_values[gen.current_index]
+                            .1
+                            .clone()
+                            .unwrap_or(Value::Null)
+                    } else {
+                        Value::Null
+                    };
+                    vm.stack.push(result);
+                    vm.current_frame_mut()
+                        .set_local(var_slot, Value::Generator(gen));
                 }
                 "throw" => {
                     vm.stack.push(Value::Null);
+                    vm.current_frame_mut()
+                        .set_local(var_slot, Value::Generator(gen));
                 }
                 _ => {
                     return Err(format!("Method '{}' not found on Generator", method_name));
@@ -391,17 +427,30 @@ pub fn execute_call_method_on_global<W: std::io::Write>(
                 "valid" => {
                     let valid = gen.current_index < gen.yielded_values.len() && !gen.finished;
                     vm.stack.push(Value::Bool(valid));
+                    vm.globals.insert(var_name.clone(), Value::Generator(gen));
                 }
                 "getReturn" => {
                     let ret = gen.return_value.clone().unwrap_or(Value::Null);
                     vm.stack.push(ret);
+                    vm.globals.insert(var_name.clone(), Value::Generator(gen));
                 }
                 "send" => {
-                    let sent = args.first().cloned().unwrap_or(Value::Null);
-                    vm.stack.push(sent);
+                    let _sent = args.first().cloned().unwrap_or(Value::Null);
+                    gen.current_index += 1;
+                    let result = if gen.current_index < gen.yielded_values.len() {
+                        gen.yielded_values[gen.current_index]
+                            .1
+                            .clone()
+                            .unwrap_or(Value::Null)
+                    } else {
+                        Value::Null
+                    };
+                    vm.stack.push(result);
+                    vm.globals.insert(var_name.clone(), Value::Generator(gen));
                 }
                 "throw" => {
                     vm.stack.push(Value::Null);
+                    vm.globals.insert(var_name.clone(), Value::Generator(gen));
                 }
                 _ => {
                     return Err(format!("Method '{}' not found on Generator", method_name));

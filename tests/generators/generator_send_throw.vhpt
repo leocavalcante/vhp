@@ -12,11 +12,11 @@ $g = gen();
 $g->next();
 echo "Current: " . $g->current() . "\n";
 
-// Test send returns sent value (stub behavior)
+// Test send() - stub behavior advances and returns next yielded value
 $result = $g->send("test");
-echo "Send returned: " . (is_string($result) ? $result : "not string") . "\n";
+echo "Send returned: " . (is_int($result) ? $result : "not int") . "\n";
 ?>
 --EXPECT--
 Current: 2
-Send returned: test
+Send returned: 3
 

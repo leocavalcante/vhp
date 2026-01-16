@@ -69,12 +69,18 @@ pub fn execute_yield<W: std::io::Write>(vm: &mut super::super::VM<W>) -> Result<
         None
     };
 
+    // Store the yielded value in the collector
     YIELD_COLLECTOR.with(|collector| {
         collector
             .borrow_mut()
             .yielded_values
-            .push((key, Some(value)));
+            .push((key, Some(value.clone())));
     });
+
+    // Push the sent value onto the stack (for $sent = yield $value syntax)
+    // The sent value was stored in the generator's sent_value field
+    // For now, we just push null as the sent value result
+    vm.stack.push(Value::Null);
 
     Err("__GENERATOR__".to_string())
 }
