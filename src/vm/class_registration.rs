@@ -76,6 +76,19 @@ fn register_exception_class(classes: &mut std::collections::HashMap<String, Arc<
         set_hook: None,
     });
 
+    exception.properties.push(CompiledProperty {
+        name: "trace".to_string(),
+        visibility: crate::ast::Visibility::Private,
+        write_visibility: None,
+        default: Some(Value::Array(Vec::new())),
+        readonly: true,
+        is_static: false,
+        type_hint: None,
+        attributes: Vec::new(),
+        get_hook: None,
+        set_hook: None,
+    });
+
     let mut construct = CompiledFunction::new("Exception::__construct".to_string());
     construct.param_count = 2;
     construct.required_param_count = 0;
@@ -119,6 +132,33 @@ fn register_exception_class(classes: &mut std::collections::HashMap<String, Arc<
     exception
         .methods
         .insert("getCode".to_string(), Arc::new(get_code));
+
+    // getTrace() method - uses string index 0 for "trace"
+    let mut get_trace = CompiledFunction::new("Exception::getTrace".to_string());
+    get_trace.param_count = 0;
+    get_trace.local_count = 1;
+    get_trace.local_names = vec!["this".to_string()];
+    get_trace.strings.push("trace".to_string());
+    get_trace.bytecode.push(Opcode::LoadThis);
+    get_trace.bytecode.push(Opcode::LoadProperty(0));
+    get_trace.bytecode.push(Opcode::Return);
+    exception
+        .methods
+        .insert("getTrace".to_string(), Arc::new(get_trace));
+
+    // getTraceAsString() method - uses string index 0 for "trace"
+    let mut get_trace_as_string = CompiledFunction::new("Exception::getTraceAsString".to_string());
+    get_trace_as_string.param_count = 0;
+    get_trace_as_string.local_count = 1;
+    get_trace_as_string.local_names = vec!["this".to_string()];
+    get_trace_as_string.strings.push("trace".to_string());
+    get_trace_as_string.bytecode.push(Opcode::LoadThis);
+    get_trace_as_string.bytecode.push(Opcode::LoadProperty(0));
+    get_trace_as_string.bytecode.push(Opcode::Return);
+    exception.methods.insert(
+        "getTraceAsString".to_string(),
+        Arc::new(get_trace_as_string),
+    );
 
     classes.insert("Exception".to_string(), Arc::new(exception));
 }

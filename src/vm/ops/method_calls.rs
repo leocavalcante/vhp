@@ -1,6 +1,74 @@
 use crate::runtime::{ArrayKey, Value};
 use crate::vm::frame::{CallFrame, ThisSource};
 
+/// Format trace array as a string for Exception::getTraceAsString()
+fn format_trace_as_string(trace: &Value) -> String {
+    match trace {
+        Value::Array(frames) => {
+            let mut lines = Vec::new();
+            for (i, (_, frame_value)) in frames.iter().enumerate() {
+                match frame_value {
+                    Value::Array(frame) => {
+                        let mut line = format!("#{} ", i);
+
+                        // Helper function to get string value from frame array
+                        let get_string = |key: &str| -> &str {
+                            for (k, v) in frame.iter() {
+                                if k == &ArrayKey::String(key.to_string()) {
+                                    if let Value::String(s) = v {
+                                        return s.as_str();
+                                    }
+                                }
+                            }
+                            ""
+                        };
+
+                        let get_int = |key: &str| -> i64 {
+                            for (k, v) in frame.iter() {
+                                if k == &ArrayKey::String(key.to_string()) {
+                                    if let Value::Integer(n) = v {
+                                        return *n;
+                                    }
+                                }
+                            }
+                            0
+                        };
+
+                        // Get class and type
+                        let class_name = get_string("class");
+                        let type_sep = get_string("type");
+
+                        // Get function name
+                        let function_name = get_string("function");
+
+                        // Format class::method() or class->method() or just function()
+                        if !class_name.is_empty() {
+                            line.push_str(class_name);
+                            if !type_sep.is_empty() {
+                                line.push_str(type_sep);
+                            } else {
+                                line.push_str("::");
+                            }
+                        }
+                        line.push_str(function_name);
+                        line.push_str("()");
+
+                        // Get file and line
+                        let file = get_string("file");
+                        let line_num = get_int("line");
+
+                        line.push_str(&format!(" at {}:{}", file, line_num));
+                        lines.push(line);
+                    }
+                    _ => {}
+                }
+            }
+            lines.join("\n")
+        }
+        _ => String::new(),
+    }
+}
+
 pub fn execute_call_method<W: std::io::Write>(
     vm: &mut super::super::VM<W>,
     method_name: String,
@@ -17,6 +85,23 @@ pub fn execute_call_method<W: std::io::Write>(
     match object {
         Value::Object(instance) => {
             let class_name = instance.class_name.clone();
+
+            // Special handling for Exception::getTraceAsString()
+            if method_name == "getTraceAsString"
+                && (class_name == "Exception" || vm.is_instance_of(&class_name, "Exception"))
+            {
+                // Get trace array from exception
+                let trace_value = instance
+                    .properties
+                    .get("trace")
+                    .cloned()
+                    .unwrap_or(Value::Array(Vec::new()));
+
+                // Format trace array as string
+                let trace_string = format_trace_as_string(&trace_value);
+                vm.stack.push(Value::String(trace_string));
+                return Ok(());
+            }
 
             if let Some(method) = vm.find_method_in_chain(&class_name, &method_name) {
                 for (i, arg) in args.iter().enumerate() {
@@ -184,6 +269,23 @@ pub fn execute_call_method_on_local<W: std::io::Write>(
         Value::Object(instance) => {
             let class_name = instance.class_name.clone();
 
+            // Special handling for Exception::getTraceAsString()
+            if method_name == "getTraceAsString"
+                && (class_name == "Exception" || vm.is_instance_of(&class_name, "Exception"))
+            {
+                // Get trace array from exception
+                let trace_value = instance
+                    .properties
+                    .get("trace")
+                    .cloned()
+                    .unwrap_or(Value::Array(Vec::new()));
+
+                // Format trace array as string
+                let trace_string = format_trace_as_string(&trace_value);
+                vm.stack.push(Value::String(trace_string));
+                return Ok(());
+            }
+
             if let Some(method) = vm.find_method_in_chain(&class_name, &method_name) {
                 for (i, arg) in args.iter().enumerate() {
                     if i < method.param_types.len() {
@@ -341,6 +443,23 @@ pub fn execute_call_method_on_global<W: std::io::Write>(
     match object {
         Value::Object(instance) => {
             let class_name = instance.class_name.clone();
+
+            // Special handling for Exception::getTraceAsString()
+            if method_name == "getTraceAsString"
+                && (class_name == "Exception" || vm.is_instance_of(&class_name, "Exception"))
+            {
+                // Get trace array from exception
+                let trace_value = instance
+                    .properties
+                    .get("trace")
+                    .cloned()
+                    .unwrap_or(Value::Array(Vec::new()));
+
+                // Format trace array as string
+                let trace_string = format_trace_as_string(&trace_value);
+                vm.stack.push(Value::String(trace_string));
+                return Ok(());
+            }
 
             if let Some(method) = vm.find_method_in_chain(&class_name, &method_name) {
                 for (i, arg) in args.iter().enumerate() {

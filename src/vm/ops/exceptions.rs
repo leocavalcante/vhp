@@ -1,8 +1,86 @@
 use crate::runtime::Value;
 use crate::vm::frame::ExceptionHandler;
 
+/// Capture backtrace information from the current call stack
+pub fn capture_backtrace(frames: &[super::super::CallFrame]) -> Value {
+    let mut trace_array: Vec<(crate::runtime::ArrayKey, Value)> = Vec::new();
+
+    // Capture call stack in reverse order (most recent first)
+    for (idx, frame) in frames.iter().rev().enumerate() {
+        let func_name = frame.function.name.clone();
+        let (class, type_sep, function) = if let Some(pos) = func_name.rfind("::") {
+            let class_part = &func_name[..pos];
+            let method_part = &func_name[pos + 2..];
+            let type_sep = if frame.this.is_some() { "->" } else { "::" };
+            (
+                Some(class_part.to_string()),
+                type_sep.to_string(),
+                method_part.to_string(),
+            )
+        } else {
+            (None, "".to_string(), func_name.clone())
+        };
+
+        // Create trace frame array with file, line, function, class, type, args
+        let mut frame_array: Vec<(crate::runtime::ArrayKey, Value)> = Vec::new();
+
+        // File - use placeholder for now (would need debug info to get actual file)
+        frame_array.push((
+            crate::runtime::ArrayKey::String("file".to_string()),
+            Value::String("".to_string()),
+        ));
+
+        // Line - use placeholder for now
+        frame_array.push((
+            crate::runtime::ArrayKey::String("line".to_string()),
+            Value::Integer(0),
+        ));
+
+        // Function name
+        frame_array.push((
+            crate::runtime::ArrayKey::String("function".to_string()),
+            Value::String(function),
+        ));
+
+        // Class name (for method calls)
+        if let Some(cls) = class {
+            frame_array.push((
+                crate::runtime::ArrayKey::String("class".to_string()),
+                Value::String(cls),
+            ));
+        }
+
+        // Type separator (-> for instance, :: for static)
+        frame_array.push((
+            crate::runtime::ArrayKey::String("type".to_string()),
+            Value::String(type_sep),
+        ));
+
+        // Args - empty array for now (capturing actual args is more complex)
+        frame_array.push((
+            crate::runtime::ArrayKey::String("args".to_string()),
+            Value::Array(Vec::new()),
+        ));
+
+        trace_array.push((
+            crate::runtime::ArrayKey::Integer(idx as i64),
+            Value::Array(frame_array),
+        ));
+    }
+
+    Value::Array(trace_array)
+}
+
 pub fn execute_throw<W: std::io::Write>(vm: &mut super::super::VM<W>) -> Result<(), String> {
-    let exception = vm.stack.pop().ok_or("Stack underflow")?;
+    let mut exception = vm.stack.pop().ok_or("Stack underflow")?;
+
+    // Capture backtrace before modifying frames
+    let backtrace = capture_backtrace(&vm.frames);
+
+    // Store backtrace in the exception object
+    if let Value::Object(ref mut obj) = &mut exception {
+        obj.properties.insert("trace".to_string(), backtrace);
+    }
 
     let current_frame_depth = vm.frames.len();
     let current_ip = vm.current_frame().ip;
@@ -77,19 +155,13 @@ pub fn execute_throw<W: std::io::Write>(vm: &mut super::super::VM<W>) -> Result<
 
             let class_name = obj.class_name.clone();
 
-            // Build backtrace output
-            let mut trace_lines = Vec::new();
-            trace_lines.push(format!(
-                "{}: {} in {} on line {}",
-                class_name, message, file, line
-            ));
-
-            // Get the call stack
+            // Get the call stack - format each frame
+            let mut trace_lines: Vec<String> = Vec::new();
             for (i, frame) in vm.frames.iter().enumerate() {
                 let func_name = frame.function.name.clone();
-                let loc = if let Some(idx) = func_name.rfind("::") {
-                    let class_part = &func_name[..idx];
-                    let method_part = &func_name[idx + 2..];
+                let loc = if let Some(pos) = func_name.rfind("::") {
+                    let class_part = &func_name[..pos];
+                    let method_part = &func_name[pos + 2..];
                     format!("{}->{}", class_part, method_part)
                 } else {
                     func_name

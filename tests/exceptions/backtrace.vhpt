@@ -103,3 +103,104 @@ Frames: 4
 c: c
 b: b
 a: a
+
+--TEST--
+Exception getTrace() includes all required keys (file, line, function, class, type, args)
+--FILE--
+<?php
+function testFn() {
+    try {
+        throw new Exception("test");
+    } catch (Exception $e) {
+        $trace = $e->getTrace();
+        $frame = $trace[0];
+        echo "file key exists: " . (array_key_exists('file', $frame) ? 'yes' : 'no') . "\n";
+        echo "line key exists: " . (array_key_exists('line', $frame) ? 'yes' : 'no') . "\n";
+        echo "function key exists: " . (array_key_exists('function', $frame) ? 'yes' : 'no') . "\n";
+        echo "class key exists: " . (array_key_exists('class', $frame) ? 'yes' : 'no') . "\n";
+        echo "type key exists: " . (array_key_exists('type', $frame) ? 'yes' : 'no') . "\n";
+        echo "args key exists: " . (array_key_exists('args', $frame) ? 'yes' : 'no') . "\n";
+    }
+}
+testFn();
+--EXPECT--
+file key exists: yes
+line key exists: yes
+function key exists: yes
+class key exists: yes
+type key exists: yes
+args key exists: yes
+
+--TEST--
+Static method calls use "::" type separator in backtrace
+--FILE--
+<?php
+class StaticTest {
+    public static function caller() {
+        Self::callee();
+    }
+
+    public static function callee() {
+        try {
+            throw new Exception("static test");
+        } catch (Exception $e) {
+            $trace = $e->getTrace();
+            echo "Class: " . ($trace[0]['class'] ?? 'N/A') . "\n";
+            echo "Type: " . ($trace[0]['type'] ?? 'N/A') . "\n";
+            echo "Function: " . ($trace[0]['function'] ?? 'N/A') . "\n";
+        }
+    }
+}
+
+StaticTest::caller();
+--EXPECT--
+Class: StaticTest
+Type: ::
+Function: callee
+
+--TEST--
+Exception getMessage() and getCode() still work after getTrace()
+--FILE--
+<?php
+try {
+    throw new Exception("Error message", 42);
+} catch (Exception $e) {
+    $trace = $e->getTrace();
+    $msg = $e->getMessage();
+    $code = $e->getCode();
+    echo "Message: " . $msg . "\n";
+    echo "Code: " . $code . "\n";
+    echo "Trace count: " . count($trace) . "\n";
+}
+--EXPECT--
+Message: Error message
+Code: 42
+Trace count: 1
+
+--TEST--
+Exception getTraceAsString() format for method calls
+--FILE--
+<?php
+class MyClass {
+    public function outer() {
+        $this->inner();
+    }
+
+    public function inner() {
+        try {
+            throw new Exception("method test");
+        } catch (Exception $e) {
+            $trace = $e->getTraceAsString();
+            echo "Contains MyClass: " . (strpos($trace, 'MyClass') !== false ? 'yes' : 'no') . "\n";
+            echo "Contains inner: " . (strpos($trace, 'inner') !== false ? 'yes' : 'no') . "\n";
+            echo "Contains outer: " . (strpos($trace, 'outer') !== false ? 'yes' : 'no') . "\n";
+        }
+    }
+}
+
+$obj = new MyClass();
+$obj->outer();
+--EXPECT--
+Contains MyClass: yes
+Contains inner: yes
+Contains outer: yes
