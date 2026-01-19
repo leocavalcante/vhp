@@ -1,0 +1,10 @@
+--TEST--
+eval() - Return value
+--DESCRIPTION--
+Test that eval returns the value of the last expression
+--FILE--
+<?php
+$result = eval('return 42;');
+echo $result;
+--EXPECT--
+42

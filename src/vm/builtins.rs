@@ -202,6 +202,8 @@ pub const BUILTIN_FUNCTIONS: &[&str] = &[
     "load_psr4_class",
     "set_include_path",
     "get_include_path",
+    // Dynamic code execution
+    "eval",
     // PCRE functions
     "preg_match",
     "preg_match_all",

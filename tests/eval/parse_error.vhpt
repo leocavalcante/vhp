@@ -1,0 +1,9 @@
+--TEST--
+eval() - Parse error handling
+--DESCRIPTION--
+Test that eval() correctly reports parse errors
+--FILE--
+<?php
+eval('this is invalid syntax');
+--EXPECT_ERROR--
+Parse error: Unexpected identifier 'this'

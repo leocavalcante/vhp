@@ -1,0 +1,10 @@
+--TEST--
+eval() - String concatenation
+--DESCRIPTION--
+Test that eval() can handle string concatenation
+--FILE--
+<?php
+$result = eval('return "Hello, " . "World!";');
+echo $result;
+--EXPECT--
+Hello, World!

@@ -1,0 +1,9 @@
+--TEST--
+eval() - Missing parameter error
+--DESCRIPTION--
+Test that eval() reports an error when called without parameters
+--FILE--
+<?php
+eval();
+--EXPECT_ERROR--
+eval() expects exactly 1 parameter

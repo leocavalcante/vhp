@@ -1,0 +1,10 @@
+--TEST--
+eval() - Arithmetic expressions
+--DESCRIPTION--
+Test that eval() can evaluate arithmetic expressions
+--FILE--
+<?php
+$result = eval('return 2 + 3 * 4;');
+echo $result;
+--EXPECT--
+14

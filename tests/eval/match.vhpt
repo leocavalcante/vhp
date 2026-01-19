@@ -1,0 +1,10 @@
+--TEST--
+eval() - Match expression
+--DESCRIPTION--
+Test that eval() can handle match expressions (PHP 8.0+)
+--FILE--
+<?php
+$result = eval('return match(2) { 1 => "one", 2 => "two", default => "other" };');
+echo $result;
+--EXPECT--
+two

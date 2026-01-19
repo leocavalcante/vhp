@@ -259,13 +259,13 @@ pub fn clear_autoloaders() {
 /// directory.
 ///
 /// # Arguments
-/// * `prefix` - The namespace prefix (e.g., "MyApp\\" or "MyApp\\Models\\")
+/// * `prefix` - The namespace prefix (e.g., "MyApp\" or "MyApp\Models\")
 /// * `base_dir` - The base directory for this namespace prefix
 ///
 /// # Example
 /// ```php
 /// // Register PSR-4 autoloader
-/// spl_autoload_register_psr4('MyApp\\', __DIR__ . '/src/');
+/// spl_autoload_register_psr4('MyApp\', __DIR__ . '/src/');
 ///
 /// // Now MyApp\Models\User maps to /src/Models/User.php
 /// $user = new MyApp\Models\User();
@@ -302,7 +302,7 @@ pub fn spl_autoload_register_psr4(args: &[Value]) -> Result<Value, String> {
 /// prefix and base directory for the given class name.
 ///
 /// # Arguments
-/// * `class_name` - The fully qualified class name (e.g., "MyApp\\Models\\User")
+/// * `class_name` - The fully qualified class name (e.g., "MyApp\Models\User")
 ///
 /// # Returns
 /// Some((prefix, base_dir)) if a matching prefix is found, None otherwise

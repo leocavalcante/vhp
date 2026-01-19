@@ -1,0 +1,9 @@
+--TEST--
+eval() - Basic echo statement
+--DESCRIPTION--
+Test that eval can execute a simple echo statement
+--FILE--
+<?php
+eval('echo "hello";');
+--EXPECT--
+hello

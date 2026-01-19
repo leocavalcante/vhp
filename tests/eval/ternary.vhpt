@@ -1,0 +1,10 @@
+--TEST--
+eval() - Ternary expression
+--DESCRIPTION--
+Test that eval() can handle ternary expressions
+--FILE--
+<?php
+$result = eval('return true ? "yes" : "no";');
+echo $result;
+--EXPECT--
+yes

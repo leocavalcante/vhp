@@ -1,0 +1,10 @@
+--TEST--
+eval() - Empty string returns null
+--DESCRIPTION--
+Test that eval() with an empty string returns null
+--FILE--
+<?php
+$result = eval('');
+echo is_null($result) ? "null" : "not null";
+--EXPECT--
+null

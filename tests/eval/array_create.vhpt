@@ -1,0 +1,10 @@
+--TEST--
+eval() - Array creation
+--DESCRIPTION--
+Test that eval() can create and return arrays
+--FILE--
+<?php
+$result = eval('return [1, 2, 3];');
+echo $result[0] + $result[1] + $result[2];
+--EXPECT--
+6

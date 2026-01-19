@@ -216,6 +216,7 @@ impl<W: std::io::Write> VM<W> {
                     Err(e) => Err(e),
                 }
             }
+            "eval" => self.eval(args),
             _ => builtins::call_builtin(func_name, args, &mut self.output),
         }
     }
@@ -306,6 +307,65 @@ impl<W: std::io::Write> VM<W> {
 
         // Call require to do the actual inclusion
         self.require(args)
+    }
+
+    /// eval - Execute a string as PHP code
+    ///
+    /// This function takes a string of PHP code, parses and compiles it,
+    /// then executes it in the current scope. Variables defined in the
+    /// eval'd code will be available in the calling scope.
+    ///
+    /// # Arguments
+    /// * `code` - The PHP code string to execute
+    ///
+    /// # Returns
+    /// The return value of the evaluated code (last expression), or 1 if
+    /// no return value is specified. Returns null for empty code.
+    ///
+    /// # Errors
+    /// Returns an error string if parsing or execution fails.
+    pub fn eval(&mut self, args: &[Value]) -> Result<Value, String> {
+        use crate::lexer::Lexer;
+        use crate::parser::Parser;
+        use crate::vm::compiler::Compiler;
+
+        if args.is_empty() {
+            return Err("eval() expects exactly 1 parameter".to_string());
+        }
+
+        let code = args[0].to_string_val();
+
+        // Empty string returns null
+        if code.trim().is_empty() {
+            return Ok(Value::Null);
+        }
+
+        // Prepend PHP opening tag if not present
+        let php_code = if code.trim_start().starts_with("<?php") {
+            code
+        } else {
+            format!("<?php {}", code)
+        };
+
+        // Lex the code
+        let mut lexer = Lexer::new(&php_code);
+        let tokens = lexer
+            .tokenize()
+            .map_err(|e| format!("Parse error: {}", e))?;
+
+        // Parse the tokens
+        let mut parser = Parser::new(tokens);
+        let program = parser.parse().map_err(|e| format!("Parse error: {}", e))?;
+
+        // Compile the program
+        let compiler = Compiler::with_file_path("<eval>".to_string(), "<eval>".to_string());
+        let compilation = compiler
+            .compile_program(&program)
+            .map_err(|e| format!("Compile error: {}", e))?;
+
+        // Execute the compiled code in the current scope
+        self.execute_simple_function(&compilation.main)
+            .map_err(|e| format!("Runtime error: {}", e))
     }
 
     /// Execute a function's bytecode without using the full VM loop

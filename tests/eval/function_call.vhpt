@@ -1,0 +1,10 @@
+--TEST--
+eval() - Function calls
+--DESCRIPTION--
+Test that eval() can call built-in functions
+--FILE--
+<?php
+$result = eval('return strlen("hello");');
+echo $result;
+--EXPECT--
+5
