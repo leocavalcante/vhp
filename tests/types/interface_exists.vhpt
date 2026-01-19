@@ -1,0 +1,51 @@
+--TEST--
+interface_exists() - built-in and user-defined interfaces
+--FILE--
+<?php
+// Test built-in interfaces (from SPL)
+var_dump(interface_exists("Traversable"));
+var_dump(interface_exists("Iterator"));
+var_dump(interface_exists("IteratorAggregate"));
+var_dump(interface_exists("Countable"));
+var_dump(interface_exists("ArrayAccess"));
+var_dump(interface_exists("Stringable"));
+
+// Test case-insensitivity
+var_dump(interface_exists("traversable"));
+var_dump(interface_exists("ITERATOR"));
+var_dump(interface_exists("CouNtAbLe"));
+
+// Test fully qualified names
+var_dump(interface_exists("\\Traversable"));
+var_dump(interface_exists("\\Iterator"));
+
+// Test user-defined interface
+interface MyInterface {
+    public function method();
+}
+var_dump(interface_exists("MyInterface"));
+var_dump(interface_exists("myinterface"));
+
+// Test non-existent interface
+var_dump(interface_exists("NonExistentInterface"));
+
+// Test with non-string argument
+var_dump(interface_exists(123));
+var_dump(interface_exists(null));
+--EXPECT--
+bool(true)
+bool(true)
+bool(true)
+bool(true)
+bool(true)
+bool(true)
+bool(true)
+bool(true)
+bool(true)
+bool(true)
+bool(true)
+bool(true)
+bool(true)
+bool(false)
+bool(false)
+bool(false)

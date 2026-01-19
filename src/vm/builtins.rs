@@ -372,8 +372,7 @@ pub fn call_builtin<W: Write>(name: &str, args: &[Value], output: &mut W) -> Res
         "method_exists" => builtins::type_extra::method_exists(args),
         "property_exists" => builtins::type_extra::property_exists(args),
         "class_exists" => builtins::type_extra::class_exists(args),
-        "interface_exists" => builtins::type_extra::interface_exists(args),
-        "trait_exists" => builtins::type_extra::trait_exists(args),
+        // interface_exists and trait_exists handled by VM in call_reflection_or_builtin
         "is_a" => builtins::type_extra::is_a(args),
         "is_subclass_of" => builtins::type_extra::is_subclass_of(args),
         "get_declared_classes" => builtins::type_extra::get_declared_classes(args),

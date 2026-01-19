@@ -167,6 +167,42 @@ impl<W: std::io::Write> VM<W> {
                 let trait_name = args[0].to_string_val();
                 reflection::get_trait_attributes(&trait_name, &self.traits)
             }
+            "interface_exists" => {
+                if args.is_empty() {
+                    return Err("interface_exists() expects at least 1 parameter".to_string());
+                }
+                let interface_name = args[0].to_string_val();
+                // Check parameter is string
+                match &args[0] {
+                    Value::String(_) => {}
+                    _ => return Ok(Value::Bool(false)),
+                }
+                // Case-insensitive lookup
+                let name_lower = interface_name.to_lowercase();
+                let exists = self
+                    .interfaces
+                    .iter()
+                    .any(|(k, _)| k.to_lowercase() == name_lower);
+                Ok(Value::Bool(exists))
+            }
+            "trait_exists" => {
+                if args.is_empty() {
+                    return Err("trait_exists() expects at least 1 parameter".to_string());
+                }
+                let trait_name = args[0].to_string_val();
+                // Check parameter is string
+                match &args[0] {
+                    Value::String(_) => {}
+                    _ => return Ok(Value::Bool(false)),
+                }
+                // Case-insensitive lookup
+                let name_lower = trait_name.to_lowercase();
+                let exists = self
+                    .traits
+                    .iter()
+                    .any(|(k, _)| k.to_lowercase() == name_lower);
+                Ok(Value::Bool(exists))
+            }
             "require" => self.require(args),
             "require_once" => self.require_once(args),
             "load_psr4_class" => {

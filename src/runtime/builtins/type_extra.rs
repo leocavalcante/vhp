@@ -105,6 +105,8 @@ pub fn class_exists(args: &[Value]) -> Result<Value, String> {
 }
 
 /// interface_exists - Checks if an interface has been defined
+/// NOTE: Handled by VM in call_reflection_or_builtin, this stub is unused
+#[allow(dead_code)]
 pub fn interface_exists(args: &[Value]) -> Result<Value, String> {
     if args.is_empty() {
         return Err("interface_exists() expects at least 1 parameter".to_string());
@@ -114,6 +116,8 @@ pub fn interface_exists(args: &[Value]) -> Result<Value, String> {
 }
 
 /// trait_exists - Checks if a trait exists
+/// NOTE: Handled by VM in call_reflection_or_builtin, this stub is unused
+#[allow(dead_code)]
 pub fn trait_exists(args: &[Value]) -> Result<Value, String> {
     if args.is_empty() {
         return Err("trait_exists() expects at least 1 parameter".to_string());

@@ -1,0 +1,42 @@
+--TEST--
+trait_exists() - user-defined traits
+--FILE--
+<?php
+// Test user-defined trait
+trait MyTrait {
+    public function method() {
+        return "Hello";
+    }
+}
+var_dump(trait_exists("MyTrait"));
+
+// Test case-insensitivity
+var_dump(trait_exists("mytrait"));
+var_dump(trait_exists("MYTRAIT"));
+
+// Test another trait
+trait HelperTrait {
+    public function help() {
+        return "Helping";
+    }
+}
+var_dump(trait_exists("HelperTrait"));
+
+// Test non-existent trait
+var_dump(trait_exists("NonExistentTrait"));
+
+// Test with non-string argument
+var_dump(trait_exists(123));
+var_dump(trait_exists(null));
+
+// Note: No built-in traits in PHP standard library (traits are user-only)
+var_dump(trait_exists("SomeBuiltInTrait"));
+--EXPECT--
+bool(true)
+bool(true)
+bool(true)
+bool(true)
+bool(false)
+bool(false)
+bool(false)
+bool(false)

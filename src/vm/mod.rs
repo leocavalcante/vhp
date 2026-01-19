@@ -16,6 +16,7 @@ pub mod methods;
 pub mod objects;
 pub mod opcode;
 pub mod reflection;
+pub mod spl_interfaces;
 
 mod helpers;
 mod ops;
@@ -95,9 +96,12 @@ impl<W: Write> VM<W> {
         }
     }
 
-    /// Register interface definitions
+    /// Register interface definitions (merges with existing built-in interfaces)
     pub fn register_interfaces(&mut self, interfaces: HashMap<String, Arc<CompiledInterface>>) {
-        self.interfaces = interfaces;
+        // Merge user interfaces into existing (preserves built-ins)
+        for (name, interface) in interfaces {
+            self.interfaces.insert(name, interface);
+        }
     }
 
     /// Register trait definitions
@@ -113,6 +117,7 @@ impl<W: Write> VM<W> {
     /// Register built-in classes like Exception
     pub fn register_builtins(&mut self) {
         class_registration::register_builtin_classes(&mut self.classes);
+        spl_interfaces::register_builtin_interfaces(&mut self.interfaces);
     }
 
     /// Execute a compiled function
