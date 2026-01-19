@@ -1,0 +1,8 @@
+--TEST--
+Deeply nested list destructuring
+--FILE--
+<?php
+list($a, list($b, list($c, $d))) = [1, [2, [3, 4]]];
+echo $a . "," . $b . "," . $c . "," . $d;
+--EXPECT--
+1,2,3,4

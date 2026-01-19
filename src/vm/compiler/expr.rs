@@ -258,10 +258,12 @@ impl Compiler {
                 self.emit(Opcode::PushString(idx));
             }
             Expr::MagicTrait => {
-                // __TRAIT__ - Current trait name (or empty)
                 let trait_name = self.trait_name();
                 let idx = self.intern_string(trait_name);
                 self.emit(Opcode::PushString(idx));
+            }
+            Expr::ListDestructure { elements, array } => {
+                self.compile_list_destructure(elements, array)?;
             }
         }
         Ok(())

@@ -4,7 +4,7 @@
 //! and parenthesized expressions.
 
 use super::ExprParser;
-use crate::ast::{Expr, MatchArm, PropertyModification};
+use crate::ast::{Expr, ListElement, MatchArm, PropertyModification};
 use crate::token::TokenKind;
 
 /// Parse match expression: match ($expr) { cond1, cond2 => result, default => result }
@@ -176,4 +176,152 @@ pub fn parse_clone(parser: &mut ExprParser) -> Result<Expr, String> {
         // Simple clone without modifications
         Ok(Expr::Clone { object })
     }
+}
+
+/// Parse list() destructuring: list($a, $b) = $array
+/// Supports: list($a, $b), list("key" => $a, "b" => $b), list($a, list($b, $c))
+pub fn parse_list(parser: &mut ExprParser) -> Result<Expr, String> {
+    parser.advance(); // consume 'list'
+
+    parser.consume(TokenKind::LeftParen, "Expected '(' after 'list'")?;
+
+    let mut elements = Vec::new();
+
+    // Handle empty list: list()
+    if !parser.check(&TokenKind::RightParen) {
+        loop {
+            if parser.check(&TokenKind::RightParen) {
+                break;
+            }
+
+            // Check for key => value syntax
+            if parser.check(&TokenKind::DoubleArrow) {
+                return Err(format!(
+                    "Unexpected '=>' in list at line {}, column {}",
+                    parser.current().line,
+                    parser.current().column
+                ));
+            }
+
+            // Check if this is a nested list or a variable
+            if parser.check(&TokenKind::Identifier(String::new())) {
+                let ident = match &parser.current().kind {
+                    TokenKind::Identifier(name) => name.clone(),
+                    _ => unreachable!(),
+                };
+
+                // Check if it's actually 'list' for nested destructuring
+                if ident.to_lowercase() == "list" {
+                    // Parse nested list
+                    let nested = parse_list(parser)?;
+                    elements.push(ListElement {
+                        key: None,
+                        value: Box::new(nested),
+                    });
+                } else {
+                    return Err(format!(
+                        "Expected variable or 'list' in list() at line {}, column {}",
+                        parser.current().line,
+                        parser.current().column
+                    ));
+                }
+            } else if parser.check(&TokenKind::Variable(String::new())) {
+                // Simple variable: $a
+                if let TokenKind::Variable(name) = &parser.current().kind {
+                    let name = name.clone();
+                    parser.advance();
+                    elements.push(ListElement {
+                        key: None,
+                        value: Box::new(Expr::Variable(name)),
+                    });
+                }
+            } else if parser.check(&TokenKind::String(String::new())) {
+                // Key => variable syntax: "key" => $var
+                // Parse the key
+                let key_token = parser.current().clone();
+                let key = match &key_token.kind {
+                    TokenKind::String(s) => {
+                        let k = s.clone();
+                        parser.advance();
+                        k
+                    }
+                    _ => unreachable!(),
+                };
+
+                // Expect =>
+                parser.consume(
+                    TokenKind::DoubleArrow,
+                    "Expected '=>' after string key in list()",
+                )?;
+
+                // Parse the value (must be variable or nested list)
+                if parser.check(&TokenKind::Identifier(String::new())) {
+                    let ident = match &parser.current().kind {
+                        TokenKind::Identifier(name) => name.clone(),
+                        _ => unreachable!(),
+                    };
+
+                    if ident.to_lowercase() == "list" {
+                        let nested = parse_list(parser)?;
+                        elements.push(ListElement {
+                            key: Some(Box::new(Expr::String(key))),
+                            value: Box::new(nested),
+                        });
+                    } else {
+                        return Err(format!(
+                            "Expected 'list' after '=>' in list() at line {}, column {}",
+                            parser.current().line,
+                            parser.current().column
+                        ));
+                    }
+                } else if parser.check(&TokenKind::Variable(String::new())) {
+                    if let TokenKind::Variable(name) = &parser.current().kind {
+                        let name = name.clone();
+                        parser.advance();
+                        elements.push(ListElement {
+                            key: Some(Box::new(Expr::String(key))),
+                            value: Box::new(Expr::Variable(name)),
+                        });
+                    }
+                } else {
+                    return Err(format!(
+                        "Expected variable or 'list' after '=>' in list() at line {}, column {}",
+                        parser.current().line,
+                        parser.current().column
+                    ));
+                }
+            } else {
+                return Err(format!(
+                    "Expected variable or 'list' in list() at line {}, column {}",
+                    parser.current().line,
+                    parser.current().column
+                ));
+            }
+
+            // Check for comma or closing paren
+            if parser.check(&TokenKind::Comma) {
+                parser.advance();
+                if parser.check(&TokenKind::RightParen) {
+                    break;
+                }
+            } else if parser.check(&TokenKind::RightParen) {
+                break;
+            } else {
+                return Err(format!(
+                    "Expected ',' or ')' in list() at line {}, column {}",
+                    parser.current().line,
+                    parser.current().column
+                ));
+            }
+        }
+    }
+
+    parser.consume(TokenKind::RightParen, "Expected ')' to close list()")?;
+
+    // Create a placeholder that will be used in assignment context
+    // The actual array expression comes after the = operator
+    Ok(Expr::ListDestructure {
+        elements,
+        array: Box::new(Expr::Null), // Placeholder, will be replaced during assignment parsing
+    })
 }

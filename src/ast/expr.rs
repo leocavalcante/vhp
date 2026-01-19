@@ -7,6 +7,13 @@ pub struct ArrayElement {
     pub value: Box<Expr>,
 }
 
+/// List element for destructuring with optional key
+#[derive(Debug, Clone)]
+pub struct ListElement {
+    pub key: Option<Box<Expr>>, // Optional key: "key" => $var
+    pub value: Box<Expr>,       // Variable or nested list
+}
+
 /// Property modification for clone with syntax (PHP 8.4)
 #[derive(Debug, Clone)]
 pub struct PropertyModification {
@@ -236,6 +243,13 @@ pub enum Expr {
     // Yield from expression (PHP 7.0+)
     /// yield from $iterable
     YieldFrom(Box<Expr>),
+
+    // List destructuring (PHP 7.1+): list($a, $b) = $array
+    /// Contains the list elements with optional keys and the source array
+    ListDestructure {
+        elements: Vec<ListElement>,
+        array: Box<Expr>,
+    },
 
     // Magic constants (compile-time resolved)
     /// __FILE__ - Full path of the file being executed

@@ -1,0 +1,8 @@
+--TEST--
+List destructuring with fewer elements than array
+--FILE--
+<?php
+list($a, $b) = [10, 20, 30];
+echo $a . "," . $b;
+--EXPECT--
+10,20

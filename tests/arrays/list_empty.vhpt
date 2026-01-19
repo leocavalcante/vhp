@@ -1,0 +1,8 @@
+--TEST--
+Empty list destructuring
+--FILE--
+<?php
+list() = [1, 2, 3];
+echo "empty list works";
+--EXPECT--
+empty list works

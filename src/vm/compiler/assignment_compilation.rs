@@ -1,6 +1,6 @@
 use super::Compiler;
 
-use crate::ast::{Argument, Expr};
+use crate::ast::{Argument, Expr, ListElement};
 use crate::vm::opcode::Opcode;
 
 impl Compiler {
@@ -312,6 +312,137 @@ impl Compiler {
                 self.emit(Opcode::StoreStaticProp(class_idx, prop_idx));
             }
             _ => return Err("Complex array assignment not yet implemented".to_string()),
+        }
+
+        Ok(())
+    }
+
+    /// Compile list() destructuring: list($a, $b) = $array
+    pub(crate) fn compile_list_destructure(
+        &mut self,
+        elements: &[ListElement],
+        array: &Expr,
+    ) -> Result<(), String> {
+        // Compile the array expression
+        self.compile_expr(array)?;
+
+        // Store array in a temporary local variable
+        let array_slot = self.allocate_local("__list_array__".to_string());
+        self.emit(Opcode::StoreFast(array_slot));
+
+        // For each element, extract the value and assign to variable
+        for (index, element) in elements.iter().enumerate() {
+            match &*element.value {
+                Expr::Variable(var_name) => {
+                    // Load array from slot and get element at index
+                    self.emit(Opcode::LoadFast(array_slot));
+                    self.emit(Opcode::PushInt(index as i64));
+                    self.emit(Opcode::ArrayGet);
+
+                    // Store in variable
+                    if !self.locals.contains_key(var_name) {
+                        let slot = self.next_local;
+                        self.locals.insert(var_name.clone(), slot);
+                        self.next_local += 1;
+                        self.function.local_count = self.next_local;
+                        self.function.local_names.push(var_name.clone());
+                    }
+
+                    if let Some(&slot) = self.locals.get(var_name) {
+                        self.emit(Opcode::StoreFast(slot));
+                    } else {
+                        let idx = self.intern_string(var_name.clone());
+                        self.emit(Opcode::StoreVar(idx));
+                    }
+                }
+                Expr::ListDestructure {
+                    elements: nested_elements,
+                    ..
+                } => {
+                    // Nested list destructuring
+                    self.emit(Opcode::LoadFast(array_slot));
+                    self.emit(Opcode::PushInt(index as i64));
+                    self.emit(Opcode::ArrayGet);
+
+                    let nested_array_slot = self.allocate_local("__list_nested__".to_string());
+                    self.emit(Opcode::StoreFast(nested_array_slot));
+
+                    self.compile_list_destructure_internal(nested_elements, nested_array_slot)?;
+
+                    self.emit(Opcode::PushNull);
+                    self.emit(Opcode::StoreFast(nested_array_slot));
+                }
+                _ => {
+                    return Err(format!(
+                        "list() elements must be variables or nested lists, got {:?}",
+                        element.value
+                    ));
+                }
+            }
+        }
+
+        // Reload the array to return it (list() returns the array for chaining)
+        self.emit(Opcode::LoadFast(array_slot));
+
+        // Note: We don't clean up the temporary array variable here
+        // because it will be cleaned up when the function ends
+        // and cleaning it would overwrite the value we need to return
+
+        Ok(())
+    }
+
+    /// Internal helper for nested list destructuring with a specific array source
+    fn compile_list_destructure_internal(
+        &mut self,
+        elements: &[ListElement],
+        array_slot: u16,
+    ) -> Result<(), String> {
+        for (index, element) in elements.iter().enumerate() {
+            match &*element.value {
+                Expr::Variable(var_name) => {
+                    // Load array from slot and get element at index
+                    self.emit(Opcode::LoadFast(array_slot));
+                    self.emit(Opcode::PushInt(index as i64));
+                    self.emit(Opcode::ArrayGet);
+
+                    // Store in variable
+                    if !self.locals.contains_key(var_name) {
+                        let slot = self.next_local;
+                        self.locals.insert(var_name.clone(), slot);
+                        self.next_local += 1;
+                        self.function.local_count = self.next_local;
+                        self.function.local_names.push(var_name.clone());
+                    }
+
+                    if let Some(&slot) = self.locals.get(var_name) {
+                        self.emit(Opcode::StoreFast(slot));
+                    } else {
+                        let idx = self.intern_string(var_name.clone());
+                        self.emit(Opcode::StoreVar(idx));
+                    }
+                }
+                Expr::ListDestructure {
+                    elements: nested_elements,
+                    ..
+                } => {
+                    // Nested list destructuring
+                    self.emit(Opcode::LoadFast(array_slot));
+                    self.emit(Opcode::PushInt(index as i64));
+                    self.emit(Opcode::ArrayGet);
+
+                    let nested_array_slot = self.allocate_local("__list_nested__".to_string());
+                    self.emit(Opcode::StoreFast(nested_array_slot));
+                    self.compile_list_destructure_internal(nested_elements, nested_array_slot)?;
+                    self.emit(Opcode::PushNull);
+                    self.emit(Opcode::StoreFast(nested_array_slot));
+                }
+                _ => {
+                    return Err(format!(
+                        "list() elements must be variables or nested lists, got {:?}",
+                        element.value
+                    ));
+                }
+            }
         }
 
         Ok(())

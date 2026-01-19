@@ -1,0 +1,8 @@
+--TEST--
+Basic list destructuring
+--FILE--
+<?php
+list($a, $b) = [1, 2];
+echo $a . "," . $b;
+--EXPECT--
+1,2

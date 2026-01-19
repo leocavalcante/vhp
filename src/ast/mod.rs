@@ -7,7 +7,7 @@ mod expr;
 mod ops;
 mod stmt;
 
-pub use expr::{Argument, ArrayElement, Expr, MatchArm, PropertyModification};
+pub use expr::{Argument, ArrayElement, Expr, ListElement, MatchArm, PropertyModification};
 pub use ops::{AssignOp, BinaryOp, UnaryOp};
 pub use stmt::{
     Attribute, AttributeArgument, CatchClause, DeclareDirective, EnumBackingType, EnumCase,

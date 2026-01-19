@@ -20,7 +20,7 @@ use crate::ast::{AssignOp, BinaryOp, Expr};
 use crate::token::{Token, TokenKind};
 
 pub use postfix::parse_postfix;
-pub use special::{parse_clone, parse_match};
+pub use special::{parse_clone, parse_list, parse_match};
 
 pub struct ExprParser<'a> {
     tokens: &'a [Token],
@@ -184,6 +184,12 @@ impl<'a> ExprParser<'a> {
                 }
             }
             TokenKind::Identifier(name) => {
+                // Check if this is the 'list' keyword for list() destructuring
+                if name.to_lowercase() == "list" {
+                    let list_expr = parse_list(self)?;
+                    return parse_postfix(self, list_expr);
+                }
+
                 self.advance();
 
                 // Check if this is a qualified name (namespace/class path)
@@ -196,9 +202,8 @@ impl<'a> ExprParser<'a> {
                         self.advance();
                     } else {
                         return Err(format!(
-                            "Expected identifier after '\\' at line {}, column {}",
-                            self.current().line,
-                            self.current().column
+                            "Expected identifier after '\\' at line {}",
+                            self.current().line
                         ));
                     }
                 }
@@ -214,54 +219,7 @@ impl<'a> ExprParser<'a> {
                     ))
                 }
             }
-            TokenKind::Fiber => {
-                let name = "Fiber".to_string();
-                self.advance();
-
-                if self.check(&TokenKind::DoubleColon) {
-                    self.parse_static_access(name)
-                } else {
-                    Err(format!(
-                        "Unexpected 'Fiber' token at line {}, column {}",
-                        token.line, token.column
-                    ))
-                }
-            }
-            TokenKind::Parent => {
-                self.advance();
-
-                if self.check(&TokenKind::DoubleColon) {
-                    self.parse_static_access("parent".to_string())
-                } else {
-                    Err(format!(
-                        "Expected '::' after 'parent' at line {}, column {}",
-                        token.line, token.column
-                    ))
-                }
-            }
-            TokenKind::Static => {
-                self.advance();
-
-                if self.check(&TokenKind::DoubleColon) {
-                    self.parse_static_access("static".to_string())
-                } else {
-                    Err(format!(
-                        "Expected '::' after 'static' at line {}, column {}",
-                        token.line, token.column
-                    ))
-                }
-            }
-            TokenKind::New => self.parse_new_object(),
-            TokenKind::Clone => {
-                self.advance();
-                let clone_expr = parse_clone(self)?;
-                parse_postfix(self, clone_expr)
-            }
             TokenKind::Match => {
-                let match_expr = parse_match(self)?;
-                parse_postfix(self, match_expr)
-            }
-            TokenKind::Fn => {
                 self.advance();
                 let arrow_func = self.parse_arrow_function()?;
                 parse_postfix(self, arrow_func)
@@ -482,9 +440,25 @@ impl<'a> ExprParser<'a> {
                         };
                         continue;
                     }
+                    Expr::ListDestructure { elements, .. } => {
+                        // list($a, $b) = $array
+                        if !matches!(assign_op, AssignOp::Assign) {
+                            return Err(format!(
+                                "Compound assignment not supported for list() destructuring at line {}, column {}",
+                                op_token.line, op_token.column
+                            ));
+                        }
+                        self.advance();
+                        let right = self.parse_expression(Precedence::None)?;
+                        left = Expr::ListDestructure {
+                            elements: elements.clone(),
+                            array: Box::new(right),
+                        };
+                        continue;
+                    }
                     _ => {
                         return Err(format!(
-                            "Left side of assignment must be a variable, array element, property, or static property at line {}, column {}",
+                            "Left side of assignment must be a variable, array element, property, static property, or list() at line {}, column {}",
                             op_token.line, op_token.column
                         ));
                     }

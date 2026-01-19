@@ -1,0 +1,8 @@
+--TEST--
+List destructuring with more elements than array
+--FILE--
+<?php
+list($a, $b, $c) = [100, 200];
+echo $a . "," . $b . "," . $c;
+--EXPECT--
+100,200,

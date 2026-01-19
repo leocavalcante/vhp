@@ -1,0 +1,9 @@
+--TEST--
+List destructuring return value
+--FILE--
+<?php
+$result = list($a, $b) = [5, 6];
+echo $a . "," . $b . " - ";
+echo gettype($result);
+--EXPECT--
+5,6 - array
