@@ -1,0 +1,11 @@
+--TEST--
+Heredoc with escaped dollar sign
+--FILE--
+<?php
+$price = 100;
+$str = <<<EOD
+Price: \$price dollars
+EOD;
+echo $str;
+--EXPECT--
+Price: $price dollars

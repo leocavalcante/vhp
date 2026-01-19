@@ -1,0 +1,10 @@
+--TEST--
+Basic heredoc with content
+--FILE--
+<?php
+$str = <<<EOD
+Hello, World!
+EOD;
+echo $str;
+--EXPECT--
+Hello, World!

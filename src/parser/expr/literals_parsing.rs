@@ -27,6 +27,11 @@ impl<'a> ExprParser<'a> {
                 self.advance();
                 Ok(Expr::String(s))
             }
+            TokenKind::Heredoc(s) => {
+                let s = s.clone();
+                self.advance();
+                Ok(Expr::Heredoc(s))
+            }
             TokenKind::True => {
                 self.advance();
                 Ok(Expr::Bool(true))

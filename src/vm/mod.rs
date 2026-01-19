@@ -174,6 +174,9 @@ impl<W: Write> VM<W> {
 
             // ==================== String Operations ====================
             Opcode::Concat => ops::execute_concat(self)?,
+            Opcode::HeredocInterpolate(var_count) => {
+                ops::execute_heredoc_interpolate(self, var_count)?
+            }
 
             // ==================== Comparison ====================
             Opcode::Eq => ops::execute_eq(self)?,

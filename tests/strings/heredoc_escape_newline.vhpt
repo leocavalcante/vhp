@@ -1,0 +1,12 @@
+--TEST--
+Heredoc with newline escape
+--FILE--
+<?php
+$name = "World";
+$str = <<<EOD
+Hello,\n$name!
+EOD;
+echo $str;
+--EXPECT--
+Hello,
+World!

@@ -398,6 +398,7 @@ impl<'a> StmtParser<'a> {
             | TokenKind::Integer(_)
             | TokenKind::Float(_)
             | TokenKind::String(_)
+            | TokenKind::Heredoc(_)
             | TokenKind::True
             | TokenKind::False
             | TokenKind::Null

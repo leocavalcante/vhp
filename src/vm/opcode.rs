@@ -60,6 +60,8 @@ pub enum Opcode {
     // ==================== String Operations ====================
     /// String concatenation: pop two values, push concatenated string
     Concat,
+    /// Heredoc interpolation: count of variable placeholders (stack: strings... -> result)
+    HeredocInterpolate(u16),
 
     // ==================== Comparison ====================
     /// Equal (==): pop two values, push bool result

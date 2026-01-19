@@ -1,0 +1,12 @@
+--TEST--
+Heredoc with indentation in content
+--FILE--
+<?php
+$str = <<<EOD
+    This is indented content.
+    Second line.
+EOD;
+echo $str;
+--EXPECT--
+    This is indented content.
+    Second line.

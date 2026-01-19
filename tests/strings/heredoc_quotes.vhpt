@@ -1,0 +1,12 @@
+--TEST--
+Heredoc with quotes in content
+--FILE--
+<?php
+$str = <<<EOD
+This has "quotes" and 'single quotes'.
+And a dollar sign: $100.
+EOD;
+echo $str;
+--EXPECT--
+This has "quotes" and 'single quotes'.
+And a dollar sign: $100.

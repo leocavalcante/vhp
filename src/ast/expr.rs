@@ -38,6 +38,10 @@ pub enum Expr {
     Bool(bool),
     Null,
 
+    // Heredoc string with variable interpolation
+    /// Contains the content with variable placeholders
+    Heredoc(String),
+
     // Variable
     Variable(String),
 

@@ -1,0 +1,11 @@
+--TEST--
+Nowdoc without interpolation
+--FILE--
+<?php
+$name = "World";
+$str = <<<'EOD'
+Hello, $name!
+EOD;
+echo $str;
+--EXPECT--
+Hello, $name!

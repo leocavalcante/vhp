@@ -446,7 +446,7 @@ impl Lexer {
             }
 
             // Operators
-            '+' | '-' | '*' | '/' | '%' | '.' | '=' | '!' | '<' | '>' | '&' | '|' | '?' | ':' => {
+            '+' | '-' | '*' | '/' | '%' | '.' | '=' | '!' | '>' | '&' | '|' | '?' | ':' => {
                 self.read_operator(ch)
             }
 
@@ -454,6 +454,33 @@ impl Lexer {
             '"' | '\'' => {
                 let s = self.read_string(ch)?;
                 Ok(TokenKind::String(s))
+            }
+
+            // Heredoc/Nowdoc start
+            '<' => {
+                if self.peek(1) == Some('<') && self.peek(2) == Some('<') {
+                    self.advance_by(3); // consume <<<
+                    self.skip_whitespace();
+                    let is_nowdoc = self.current() == Some('\'');
+                    let content = if is_nowdoc {
+                        self.advance(); // consume the opening quote
+                        self.read_heredoc_nowdoc(true)?
+                    } else {
+                        self.read_heredoc_nowdoc(false)?
+                    };
+                    if is_nowdoc {
+                        // Nowdoc - no variable interpolation
+                        Ok(TokenKind::String(content))
+                    } else {
+                        // Heredoc - variable interpolation
+                        Ok(TokenKind::Heredoc(content))
+                    }
+                } else {
+                    Err(format!(
+                        "Unexpected '<' at line {}, column {}",
+                        line, column
+                    ))
+                }
             }
 
             // Numbers

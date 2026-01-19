@@ -126,6 +126,7 @@ impl<'a> ExprParser<'a> {
             TokenKind::Integer(_n) => self.parse_literal(),
             TokenKind::Float(_n) => self.parse_literal(),
             TokenKind::String(_s) => self.parse_literal(),
+            TokenKind::Heredoc(_s) => self.parse_literal(),
             TokenKind::True => self.parse_literal(),
             TokenKind::False => self.parse_literal(),
             TokenKind::Null => self.parse_literal(),

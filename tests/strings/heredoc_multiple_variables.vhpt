@@ -1,0 +1,12 @@
+--TEST--
+Heredoc with multiple variables
+--FILE--
+<?php
+$first = "Hello";
+$second = "World";
+$str = <<<EOD
+$first, $second!
+EOD;
+echo $str;
+--EXPECT--
+Hello, World!

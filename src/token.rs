@@ -77,9 +77,10 @@ pub enum TokenKind {
     Identifier(String), // function names, etc.
 
     // Literals
-    String(String), // "string" or 'string'
-    Integer(i64),   // 123
-    Float(f64),     // 1.23
+    String(String),  // "string" or 'string'
+    Heredoc(String), // heredoc/nowdoc content (distinguishes from quoted strings)
+    Integer(i64),    // 123
+    Float(f64),      // 1.23
 
     // Assignment Operators
     Assign,       // =

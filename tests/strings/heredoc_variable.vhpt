@@ -1,0 +1,11 @@
+--TEST--
+Heredoc with variable interpolation
+--FILE--
+<?php
+$name = "World";
+$str = <<<EOD
+Hello, $name!
+EOD;
+echo $str;
+--EXPECT--
+Hello, World!

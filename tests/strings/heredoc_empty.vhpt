@@ -1,0 +1,9 @@
+--TEST--
+Empty heredoc
+--FILE--
+<?php
+$str = <<<EOD
+EOD;
+echo "empty:" . $str . ":end";
+--EXPECT--
+empty::end

@@ -1,0 +1,9 @@
+--TEST--
+Heredoc with semicolon at end
+--FILE--
+<?php
+$str = <<<EOD
+Hello, World!;
+echo $str;
+--EXPECT--
+Hello, World!;

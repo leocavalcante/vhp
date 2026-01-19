@@ -26,6 +26,9 @@ impl Compiler {
                 let idx = self.intern_string(s.clone());
                 self.emit(Opcode::PushString(idx));
             }
+            Expr::Heredoc(content) => {
+                self.compile_heredoc(content)?;
+            }
             Expr::Variable(name) => {
                 if let Some(&slot) = self.locals.get(name) {
                     self.emit(Opcode::LoadFast(slot));
@@ -260,6 +263,50 @@ impl Compiler {
                 let idx = self.intern_string(trait_name);
                 self.emit(Opcode::PushString(idx));
             }
+        }
+        Ok(())
+    }
+
+    /// Compile heredoc string with variable interpolation
+    fn compile_heredoc(&mut self, content: &str) -> Result<(), String> {
+        let parts: Vec<&str> = content.split("\x00").collect();
+
+        if parts.len() == 1 {
+            let idx = self.intern_string(content.to_string());
+            self.emit(Opcode::PushString(idx));
+        } else {
+            let var_count = (parts.len() - 1) / 2;
+            let mut var_placeholders = Vec::new();
+
+            for (i, part) in parts.iter().enumerate() {
+                if i % 2 == 1 {
+                    let var_str = *part;
+                    if var_str.starts_with('$') {
+                        var_placeholders.push(var_str[1..].to_string());
+                    }
+                }
+            }
+
+            let mut var_idx = 0;
+            for (i, part) in parts.iter().enumerate() {
+                if i % 2 == 0 {
+                    if !part.is_empty() {
+                        let idx = self.intern_string(part.to_string());
+                        self.emit(Opcode::PushString(idx));
+                    }
+                } else if var_idx < var_placeholders.len() {
+                    let var_name = &var_placeholders[var_idx];
+                    var_idx += 1;
+                    if let Some(&slot) = self.locals.get(var_name) {
+                        self.emit(Opcode::LoadFast(slot));
+                    } else {
+                        let idx = self.intern_string(var_name.clone());
+                        self.emit(Opcode::LoadVar(idx));
+                    }
+                }
+            }
+
+            self.emit(Opcode::HeredocInterpolate(var_count as u16));
         }
         Ok(())
     }
