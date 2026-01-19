@@ -1,0 +1,7 @@
+--TEST--
+__DIR__ magic constant returns directory path
+--FILE--
+<?php
+echo __DIR__;
+--EXPECTF--
+%stests/magic_constants

@@ -28,6 +28,9 @@ impl Compiler {
             let method_name = format!("{}::{}", name, method.name);
             let mut method_compiler = Compiler::new(method_name.clone());
 
+            // Set trait context for __TRAIT__ magic constant
+            method_compiler.current_trait = Some(name.to_string());
+
             if !method.is_static {
                 method_compiler.locals.insert("this".to_string(), 0);
                 method_compiler

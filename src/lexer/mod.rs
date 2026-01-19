@@ -214,7 +214,55 @@ impl Lexer {
             "catch" => TokenKind::Catch,
             "finally" => TokenKind::Finally,
             "throw" => TokenKind::Throw,
+            // Magic constants (case-sensitive)
+            "__file__" => TokenKind::MagicFile,
+            "__line__" => TokenKind::MagicLine,
+            "__dir__" => TokenKind::MagicDir,
+            "__function__" => TokenKind::MagicFunction,
+            "__class__" => TokenKind::MagicClass,
+            "__method__" => TokenKind::MagicMethod,
+            "__namespace__" => TokenKind::MagicNamespace,
+            "__trait__" => TokenKind::MagicTrait,
             _ => TokenKind::Identifier(ident.to_string()),
+        }
+    }
+
+    /// Checks if current position starts a magic constant
+    fn is_magic_constant(&self) -> bool {
+        if self.current() == Some('_') && self.peek(1) == Some('_') {
+            // Check for __FILE__, __LINE__, etc.
+            let magic = [
+                "__file__",
+                "__line__",
+                "__dir__",
+                "__function__",
+                "__class__",
+                "__method__",
+                "__namespace__",
+                "__trait__",
+            ];
+            for m in &magic {
+                if self.matches_str(m) {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
+    /// Reads a magic constant
+    fn read_magic_constant(&mut self) -> TokenKind {
+        let ident = self.read_identifier();
+        match ident.to_lowercase().as_str() {
+            "__file__" => TokenKind::MagicFile,
+            "__line__" => TokenKind::MagicLine,
+            "__dir__" => TokenKind::MagicDir,
+            "__function__" => TokenKind::MagicFunction,
+            "__class__" => TokenKind::MagicClass,
+            "__method__" => TokenKind::MagicMethod,
+            "__namespace__" => TokenKind::MagicNamespace,
+            "__trait__" => TokenKind::MagicTrait,
+            _ => TokenKind::Identifier(ident),
         }
     }
 
@@ -411,10 +459,15 @@ impl Lexer {
             // Numbers
             _ if ch.is_ascii_digit() => Ok(self.read_number()),
 
-            // Identifiers and keywords
+            // Identifiers and keywords (including magic constants)
             _ if ch.is_alphabetic() || ch == '_' => {
-                let ident = self.read_identifier();
-                Ok(self.keyword_or_identifier(&ident))
+                // Check for magic constants first (double underscore)
+                if self.is_magic_constant() {
+                    Ok(self.read_magic_constant())
+                } else {
+                    let ident = self.read_identifier();
+                    Ok(self.keyword_or_identifier(&ident))
+                }
             }
 
             _ => Err(format!(

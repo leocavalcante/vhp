@@ -232,4 +232,22 @@ pub enum Expr {
     // Yield from expression (PHP 7.0+)
     /// yield from $iterable
     YieldFrom(Box<Expr>),
+
+    // Magic constants (compile-time resolved)
+    /// __FILE__ - Full path of the file being executed
+    MagicFile,
+    /// __LINE__ - Current line number (1-based)
+    MagicLine(usize),
+    /// __DIR__ - Directory of the file being executed
+    MagicDir,
+    /// __FUNCTION__ - Current function name (or empty at top level)
+    MagicFunction,
+    /// __CLASS__ - Current class name (or empty at top level)
+    MagicClass,
+    /// __METHOD__ - Current method name with class (or empty at top level)
+    MagicMethod,
+    /// __NAMESPACE__ - Current namespace (or empty if no namespace)
+    MagicNamespace,
+    /// __TRAIT__ - Current trait name (or empty)
+    MagicTrait,
 }

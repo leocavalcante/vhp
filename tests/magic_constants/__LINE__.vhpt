@@ -1,0 +1,10 @@
+--TEST--
+__LINE__ magic constant returns line number
+--FILE--
+<?php
+echo __LINE__;
+echo "\n";
+echo __LINE__;
+--EXPECT--
+2
+4

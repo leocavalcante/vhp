@@ -338,9 +338,10 @@ impl Compiler {
             let method_name = format!("{}::{}", qualified_name, method.name);
             let mut method_compiler = Compiler::new(method_name.clone());
 
-            // Copy namespace and use aliases from parent compiler
+            // Copy namespace, use aliases, and class context from parent compiler
             method_compiler.current_namespace = self.current_namespace.clone();
             method_compiler.use_aliases = self.use_aliases.clone();
+            method_compiler.current_class = Some(qualified_name.clone());
 
             if !method.is_static {
                 method_compiler.locals.insert("this".to_string(), 0);

@@ -1,0 +1,7 @@
+--TEST--
+__FILE__ magic constant returns file path
+--FILE--
+<?php
+echo __FILE__;
+--EXPECTF--
+%s

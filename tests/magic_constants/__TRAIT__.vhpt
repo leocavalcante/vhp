@@ -1,0 +1,22 @@
+--TEST--
+__TRAIT__ magic constant returns trait name (empty if not in trait)
+--FILE--
+<?php
+echo __TRAIT__;
+echo "\n";
+
+trait MyTrait {
+    public function test() {
+        echo __TRAIT__;
+    }
+}
+
+class MyClass {
+    use MyTrait;
+}
+
+$obj = new MyClass();
+$obj->test();
+--EXPECT--
+
+MyTrait

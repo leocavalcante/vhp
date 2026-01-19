@@ -1,0 +1,18 @@
+--TEST--
+__CLASS__ magic constant returns class name (empty at top level)
+--FILE--
+<?php
+echo __CLASS__;
+echo "\n";
+
+class MyClass {
+    public function test() {
+        echo __CLASS__;
+    }
+}
+
+$obj = new MyClass();
+$obj->test();
+--EXPECT--
+
+MyClass

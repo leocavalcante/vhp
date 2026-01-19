@@ -69,11 +69,22 @@ pub struct Compiler {
     current_namespace: Option<String>,
     /// Use aliases: short name -> fully qualified name
     use_aliases: HashMap<String, String>,
+    /// Current file path (for __FILE__ and __DIR__ magic constants)
+    current_file_path: String,
+    /// Current class name (for __CLASS__ and __METHOD__ magic constants)
+    current_class: Option<String>,
+    /// Current trait name (for __TRAIT__ magic constant)
+    current_trait: Option<String>,
 }
 
 impl Compiler {
     /// Create a new compiler for a function
     pub fn new(name: String) -> Self {
+        Self::with_file_path(name, "<main>".to_string())
+    }
+
+    /// Create a new compiler for a function with a specific file path
+    pub fn with_file_path(name: String, file_path: String) -> Self {
         Self {
             function: CompiledFunction::new(name),
             string_table: HashMap::new(),
@@ -89,6 +100,9 @@ impl Compiler {
             strict_types: false,
             current_namespace: None,
             use_aliases: HashMap::new(),
+            current_file_path: file_path,
+            current_class: None,
+            current_trait: None,
         }
     }
 
@@ -263,6 +277,71 @@ impl Compiler {
         self.function.local_count = self.next_local;
         self.function.local_names.push(name);
         slot
+    }
+
+    /// Get the current file path for __FILE__ magic constant
+    fn file_path(&self) -> String {
+        self.current_file_path.clone()
+    }
+
+    /// Get the directory of the current file for __DIR__ magic constant
+    fn dir_path(&self) -> String {
+        let path = &self.current_file_path;
+        if path == "<main>" {
+            return ".".to_string();
+        }
+        // Get parent directory
+        if let Some(pos) = path.rfind('/') {
+            path[..pos].to_string()
+        } else if let Some(pos) = path.rfind('\\') {
+            path[..pos].to_string()
+        } else {
+            ".".to_string()
+        }
+    }
+
+    /// Get the current function name for __FUNCTION__ magic constant
+    fn function_name(&self) -> String {
+        let name = &self.function.name;
+        if name == "<main>" || name == "<test>" {
+            return "".to_string();
+        }
+        name.clone()
+    }
+
+    /// Get the current class name for __CLASS__ magic constant
+    fn class_name(&self) -> String {
+        self.current_class.clone().unwrap_or("".to_string())
+    }
+
+    /// Get the current method name for __METHOD__ magic constant
+    fn method_name(&self) -> String {
+        if let Some(ref class) = self.current_class {
+            let func_name = self.function.name.clone();
+            if func_name == "<main>" || func_name == "<test>" {
+                return "".to_string();
+            }
+            // func_name is "ClassName::methodName", extract just the method name part
+            if let Some(pos) = func_name.find("::") {
+                let method_part = &func_name[pos + 2..];
+                format!("{}::{}", class, method_part)
+            } else {
+                // No :: separator, use as-is
+                format!("{}::{}", class, func_name)
+            }
+        } else {
+            "".to_string()
+        }
+    }
+
+    /// Get the current namespace for __NAMESPACE__ magic constant
+    fn namespace(&self) -> String {
+        self.current_namespace.clone().unwrap_or("".to_string())
+    }
+
+    /// Get the current trait name for __TRAIT__ magic constant
+    fn trait_name(&self) -> String {
+        self.current_trait.clone().unwrap_or("".to_string())
     }
 
     /// Compile a function definition

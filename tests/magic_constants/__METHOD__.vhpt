@@ -1,0 +1,18 @@
+--TEST--
+__METHOD__ magic constant returns method name (empty at top level)
+--FILE--
+<?php
+echo __METHOD__;
+echo "\n";
+
+class MyClass {
+    public function myMethod() {
+        echo __METHOD__;
+    }
+}
+
+$obj = new MyClass();
+$obj->myMethod();
+--EXPECT--
+
+MyClass::myMethod

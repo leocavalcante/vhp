@@ -145,6 +145,16 @@ pub enum TokenKind {
     Ellipsis,     // ... (variadic/spread operator)
     Backslash,    // \ (for namespaces and fully qualified names)
 
+    // Magic Constants
+    MagicFile,      // __FILE__
+    MagicLine,      // __LINE__
+    MagicDir,       // __DIR__
+    MagicFunction,  // __FUNCTION__
+    MagicClass,     // __CLASS__
+    MagicMethod,    // __METHOD__
+    MagicNamespace, // __NAMESPACE__
+    MagicTrait,     // __TRAIT__
+
     // Special
     Html(String), // Raw HTML outside PHP tags
     Eof,

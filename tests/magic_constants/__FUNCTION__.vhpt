@@ -1,0 +1,15 @@
+--TEST--
+__FUNCTION__ magic constant returns function name (empty at top level)
+--FILE--
+<?php
+echo __FUNCTION__;
+echo "\n";
+
+function testFunc() {
+    echo __FUNCTION__;
+}
+
+testFunc();
+--EXPECT--
+
+testFunc

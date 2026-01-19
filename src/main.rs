@@ -10,13 +10,13 @@ use lexer::Lexer;
 use parser::Parser;
 use std::env;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process;
 use test_runner::TestRunner;
 
 /// Run source with bytecode VM
 /// Returns Ok(None) on normal completion, Ok(Some(exit_code)) when exit() is called, or Err on error
-fn run(source: &str) -> Result<Option<i32>, String> {
+fn run(source: &str, file_path: &str) -> Result<Option<i32>, String> {
     use vm::compiler::Compiler;
     use vm::VM;
 
@@ -29,7 +29,7 @@ fn run(source: &str) -> Result<Option<i32>, String> {
     let program = parser.parse()?;
 
     // Compile to bytecode
-    let compiler = Compiler::new("<main>".to_string());
+    let compiler = Compiler::with_file_path("<main>".to_string(), file_path.to_string());
     let compilation = compiler.compile_program(&program)?;
 
     // Execute with VM
@@ -106,7 +106,7 @@ fn main() {
                 process::exit(1);
             }
             let code = format!("<?php {}", &args[2]);
-            run(&code)
+            run(&code, "<main>")
         }
         "test" => {
             let verbose = args.iter().any(|a| a == "-v" || a == "--verbose");
@@ -126,7 +126,11 @@ fn main() {
             Ok(None)
         }
         filename => match fs::read_to_string(filename) {
-            Ok(source) => run(&source),
+            Ok(source) => {
+                let file_path =
+                    fs::canonicalize(filename).unwrap_or_else(|_| PathBuf::from(filename));
+                run(&source, file_path.to_str().unwrap_or(filename))
+            }
             Err(e) => {
                 eprintln!("Error reading file '{}': {}", filename, e);
                 process::exit(1);

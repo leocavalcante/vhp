@@ -292,6 +292,40 @@ impl<'a> ExprParser<'a> {
 
                 Ok(Expr::Yield { key, value })
             }
+            // Magic constants
+            TokenKind::MagicFile => {
+                self.advance();
+                Ok(Expr::MagicFile)
+            }
+            TokenKind::MagicLine => {
+                let line = token.line;
+                self.advance();
+                Ok(Expr::MagicLine { 0: line })
+            }
+            TokenKind::MagicDir => {
+                self.advance();
+                Ok(Expr::MagicDir)
+            }
+            TokenKind::MagicFunction => {
+                self.advance();
+                Ok(Expr::MagicFunction)
+            }
+            TokenKind::MagicClass => {
+                self.advance();
+                Ok(Expr::MagicClass)
+            }
+            TokenKind::MagicMethod => {
+                self.advance();
+                Ok(Expr::MagicMethod)
+            }
+            TokenKind::MagicNamespace => {
+                self.advance();
+                Ok(Expr::MagicNamespace)
+            }
+            TokenKind::MagicTrait => {
+                self.advance();
+                Ok(Expr::MagicTrait)
+            }
             _ => Err(format!(
                 "Expected expression but found {:?} at line {}, column {}",
                 token.kind, token.line, token.column

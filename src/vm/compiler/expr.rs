@@ -212,6 +212,54 @@ impl Compiler {
             Expr::Placeholder => {
                 return Err("Pipe placeholder not yet implemented".to_string());
             }
+            // Magic constants
+            Expr::MagicFile => {
+                // __FILE__ - Full path of the file being executed
+                let file_path = self.file_path();
+                let idx = self.intern_string(file_path);
+                self.emit(Opcode::PushString(idx));
+            }
+            Expr::MagicLine(line) => {
+                // __LINE__ - Current line number (1-based)
+                let idx = self.intern_string(line.to_string());
+                self.emit(Opcode::PushString(idx));
+            }
+            Expr::MagicDir => {
+                // __DIR__ - Directory of the file being executed
+                let dir_path = self.dir_path();
+                let idx = self.intern_string(dir_path);
+                self.emit(Opcode::PushString(idx));
+            }
+            Expr::MagicFunction => {
+                // __FUNCTION__ - Current function name (or empty at top level)
+                let func_name = self.function_name();
+                let idx = self.intern_string(func_name);
+                self.emit(Opcode::PushString(idx));
+            }
+            Expr::MagicClass => {
+                // __CLASS__ - Current class name (or empty at top level)
+                let class_name = self.class_name();
+                let idx = self.intern_string(class_name);
+                self.emit(Opcode::PushString(idx));
+            }
+            Expr::MagicMethod => {
+                // __METHOD__ - Current method name with class (or empty at top level)
+                let method_name = self.method_name();
+                let idx = self.intern_string(method_name);
+                self.emit(Opcode::PushString(idx));
+            }
+            Expr::MagicNamespace => {
+                // __NAMESPACE__ - Current namespace (or empty if no namespace)
+                let namespace = self.namespace();
+                let idx = self.intern_string(namespace);
+                self.emit(Opcode::PushString(idx));
+            }
+            Expr::MagicTrait => {
+                // __TRAIT__ - Current trait name (or empty)
+                let trait_name = self.trait_name();
+                let idx = self.intern_string(trait_name);
+                self.emit(Opcode::PushString(idx));
+            }
         }
         Ok(())
     }

@@ -97,14 +97,14 @@ impl TestCase {
         Ok(())
     }
 
-    pub fn run(&self) -> TestResult {
+    pub fn run(&self, full_path: &str) -> TestResult {
         // Check skip condition
         if let Some(reason) = &self.skip {
             return TestResult::Skipped(reason.clone());
         }
 
-        // Run the code
-        let result = run_code(&self.code);
+        // Run the code with full path for magic constants
+        let result = run_code(&self.code, full_path);
 
         match result {
             Ok(output) => {
@@ -144,7 +144,7 @@ impl TestCase {
     }
 }
 
-fn run_code(source: &str) -> Result<String, String> {
+fn run_code(source: &str, full_path: &str) -> Result<String, String> {
     // Clear global registries for test isolation
     crate::runtime::builtins::spl::clear_autoloaders();
     crate::runtime::builtins::spl::clear_psr4_registry();
@@ -156,8 +156,8 @@ fn run_code(source: &str) -> Result<String, String> {
     let mut parser = Parser::new(tokens);
     let program = parser.parse()?;
 
-    // Compile to bytecode
-    let compiler = Compiler::new("<test>".to_string());
+    // Compile to bytecode with the full path for magic constants
+    let compiler = Compiler::with_file_path("<test>".to_string(), full_path.to_string());
     let compilation = compiler.compile_program(&program)?;
 
     // Execute with VM
@@ -186,7 +186,45 @@ fn compare_output(actual: &str, expected: &str) -> bool {
     // Normalize line endings and trim
     let actual = actual.trim().replace("\r\n", "\n");
     let expected = expected.trim().replace("\r\n", "\n");
+
+    // Check for EXPECTF patterns (%s, %d, %f, etc.)
+    if expected.contains('%') {
+        return match_pattern(&actual, expected.as_str());
+    }
+
     actual == expected
+}
+
+/// Match actual output against a pattern with %s, %d, etc. placeholders
+/// Currently supports %s (any string) and %% (literal %)
+fn match_pattern(actual: &str, pattern: &str) -> bool {
+    // Simple pattern matching:
+    // %s at end -> actual should start with the prefix
+    // %s at start -> actual should end with the suffix
+    // %s in middle -> actual should contain prefix and suffix in order
+
+    if pattern.starts_with("%s") {
+        // Pattern: %s... (ends with something)
+        let suffix = &pattern[2..];
+        return actual.ends_with(suffix);
+    }
+
+    if pattern.ends_with("%s") {
+        // Pattern: ...%s (starts with something)
+        let prefix = &pattern[..pattern.len() - 2];
+        return actual.starts_with(prefix);
+    }
+
+    // Pattern: ...%s... (contains %s in middle)
+    if let Some(pos) = pattern.find("%s") {
+        let prefix = &pattern[..pos];
+        let suffix = &pattern[pos + 2..];
+        return actual.starts_with(prefix) && actual.ends_with(suffix);
+    }
+
+    // Handle %% (literal percent)
+    let pattern_literal = pattern.replace("%%", "%");
+    actual == pattern_literal
 }
 
 pub struct TestRunner {
@@ -290,9 +328,10 @@ impl TestRunner {
             let content = fs::read_to_string(test_path)
                 .map_err(|e| format!("Failed to read test file {:?}: {}", test_path, e))?;
 
+            let full_path = test_path.display().to_string();
             match TestCase::parse(&content, &relative_path) {
                 Ok(test_case) => {
-                    let result = test_case.run();
+                    let result = test_case.run(&full_path);
 
                     match &result {
                         TestResult::Pass => {

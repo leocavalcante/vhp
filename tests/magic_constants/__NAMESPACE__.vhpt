@@ -1,0 +1,13 @@
+--TEST--
+__NAMESPACE__ magic constant returns namespace (empty if no namespace)
+--FILE--
+<?php
+echo __NAMESPACE__;
+echo "\n";
+
+namespace MyNamespace {
+    echo __NAMESPACE__;
+}
+--EXPECT--
+
+MyNamespace
