@@ -1,0 +1,22 @@
+--TEST--
+gmstrftime() formats date with strftime specifiers
+--FILE--
+<?php
+$ts = mktime(12, 30, 45, 6, 15, 2024);
+
+// Basic format
+echo gmstrftime('%Y-%m-%d %H:%M:%S', $ts) . "\n";
+
+// Full date format
+echo gmstrftime('%A, %B %d, %Y', $ts) . "\n";
+
+// Abbreviated formats
+echo gmstrftime('%a, %b %d', $ts) . "\n";
+
+// Default to current time
+echo gmstrftime('%Y-%m-%d') . "\n";
+--EXPECT--
+2024-06-15 12:30:45
+Saturday, June 15, 2024
+Sat, Jun 15
+2026-01-16

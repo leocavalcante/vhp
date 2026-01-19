@@ -1,34 +1,32 @@
 --TEST--
-Advanced array functions - array_map, array_filter, array_reduce (placeholder stubs)
+Advanced array functions - actual callback execution
 --FILE--
 <?php
-// array_map - placeholder returns original array when array is first arg
+// array_map - actually applies callback
 $numbers = [1, 2, 3];
 $result = array_map($numbers, fn($x) => $x * 2);
 echo "array_map result: ";
 print_r($result);
 
-// array_filter - placeholder returns original array when array is first arg
+// array_filter - actually filters
 $even = array_filter($numbers, fn($x) => $x % 2 == 0);
 echo "array_filter result: ";
 print_r($even);
 
-// array_reduce - placeholder returns first element (no initial value)
+// array_reduce - actually reduces
 $result = array_reduce($numbers, fn($carry, $item) => $carry + $item);
 echo "array_reduce result: " . $result . "\n";
 ?>
 --EXPECT--
 array_map result: Array
 (
-    [0] => 1
-    [1] => 2
-    [2] => 3
+    [0] => 2
+    [1] => 4
+    [2] => 6
 )
 array_filter result: Array
 (
-    [0] => 1
     [1] => 2
-    [2] => 3
 )
-array_reduce result: 1
+array_reduce result: 6
 

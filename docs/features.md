@@ -3779,3 +3779,66 @@ function coerciveFunction(int $x) {
 - Applies to **user-defined functions** and **built-in functions** with type hints
 - Cannot be changed at runtime (compile-time directive)
 
+
+
+## Date and Time Functions
+
+VHP provides core PHP date/time functions for Unix timestamp operations.
+
+### time()
+```php
+<?php
+$timestamp = time();
+echo $timestamp; // Current Unix timestamp
+```
+
+### mktime()
+```php
+<?php
+$ts = mktime(12, 30, 45, 6, 15, 2024);
+echo gmdate('Y-m-d H:i:s', $ts); // 2024-06-15 12:30:45
+```
+
+### strtotime()
+```php
+<?php
+// ISO 8601 format
+$ts = strtotime('2024-06-15');
+
+// Relative time
+$ts2 = strtotime('+1 day', mktime(0, 0, 0, 1, 1, 2024));
+
+// Special keywords
+$ts3 = strtotime('now');
+```
+
+### gmdate()
+```php
+<?php
+$ts = mktime(12, 30, 45, 6, 15, 2024);
+echo gmdate('Y-m-d H:i:s', $ts); // 2024-06-15 12:30:45
+echo gmdate('l, F j, Y', $ts);   // Saturday, June 15, 2024
+```
+
+### gmstrftime()
+```php
+<?php
+$ts = mktime(12, 30, 45, 6, 15, 2024);
+echo gmstrftime('%Y-%m-%d %H:%M:%S', $ts); // 2024-06-15 12:30:45
+echo gmstrftime('%A, %B %d, %Y', $ts);     // Saturday, June 15, 2024
+```
+
+**Supported strtotime() Formats:**
+- Special keywords: "now", "today", "tomorrow", "yesterday"
+- ISO 8601: "2024-06-15", "2024-06-15T14:30:00"
+- Relative: "+1 day", "-2 weeks", "+3 months", "+1 hour"
+- Basic dates: "15 Jan 2024"
+
+**Supported gmdate() Format Specifiers:**
+- Year: Y (4-digit), y (2-digit)
+- Month: m (02), n (1-12)
+- Day: d (02), j (1-31)
+- Time: H (24-hour), i (minutes), s (seconds)
+- Weekday: l (full), D (abbr)
+- Month name: F (full), M (abbr)
+

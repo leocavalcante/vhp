@@ -169,8 +169,15 @@ fn run_code(source: &str) -> Result<String, String> {
     vm.register_interfaces(compilation.interfaces);
     vm.register_traits(compilation.traits);
     vm.register_enums(compilation.enums);
-    vm.execute(compilation.main)
-        .map_err(|e| format!("VM error: {}", e))?;
+
+    // Handle exit() as a special case - it's not an error, just termination
+    match vm.execute(compilation.main) {
+        Ok(_) => {}
+        Err(e) if e.starts_with("__EXIT__:") => {
+            // exit() was called - this is expected behavior, not an error
+        }
+        Err(e) => return Err(format!("VM error: {}", e)),
+    }
 
     String::from_utf8(output).map_err(|e| format!("Output encoding error: {}", e))
 }

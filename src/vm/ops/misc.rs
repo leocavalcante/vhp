@@ -6,10 +6,14 @@ pub fn execute_load_var<W: std::io::Write>(vm: &mut super::super::VM<W>, name: S
     vm.stack.push(value);
 }
 
-pub fn execute_store_var<W: std::io::Write>(vm: &mut super::super::VM<W>, name: String) {
-    let value = vm.stack.pop().unwrap();
+pub fn execute_store_var<W: std::io::Write>(
+    vm: &mut super::super::VM<W>,
+    name: String,
+) -> Result<(), String> {
+    let value = vm.stack.pop().ok_or("Stack underflow")?;
     vm.globals.insert(name.clone(), value.clone());
     vm.stack.push(value);
+    Ok(())
 }
 
 pub fn execute_load_fast<W: std::io::Write>(vm: &mut super::super::VM<W>, slot: u16) {
@@ -17,10 +21,14 @@ pub fn execute_load_fast<W: std::io::Write>(vm: &mut super::super::VM<W>, slot: 
     vm.stack.push(value);
 }
 
-pub fn execute_store_fast<W: std::io::Write>(vm: &mut super::super::VM<W>, slot: u16) {
-    let value = vm.stack.pop().unwrap();
+pub fn execute_store_fast<W: std::io::Write>(
+    vm: &mut super::super::VM<W>,
+    slot: u16,
+) -> Result<(), String> {
+    let value = vm.stack.pop().ok_or("Stack underflow")?;
     vm.current_frame_mut().set_local(slot, value.clone());
     vm.stack.push(value);
+    Ok(())
 }
 
 pub fn execute_load_global<W: std::io::Write>(vm: &mut super::super::VM<W>, name: String) {
@@ -28,19 +36,24 @@ pub fn execute_load_global<W: std::io::Write>(vm: &mut super::super::VM<W>, name
     vm.stack.push(value);
 }
 
-pub fn execute_store_global<W: std::io::Write>(vm: &mut super::super::VM<W>, name: String) {
-    let value = vm.stack.pop().unwrap();
+pub fn execute_store_global<W: std::io::Write>(
+    vm: &mut super::super::VM<W>,
+    name: String,
+) -> Result<(), String> {
+    let value = vm.stack.pop().ok_or("Stack underflow")?;
     vm.globals.insert(name.clone(), value.clone());
     vm.stack.push(value);
+    Ok(())
 }
 
 pub fn execute_pop<W: std::io::Write>(vm: &mut super::super::VM<W>) {
     vm.stack.pop();
 }
 
-pub fn execute_dup<W: std::io::Write>(vm: &mut super::super::VM<W>) {
-    let value = vm.stack.last().unwrap().clone();
+pub fn execute_dup<W: std::io::Write>(vm: &mut super::super::VM<W>) -> Result<(), String> {
+    let value = vm.stack.last().ok_or("Stack is empty")?.clone();
     vm.stack.push(value);
+    Ok(())
 }
 
 pub fn execute_swap<W: std::io::Write>(vm: &mut super::super::VM<W>) -> Result<(), String> {
@@ -75,15 +88,18 @@ pub fn execute_cast<W: std::io::Write>(
     Ok(())
 }
 
-pub fn execute_null_coalesce<W: std::io::Write>(vm: &mut super::super::VM<W>) {
-    let right = vm.stack.pop().unwrap();
-    let left = vm.stack.pop().unwrap();
+pub fn execute_null_coalesce<W: std::io::Write>(
+    vm: &mut super::super::VM<W>,
+) -> Result<(), String> {
+    let right = vm.stack.pop().ok_or("Stack underflow")?;
+    let left = vm.stack.pop().ok_or("Stack underflow")?;
     let result = if matches!(left, Value::Null) {
         right
     } else {
         left
     };
     vm.stack.push(result);
+    Ok(())
 }
 
 pub fn execute_echo<W: std::io::Write>(vm: &mut super::super::VM<W>) -> Result<(), String> {

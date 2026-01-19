@@ -1,0 +1,9 @@
+--TEST--
+exit() with integer argument
+--DESCRIPTION--
+Tests exit() with an integer argument - should terminate with that exit code
+--FILE--
+<?php
+exit(42);
+echo "This should not print";
+--EXPECT--

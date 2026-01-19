@@ -1,0 +1,105 @@
+--TEST--
+Exception::getTrace() returns array with file, line, function, class, type
+--FILE--
+<?php
+function outer() {
+    inner();
+}
+
+function inner() {
+    try {
+        throw new Exception("test");
+    } catch (Exception $e) {
+        $trace = $e->getTrace();
+        echo "Trace count: " . count($trace) . "\n";
+        echo "Has file: " . (isset($trace[0]['file']) ? 'yes' : 'no') . "\n";
+        echo "Has line: " . (isset($trace[0]['line']) ? 'yes' : 'no') . "\n";
+        echo "Has function: " . (isset($trace[0]['function']) ? 'yes' : 'no') . "\n";
+        echo "Function: " . ($trace[0]['function'] ?? 'N/A') . "\n";
+    }
+}
+
+outer();
+--EXPECT--
+Trace count: 3
+Has file: yes
+Has line: yes
+Has function: yes
+Function: inner
+
+--TEST--
+Exception::getTraceAsString() returns formatted stack trace
+--FILE--
+<?php
+function level1() {
+    level2();
+}
+
+function level2() {
+    try {
+        throw new Exception("test");
+    } catch (Exception $e) {
+        $trace = $e->getTraceAsString();
+        echo "Has content: " . (strlen($trace) > 0 ? 'yes' : 'no') . "\n";
+        echo "Contains level2: " . (strpos($trace, 'level2') !== false ? 'yes' : 'no') . "\n";
+        echo "Contains level1: " . (strpos($trace, 'level1') !== false ? 'yes' : 'no') . "\n";
+    }
+}
+
+level1();
+--EXPECT--
+Has content: yes
+Contains level2: yes
+Contains level1: yes
+
+--TEST--
+Backtrace includes method calls with class information
+--FILE--
+<?php
+class TestClass {
+    public function method1() {
+        $this->method2();
+    }
+
+    public function method2() {
+        try {
+            throw new Exception("test");
+        } catch (Exception $e) {
+            $trace = $e->getTrace();
+            echo "Has class in method2: " . (isset($trace[0]['class']) && !empty($trace[0]['class']) ? 'yes' : 'no') . "\n";
+            echo "Class: " . ($trace[0]['class'] ?? 'N/A') . "\n";
+            echo "Type: " . ($trace[0]['type'] ?? 'N/A') . "\n";
+        }
+    }
+}
+
+$obj = new TestClass();
+$obj->method1();
+--EXPECT--
+Has class in method2: yes
+Class: TestClass
+Type: ->
+
+--TEST--
+Backtrace for nested function calls
+--FILE--
+<?php
+function a() { b(); }
+function b() { c(); }
+function c() {
+    try {
+        throw new Exception("nested");
+    } catch (Exception $e) {
+        $trace = $e->getTrace();
+        echo "Frames: " . count($trace) . "\n";
+        echo "c: " . $trace[0]['function'] . "\n";
+        echo "b: " . $trace[1]['function'] . "\n";
+        echo "a: " . $trace[2]['function'] . "\n";
+    }
+}
+a();
+--EXPECT--
+Frames: 4
+c: c
+b: b
+a: a

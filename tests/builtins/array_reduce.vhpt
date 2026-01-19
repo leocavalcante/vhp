@@ -1,0 +1,73 @@
+--TEST--
+array_reduce with initial value - sum
+--FILE--
+<?php
+$numbers = [1, 2, 3, 4];
+$sum = array_reduce($numbers, fn($carry, $item) => $carry + $item, 0);
+echo $sum . "\n";
+--EXPECT--
+10
+
+--TEST--
+array_reduce without initial value - sum
+--FILE--
+<?php
+$numbers = [10, 20, 30];
+$sum = array_reduce($numbers, fn($carry, $item) => $carry + $item);
+echo $sum . "\n";
+--EXPECT--
+60
+
+--TEST--
+array_reduce with empty array and initial value
+--FILE--
+<?php
+$result = array_reduce([], fn($c, $i) => $c + $i, "empty");
+var_dump($result);
+--EXPECT--
+string(5) "empty"
+
+--TEST--
+array_reduce with empty array without initial value
+--FILE--
+<?php
+$result = array_reduce([], fn($c, $i) => $c + $i);
+var_dump($result);
+--EXPECT--
+NULL
+
+--TEST--
+array_reduce to multiply
+--FILE--
+<?php
+$numbers = [1, 2, 3, 4];
+$product = array_reduce($numbers, fn($carry, $item) => $carry * $item, 1);
+echo $product . "\n";
+--EXPECT--
+24
+
+--TEST--
+array_reduce with string concatenation
+--FILE--
+<?php
+$words = ["Hello", " ", "World", "!"];
+$result = array_reduce($words, fn($c, $i) => $c . $i, "");
+echo $result . "\n";
+--EXPECT--
+Hello World!
+
+--TEST--
+array_reduce error: non-array second parameter
+--FILE--
+<?php
+$result = array_reduce(fn($c, $i) => $c + $i, "not an array");
+--EXPECT_ERROR--
+array_reduce() expects parameter 2 to be array
+
+--TEST--
+array_reduce error: invalid callback
+--FILE--
+<?php
+$result = array_reduce(123, [1, 2, 3]);
+--EXPECT_ERROR--
+array_reduce() expects parameter 1 to be array

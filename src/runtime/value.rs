@@ -93,6 +93,7 @@ pub struct GeneratorInstance {
     pub is_rewound: bool,
     pub finished: bool,
     pub return_value: Option<Value>,
+    pub sent_value: Option<Value>,
 }
 
 /// Runtime value representation

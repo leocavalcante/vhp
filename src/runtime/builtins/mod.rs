@@ -1,12 +1,28 @@
 //! Built-in functions module
 
 pub mod array;
+pub mod array_basic;
+pub mod array_callbacks;
+pub mod array_chunking;
+pub mod array_column;
+pub mod array_creation;
 pub mod array_extra;
+pub mod array_manipulation;
+pub mod array_random;
+pub mod array_search;
+pub mod array_set_ops;
+pub mod array_sort_key;
+pub mod array_sort_value;
+pub mod array_sorting;
+pub mod datetime;
+pub mod datetime_format;
+pub mod datetime_timestamp;
 pub mod fileio;
 pub mod json;
 pub mod math;
 pub mod math_extra;
 pub mod output;
+pub mod pcre;
 pub mod spl;
 pub mod string;
 pub mod string_extra;
@@ -16,17 +32,37 @@ pub mod types;
 pub use json::{json_decode, json_encode};
 
 #[allow(unused_imports)]
-pub use array::{
-    array_filter, array_first, array_key_exists, array_keys, array_last, array_map, array_merge,
-    array_pop, array_push, array_reduce, array_reverse, array_search, array_shift, array_slice,
-    array_sum, array_unique, array_unshift, array_values, count, in_array, range,
+pub use array_basic::{
+    array_first, array_keys, array_last, array_pop, array_push, array_shift, array_slice,
+    array_unshift, array_values, count,
 };
 
 #[allow(unused_imports)]
-pub use array_extra::{
-    array_chunk, array_column, array_combine, array_count_values, array_diff, array_fill,
-    array_fill_keys, array_flip, array_intersect, array_pad, array_splice,
-};
+pub use array_callbacks::{array_filter, array_map, array_reduce, array_sum};
+
+#[allow(unused_imports)]
+pub use array_chunking::{array_chunk, array_pad, array_splice};
+
+#[allow(unused_imports)]
+pub use array_column::{array_column, array_count_values, array_flip};
+
+#[allow(unused_imports)]
+pub use array_creation::{array_combine, array_fill, array_fill_keys};
+
+#[allow(unused_imports)]
+pub use array_manipulation::{array_merge, array_reverse, array_unique, range};
+
+#[allow(unused_imports)]
+pub use array_search::{array_key_exists, array_search, in_array};
+
+#[allow(unused_imports)]
+pub use array_set_ops::{array_diff, array_intersect};
+
+#[allow(unused_imports)]
+pub use array_sorting::*;
+
+#[allow(unused_imports)]
+pub use datetime::{gmdate, gmstrftime, mktime, strtotime, time};
 
 #[allow(unused_imports)]
 pub use math::{
@@ -56,6 +92,12 @@ pub use fileio::{
 pub use spl::{
     get_include_path, set_include_path, spl_autoload_functions, spl_autoload_register,
     spl_autoload_register_psr4, spl_autoload_registered_psr4, spl_autoload_unregister,
+};
+
+#[allow(unused_imports)]
+pub use pcre::{
+    preg_grep, preg_match, preg_match_all, preg_quote, preg_replace, preg_replace_callback,
+    preg_split,
 };
 
 #[allow(unused_imports)]

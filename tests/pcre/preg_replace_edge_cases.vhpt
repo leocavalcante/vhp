@@ -1,0 +1,255 @@
+--TEST--
+preg_replace - with limit parameter
+--FILE--
+<?php
+$result = preg_replace("/a/", "x", "banana", 2);
+echo "Limit 2: " . $result . "\n";
+
+$result2 = preg_replace("/a/", "x", "banana", 5);
+echo "Limit 5: " . $result2 . "\n";
+--EXPECT--
+Limit 2: bxxna
+Limit 5: bxnxnx
+
+--TEST--
+preg_replace - with zero limit (no replacements)
+--FILE--
+<?php
+$result = preg_replace("/a/", "x", "banana", 0);
+echo "Limit 0: " . $result . "\n";
+--EXPECT--
+Limit 0: banana
+
+--TEST--
+preg_replace - with negative limit (all replacements)
+--FILE--
+<?php
+$result = preg_replace("/a/", "x", "banana", -1);
+echo "Limit -1: " . $result . "\n";
+--EXPECT--
+Limit -1: bxnxnx
+
+--TEST--
+preg_replace - empty pattern (inserts at each position)
+--FILE--
+<?php
+$result = preg_replace("//", "-", "abc");
+echo "Empty pattern: " . $result . "\n";
+--EXPECT--
+Empty pattern: -a-b-c-
+
+--TEST--
+preg_replace - backreferences
+--FILE--
+<?php
+$result = preg_replace("/(\w+) (\w+)/", "$2 $1", "hello world");
+echo "Swap words: " . $result . "\n";
+
+$result2 = preg_replace("/(\d+)/", "[$1]", "abc123def456");
+echo "Wrap numbers: " . $result2 . "\n";
+--EXPECT--
+Swap words: world hello
+Wrap numbers: abc[123]def[456]
+
+--TEST--
+preg_replace - named backreferences
+--FILE--
+<?php
+$result = preg_replace("/(?P<first>\w+) (?P<second>\w+)/", "$second $first", "hello world");
+echo "Named backref: " . $result . "\n";
+--EXPECT--
+Named backref: world hello
+
+--TEST--
+preg_replace - case insensitive replacement
+--FILE--
+<?php
+$result = preg_replace("/hello/i", "Hi", "HELLO world");
+echo "Case insensitive: " . $result . "\n";
+--EXPECT--
+Case insensitive: Hi world
+
+--TEST--
+preg_replace - no matches returns original
+--FILE--
+<?php
+$result = preg_replace("/xyz/", "abc", "hello world");
+echo "No matches: " . $result . "\n";
+--EXPECT--
+No matches: hello world
+
+--TEST--
+preg_replace - multiline with ^ and $
+--FILE--
+<?php
+$result = preg_replace("/^start:/m", "BEGIN:", "start:line1\nstart:line2");
+echo "Multiline replace:\n" . $result . "\n";
+--EXPECT--
+Multiline replace:
+BEGIN:line1
+BEGIN:line2
+
+--TEST--
+preg_split - basic splitting
+--FILE--
+<?php
+$result = preg_split("/,/", "a,b,c,d");
+print_r($result);
+--EXPECT--
+Array
+(
+    [0] => a
+    [1] => b
+    [2] => c
+    [3] => d
+)
+
+--TEST--
+preg_split - with limit
+--FILE--
+<?php
+$result = preg_split("/,/", "a,b,c,d", 3);
+print_r($result);
+--EXPECT--
+Array
+(
+    [0] => a
+    [1] => b
+    [2] => c,d
+)
+
+--TEST--
+preg_split - limit of 0 returns empty
+--FILE--
+<?php
+$result = preg_split("/,/", "a,b,c", 0);
+print_r($result);
+--EXPECT--
+Array
+(
+)
+
+--TEST--
+preg_split - negative limit (split all)
+--FILE--
+<?php
+$result = preg_split("/\s+/", "hello   world  test");
+print_r($result);
+--EXPECT--
+Array
+(
+    [0] => hello
+    [1] => world
+    [2] => test
+)
+
+--TEST--
+preg_split - with empty matches
+--FILE--
+<?php
+$result = preg_split("//", "abc", -1);
+print_r($result);
+--EXPECT--
+Array
+(
+    [0] => 
+    [1] => a
+    [2] => 
+    [3] => b
+    [4] => 
+    [5] => c
+    [6] => 
+)
+
+--TEST--
+preg_split - complex pattern
+--FILE--
+<?php
+$result = preg_split("/[\s,;]+/", "a b;c,d  e");
+print_r($result);
+--EXPECT--
+Array
+(
+    [0] => a
+    [1] => b
+    [2] => c
+    [3] => d
+    [4] => e
+)
+
+--TEST--
+preg_grep - filter array with pattern
+--FILE--
+<?php
+$lines = ["apple", "banana", "cherry", "apricot"];
+$result = preg_grep("/^a/", $lines);
+print_r($result);
+--EXPECT--
+Array
+(
+    [0] => apple
+    [3] => apricot
+)
+
+--TEST--
+preg_grep - no matches
+--FILE--
+<?php
+$lines = ["dog", "cat", "fish"];
+$result = preg_grep("/^a/", $lines);
+print_r($result);
+--EXPECT--
+Array
+(
+)
+
+--TEST--
+preg_grep - with case insensitive
+--FILE--
+<?php
+$lines = ["Hello", "world", "HELLO"];
+$result = preg_grep("/hello/i", $lines);
+print_r($result);
+--EXPECT--
+Array
+(
+    [0] => Hello
+    [2] => HELLO
+)
+
+--TEST--
+preg_quote - basic quoting
+--FILE--
+<?php
+$result = preg_quote("hello.world");
+echo "Quoted: " . $result . "\n";
+--EXPECT--
+Quoted: hello\.world
+
+--TEST--
+preg_quote - with special characters
+--FILE--
+<?php
+$result = preg_quote("a+b*c?d^e$f(g)h[i]{j}|k\l");
+echo "Quoted: " . $result . "\n";
+--EXPECT--
+Quoted: a\+b\*c\?d\^e\$f\(g\)h\[i\]\{j\}|k\\l
+
+--TEST--
+preg_quote - with custom delimiter
+--FILE--
+<?php
+$result = preg_quote("path/to/file", "/");
+echo "Quoted with /: " . $result . "\n";
+--EXPECT--
+Quoted with /: path\/to\/file
+
+--TEST--
+preg_replace_callback - placeholder returns original
+--FILE--
+<?php
+$result = preg_replace_callback("/\d+/", fn($m) => "X", "abc123def");
+echo "Callback result: " . $result . "\n";
+--EXPECT--
+Callback result: abc123def
+

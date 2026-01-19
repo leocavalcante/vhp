@@ -1,0 +1,350 @@
+--TEST--
+sort - basic numeric sorting
+--FILE--
+<?php
+$numbers = [5, 2, 8, 1, 9, 3];
+$result = sort($numbers);
+var_dump($result);
+--EXPECT--
+array(6) {
+  [0]=>
+  int(1)
+  [1]=>
+  int(2)
+  [2]=>
+  int(3)
+  [3]=>
+  int(5)
+  [4]=>
+  int(8)
+  [5]=>
+  int(9)
+}
+
+--TEST--
+sort - descending order with rsort
+--FILE--
+<?php
+$numbers = [5, 2, 8, 1, 9, 3];
+$result = rsort($numbers);
+var_dump($result);
+--EXPECT--
+array(6) {
+  [0]=>
+  int(9)
+  [1]=>
+  int(8)
+  [2]=>
+  int(5)
+  [3]=>
+  int(3)
+  [4]=>
+  int(2)
+  [5]=>
+  int(1)
+}
+
+--TEST--
+sort - string sorting
+--FILE--
+<?php
+$words = ["banana", "apple", "cherry", "date"];
+$result = sort($words);
+var_dump($result);
+--EXPECT--
+array(4) {
+  [0]=>
+  string(5) "apple"
+  [1]=>
+  string(6) "banana"
+  [2]=>
+  string(6) "cherry"
+  [3]=>
+  string(4) "date"
+}
+
+--TEST--
+sort - mixed types (numbers and strings)
+--FILE--
+<?php
+$mixed = [10, "hello", 5, "world", 1];
+$result = sort($mixed);
+var_dump($result);
+--EXPECT--
+array(5) {
+  [0]=>
+  int(1)
+  [1]=>
+  int(10)
+  [2]=>
+  int(5)
+  [3]=>
+  string(5) "hello"
+  [4]=>
+  string(5) "world"
+}
+
+--TEST--
+sort - single element array
+--FILE--
+<?php
+$single = [42];
+$result = sort($single);
+var_dump($result);
+--EXPECT--
+array(1) {
+  [0]=>
+  int(42)
+}
+
+--TEST--
+sort - empty array
+--FILE--
+<?php
+$empty = [];
+$result = sort($empty);
+var_dump($result);
+--EXPECT--
+array(0) {
+}
+
+--TEST--
+asort - sort and preserve keys
+--FILE--
+<?php
+$fruits = ["a" => "banana", "b" => "apple", "c" => "cherry"];
+$result = asort($fruits);
+var_dump($result);
+--EXPECT--
+array(3) {
+  ["b"]=>
+  string(5) "apple"
+  ["a"]=>
+  string(6) "banana"
+  ["c"]=>
+  string(6) "cherry"
+}
+
+--TEST--
+asort - numeric values with string keys
+--FILE--
+<?php
+$nums = ["first" => 100, "second" => 50, "third" => 75];
+$result = asort($nums);
+var_dump($result);
+--EXPECT--
+array(3) {
+  ["second"]=>
+  int(50)
+  ["third"]=>
+  int(75)
+  ["first"]=>
+  int(100)
+}
+
+--TEST--
+arsort - sort in descending order, preserve keys
+--FILE--
+<?php
+$fruits = ["a" => "banana", "b" => "apple", "c" => "cherry"];
+$result = arsort($fruits);
+var_dump($result);
+--EXPECT--
+array(3) {
+  ["c"]=>
+  string(6) "cherry"
+  ["a"]=>
+  string(6) "banana"
+  ["b"]=>
+  string(5) "apple"
+}
+
+--TEST--
+ksort - sort by keys
+--FILE--
+<?php
+$arr = ["z" => 1, "a" => 2, "m" => 3];
+$result = ksort($arr);
+var_dump($result);
+--EXPECT--
+array(3) {
+  ["a"]=>
+  int(2)
+  ["m"]=>
+  int(3)
+  ["z"]=>
+  int(1)
+}
+
+--TEST--
+ksort - integer keys
+--FILE--
+<?php
+$arr = [10 => "ten", 2 => "two", 5 => "five"];
+$result = ksort($arr);
+var_dump($result);
+--EXPECT--
+array(3) {
+  [2]=>
+  string(3) "two"
+  [5]=>
+  string(4) "five"
+  [10]=>
+  string(3) "ten"
+}
+
+--TEST--
+ksort - mixed string and integer keys
+--FILE--
+<?php
+$arr = ["z" => 1, 5 => "five", "a" => 2];
+$result = ksort($arr);
+var_dump($result);
+--EXPECT--
+array(3) {
+  [5]=>
+  string(4) "five"
+  ["a"]=>
+  int(2)
+  ["z"]=>
+  int(1)
+}
+
+--TEST--
+krsort - sort by keys in descending order
+--FILE--
+<?php
+$arr = ["z" => 1, "a" => 2, "m" => 3];
+$result = krsort($arr);
+var_dump($result);
+--EXPECT--
+array(3) {
+  ["z"]=>
+  int(1)
+  ["m"]=>
+  int(3)
+  ["a"]=>
+  int(2)
+}
+
+--TEST--
+sort - with float values
+--FILE--
+<?php
+$floats = [3.5, 1.2, 5.8, 2.0];
+$result = sort($floats);
+var_dump($result);
+--EXPECT--
+array(4) {
+  [0]=>
+  float(1.2)
+  [1]=>
+  float(2)
+  [2]=>
+  float(3.5)
+  [3]=>
+  float(5.8)
+}
+
+--TEST--
+sort - with boolean values
+--FILE--
+<?php
+$bools = [true, false, true, false, true];
+$result = sort($bools);
+var_dump($result);
+--EXPECT--
+array(5) {
+  [0]=>
+  bool(false)
+  [1]=>
+  bool(false)
+  [2]=>
+  bool(true)
+  [3]=>
+  bool(true)
+  [4]=>
+  bool(true)
+}
+
+--TEST--
+sort - with null values
+--FILE--
+<?php
+$mixed = [null, 5, null, 1, 3];
+$result = sort($mixed);
+var_dump($result);
+--EXPECT--
+array(5) {
+  [0]=>
+  NULL
+  [1]=>
+  NULL
+  [2]=>
+  int(3)
+  [3]=>
+  int(5)
+  [4]=>
+  int(1)
+}
+
+--TEST--
+asort - with duplicate values
+--FILE--
+<?php
+$arr = ["a" => 1, "b" => 2, "c" => 1, "d" => 2];
+$result = asort($arr);
+var_dump($result);
+--EXPECT--
+array(4) {
+  ["a"]=>
+  int(1)
+  ["c"]=>
+  int(1)
+  ["b"]=>
+  int(2)
+  ["d"]=>
+  int(2)
+}
+
+--TEST--
+sort - negative numbers
+--FILE--
+<?php
+$numbers = [-5, 2, -8, 1, 0, -3];
+$result = sort($numbers);
+var_dump($result);
+--EXPECT--
+array(6) {
+  [0]=>
+  int(-8)
+  [1]=>
+  int(-5)
+  [2]=>
+  int(-3)
+  [3]=>
+  int(0)
+  [4]=>
+  int(1)
+  [5]=>
+  int(2)
+}
+
+--TEST--
+sort - large integers
+--FILE--
+<?php
+$large = [999999999, -999999999, 0, 1];
+$result = sort($large);
+var_dump($result);
+--EXPECT--
+array(4) {
+  [0]=>
+  int(-999999999)
+  [1]=>
+  int(0)
+  [2]=>
+  int(1)
+  [3]=>
+  int(999999999)
+}

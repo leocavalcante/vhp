@@ -1,0 +1,11 @@
+--TEST--
+time() returns current Unix timestamp
+--FILE--
+<?php
+$ts = time();
+echo is_int($ts) ? "integer" : "not integer";
+echo "\n";
+echo $ts > 1700000000 ? "after 2023" : "before 2024";
+--EXPECT--
+integer
+after 2023

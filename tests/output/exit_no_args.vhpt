@@ -1,0 +1,11 @@
+--TEST--
+exit() with no arguments
+--DESCRIPTION--
+Tests exit() with no arguments - should terminate with exit code 0
+--FILE--
+<?php
+echo "before exit";
+exit();
+echo "after exit";
+--EXPECT--
+before exit

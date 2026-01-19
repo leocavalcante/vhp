@@ -1,8 +1,20 @@
+use crate::runtime::value::array_key::ArrayKey;
 use crate::runtime::Value;
 
-pub fn preg_quote(str: Value, delimiter: Value) -> Value {
-    let str = str.to_string();
-    let delimiter = delimiter.to_string();
+fn value_to_string_val(v: &Value) -> String {
+    v.to_string_val()
+}
+
+pub fn preg_quote(args: &[Value]) -> Result<Value, String> {
+    if args.len() < 1 {
+        return Err("preg_quote() expects at least 1 parameter".to_string());
+    }
+    let str = value_to_string_val(&args[0]);
+    let delimiter = if args.len() > 1 {
+        value_to_string_val(&args[1])
+    } else {
+        String::new()
+    };
 
     let mut result = String::with_capacity(str.len() * 2);
     for c in str.chars() {
@@ -18,7 +30,8 @@ pub fn preg_quote(str: Value, delimiter: Value) -> Value {
     if !delimiter.is_empty() {
         for c in delimiter.chars() {
             match c {
-                '.' | '+' | '*' | '?' | '^' | '$' | '(' | ')' | '[' | ']' | '{' | '}' | '|' | '\\' => {
+                '.' | '+' | '*' | '?' | '^' | '$' | '(' | ')' | '[' | ']' | '{' | '}' | '|'
+                | '\\' => {
                     result.push('\\');
                     result.push(c);
                 }
@@ -27,30 +40,30 @@ pub fn preg_quote(str: Value, delimiter: Value) -> Value {
         }
     }
 
-    Value::String(result)
+    Ok(Value::String(result))
 }
 
-pub fn preg_match(pattern: Value, subject: Value, matches: Value, flags: Value, offset: Value) -> Value {
-    let pattern = pattern.to_string();
-    let subject = subject.to_string();
-    let _flags = flags.to_int();
-    let offset = offset.to_int();
+pub fn preg_match(args: &[Value]) -> Result<Value, String> {
+    if args.len() < 2 {
+        return Err("preg_match() expects at least 2 parameters".to_string());
+    }
+    let pattern = value_to_string_val(&args[0]);
+    let subject = value_to_string_val(&args[1]);
+    let _flags = if args.len() > 3 { args[3].to_int() } else { 0 };
+    let offset = if args.len() > 4 { args[4].to_int() } else { 0 };
 
     let (php_pattern, regex_flags) = parse_pattern(&pattern);
 
-    let re = match regex::RegexBuilder::new(&php_pattern)
+    let re = regex::RegexBuilder::new(&php_pattern)
         .case_insensitive(regex_flags.ignore_case)
         .multi_line(regex_flags.multi_line)
-        .dot_matches_newline(regex_flags.dot_all)
+        .dot_matches_new_line(regex_flags.dot_all)
         .build()
-    {
-        Ok(re) => re,
-        Err(_) => return Value::False,
-    };
+        .map_err(|_| "Invalid regex pattern")?;
 
     let start = if offset < 0 {
         if offset.abs() as usize > subject.len() {
-            return Value::Int(0);
+            return Ok(Value::Integer(0));
         }
         subject.len() - offset.abs() as usize
     } else {
@@ -58,47 +71,53 @@ pub fn preg_match(pattern: Value, subject: Value, matches: Value, flags: Value, 
     };
 
     if start > subject.len() {
-        return Value::Int(0);
+        return Ok(Value::Integer(0));
     }
 
     let subject_sub = &subject[start..];
 
     if let Some(m) = re.find(subject_sub) {
-        if matches != Value::Null {
-            let mut matches_array = Vec::new();
-            matches_array.push(Value::String(m.as_str().to_string()));
-            matches_array.push(Value::String(m.start() as i64 + start as i64));
-            matches_array.push(Value::String(m.end() as i64 + start as i64));
-            Value::Array(matches_array)
+        if args.len() > 2 && args[2] != Value::Null {
+            let mut matches_array: Vec<(ArrayKey, Value)> = Vec::new();
+            matches_array.push((ArrayKey::Integer(0), Value::String(m.as_str().to_string())));
+            matches_array.push((
+                ArrayKey::Integer(1),
+                Value::String((m.start() as i64 + start as i64).to_string()),
+            ));
+            matches_array.push((
+                ArrayKey::Integer(2),
+                Value::String((m.end() as i64 + start as i64).to_string()),
+            ));
+            Ok(Value::Array(matches_array))
         } else {
-            Value::Int(1)
+            Ok(Value::Integer(1))
         }
     } else {
-        Value::Int(0)
+        Ok(Value::Integer(0))
     }
 }
 
-pub fn preg_match_all(pattern: Value, subject: Value, matches: Value, flags: Value, offset: Value) -> Value {
-    let pattern = pattern.to_string();
-    let subject = subject.to_string();
-    let _flags = flags.to_int();
-    let offset = offset.to_int();
+pub fn preg_match_all(args: &[Value]) -> Result<Value, String> {
+    if args.len() < 2 {
+        return Err("preg_match_all() expects at least 2 parameters".to_string());
+    }
+    let pattern = value_to_string_val(&args[0]);
+    let subject = value_to_string_val(&args[1]);
+    let _flags = if args.len() > 3 { args[3].to_int() } else { 0 };
+    let offset = if args.len() > 4 { args[4].to_int() } else { 0 };
 
     let (php_pattern, regex_flags) = parse_pattern(&pattern);
 
-    let re = match regex::RegexBuilder::new(&php_pattern)
+    let re = regex::RegexBuilder::new(&php_pattern)
         .case_insensitive(regex_flags.ignore_case)
         .multi_line(regex_flags.multi_line)
-        .dot_matches_newline(regex_flags.dot_all)
+        .dot_matches_new_line(regex_flags.dot_all)
         .build()
-    {
-        Ok(re) => re,
-        Err(_) => return Value::False,
-    };
+        .map_err(|_| "Invalid regex pattern")?;
 
     let start = if offset < 0 {
         if offset.abs() as usize > subject.len() {
-            return Value::Int(0);
+            return Ok(Value::Integer(0));
         }
         subject.len() - offset.abs() as usize
     } else {
@@ -106,138 +125,158 @@ pub fn preg_match_all(pattern: Value, subject: Value, matches: Value, flags: Val
     };
 
     if start > subject.len() {
-        return Value::Int(0);
+        return Ok(Value::Integer(0));
     }
 
     let subject_sub = &subject[start..];
     let matches_vec: Vec<_> = re.find_iter(subject_sub).collect();
     let count = matches_vec.len();
 
-    if matches != Value::Null {
-        let mut result = Vec::new();
+    if args.len() > 2 && args[2] != Value::Null {
+        let mut result: Vec<(ArrayKey, Value)> = Vec::new();
         for m in &matches_vec {
-            let mut match_data = Vec::new();
-            match_data.push(Value::String(m.as_str().to_string()));
-            match_data.push(Value::String(m.start() as i64 + start as i64));
-            match_data.push(Value::String(m.end() as i64 + start as i64));
-            result.push(Value::Array(match_data));
+            let mut match_data: Vec<(ArrayKey, Value)> = Vec::new();
+            match_data.push((ArrayKey::Integer(0), Value::String(m.as_str().to_string())));
+            match_data.push((
+                ArrayKey::Integer(1),
+                Value::String((m.start() as i64 + start as i64).to_string()),
+            ));
+            match_data.push((
+                ArrayKey::Integer(2),
+                Value::String((m.end() as i64 + start as i64).to_string()),
+            ));
+            result.push((
+                ArrayKey::Integer(result.len() as i64),
+                Value::Array(match_data),
+            ));
         }
-        Value::Array(result)
+        Ok(Value::Array(result))
     } else {
-        Value::Int(count as i64)
+        Ok(Value::Integer(count as i64))
     }
 }
 
-pub fn preg_split(pattern: Value, subject: Value, limit: Value, flags: Value) -> Value {
-    let pattern = pattern.to_string();
-    let subject = subject.to_string();
-    let limit_val = limit.to_int();
-    let flags_val = flags.to_int();
+pub fn preg_split(args: &[Value]) -> Result<Value, String> {
+    if args.len() < 2 {
+        return Err("preg_split() expects at least 2 parameters".to_string());
+    }
+    let pattern = value_to_string_val(&args[0]);
+    let subject = value_to_string_val(&args[1]);
+    let limit = if args.len() > 2 { args[2].to_int() } else { -1 };
+    let _flags = if args.len() > 3 { args[3].to_int() } else { 0 };
 
     let (php_pattern, regex_flags) = parse_pattern(&pattern);
 
-    let re = match regex::RegexBuilder::new(&php_pattern)
+    let re = regex::RegexBuilder::new(&php_pattern)
         .case_insensitive(regex_flags.ignore_case)
         .multi_line(regex_flags.multi_line)
-        .dot_matches_newline(regex_flags.dot_all)
+        .dot_matches_new_line(regex_flags.dot_all)
         .build()
-    {
-        Ok(re) => re,
-        return Value::False,
-    };
+        .map_err(|_| "Invalid regex pattern")?;
 
-    let parts: Vec<Value> = if limit_val == 0 {
+    let parts: Vec<Value> = if limit == 0 {
         Vec::new()
-    } else if limit_val < 0 {
+    } else if limit < 0 {
         re.split(&subject)
-            .map(|s| Value::String(s.to_string()))
+            .map(|s: &str| Value::String(s.to_string()))
             .collect()
     } else {
-        re.splitn(limit_val as usize, &subject)
-            .map(|s| Value::String(s.to_string()))
+        re.splitn(&subject, limit as usize)
+            .map(|s: &str| Value::String(s.to_string()))
             .collect()
     };
 
-    Value::Array(parts)
+    Ok(Value::Array(
+        parts
+            .into_iter()
+            .enumerate()
+            .map(|(i, v)| (ArrayKey::Integer(i as i64), v))
+            .collect(),
+    ))
 }
 
-pub fn preg_replace(pattern: Value, replacement: Value, subject: Value, limit: Value, count: Value) -> Value {
-    let pattern = pattern.to_string();
-    let replacement = replacement.to_string();
-    let subject_val = subject.to_string();
-    let limit_val = limit.to_int();
-    let _count = count;
+pub fn preg_replace(args: &[Value]) -> Result<Value, String> {
+    if args.len() < 3 {
+        return Err("preg_replace() expects at least 3 parameters".to_string());
+    }
+    let pattern = value_to_string_val(&args[0]);
+    let replacement = value_to_string_val(&args[1]);
+    let subject = value_to_string_val(&args[2]);
+    let limit = if args.len() > 3 { args[3].to_int() } else { -1 };
 
     let (php_pattern, regex_flags) = parse_pattern(&pattern);
 
-    let re = match regex::RegexBuilder::new(&php_pattern)
+    let re = regex::RegexBuilder::new(&php_pattern)
         .case_insensitive(regex_flags.ignore_case)
         .multi_line(regex_flags.multi_line)
-        .dot_matches_newline(regex_flags.dot_all)
+        .dot_matches_new_line(regex_flags.dot_all)
         .build()
-    {
-        Ok(re) => re,
-        return Value::False,
-    };
+        .map_err(|_| "Invalid regex pattern")?;
 
-    let result = if limit_val < 0 {
-        re.replace_all(&subject_val, &replacement).to_string()
-    } else if limit_val == 0 {
-        subject_val
+    let result = if limit < 0 {
+        re.replace_all(&subject, &replacement).to_string()
+    } else if limit == 0 {
+        subject
     } else {
-        re.replacen(limit_val as usize, &subject_val, &replacement).to_string()
+        re.replacen(&subject, limit as usize, &replacement)
+            .to_string()
     };
 
-    Value::String(result)
+    Ok(Value::String(result))
 }
 
-pub fn preg_replace_callback(pattern: Value, callback: Value, subject: Value, limit: Value, count: Value) -> Value {
-    let pattern = pattern.to_string();
-    let subject_val = subject.to_string();
-    let limit_val = limit.to_int();
-    let _count = count;
+pub fn preg_replace_callback(args: &[Value]) -> Result<Value, String> {
+    if args.len() < 3 {
+        return Err("preg_replace_callback() expects at least 3 parameters".to_string());
+    }
+    let pattern = value_to_string_val(&args[0]);
+    let subject = value_to_string_val(&args[2]);
+    let _limit = if args.len() > 3 { args[3].to_int() } else { -1 };
 
     let (php_pattern, regex_flags) = parse_pattern(&pattern);
 
-    let re = match regex::RegexBuilder::new(&php_pattern)
+    let _re = regex::RegexBuilder::new(&php_pattern)
         .case_insensitive(regex_flags.ignore_case)
         .multi_line(regex_flags.multi_line)
-        .dot_matches_newline(regex_flags.dot_all)
+        .dot_matches_new_line(regex_flags.dot_all)
         .build()
-    {
-        Ok(re) => re,
-        return Value::False,
-    };
+        .map_err(|_| "Invalid regex pattern")?;
 
-    Value::String(subject_val)
+    Ok(Value::String(subject))
 }
 
-pub fn preg_grep(pattern: Value, input: Value, flags: Value) -> Value {
-    let pattern = pattern.to_string();
-    let input_val = input.to_array();
-    let _flags = flags.to_int();
+pub fn preg_grep(args: &[Value]) -> Result<Value, String> {
+    if args.len() < 2 {
+        return Err("preg_grep() expects at least 2 parameters".to_string());
+    }
+    let pattern = value_to_string_val(&args[0]);
+    let _flags = if args.len() > 2 { args[2].to_int() } else { 0 };
 
     let (php_pattern, regex_flags) = parse_pattern(&pattern);
 
-    let re = match regex::RegexBuilder::new(&php_pattern)
+    let re = regex::RegexBuilder::new(&php_pattern)
         .case_insensitive(regex_flags.ignore_case)
         .multi_line(regex_flags.multi_line)
-        .dot_matches_newline(regex_flags.dot_all)
+        .dot_matches_new_line(regex_flags.dot_all)
         .build()
-    {
-        Ok(re) => re,
-        return Value::False,
+        .map_err(|_| "Invalid regex pattern")?;
+
+    let input_vec = match &args[1] {
+        Value::Array(arr) => arr.clone(),
+        _ => return Err("preg_grep() expects parameter 2 to be array".to_string()),
     };
 
-    let result: Vec<Value> = input_val
+    let result: Vec<(ArrayKey, Value)> = input_vec
         .into_iter()
-        .filter(|item| {
-            let s = item.to_string();
+        .filter(|(_k, item)| {
+            let s = value_to_string_val(item);
             re.is_match(&s)
         })
+        .enumerate()
+        .map(|(i, (_k, v))| (ArrayKey::Integer(i as i64), v.clone()))
         .collect();
 
-    Value::Array(result)
+    Ok(Value::Array(result))
 }
 
 struct RegexFlags {

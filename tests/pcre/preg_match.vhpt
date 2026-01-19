@@ -1,0 +1,92 @@
+--TEST--
+preg_match - basic pattern matching
+--FILE--
+<?php
+$result = preg_match("/hello/", "hello world");
+echo "Match found: " . $result . "\n";
+
+$result2 = preg_match("/foo/", "hello world");
+echo "No match: " . $result2 . "\n";
+--EXPECT--
+Match found: 1
+No match: 0
+
+--TEST--
+preg_match - with matches parameter
+--FILE--
+<?php
+$matches = null;
+$result = preg_match("/(\w+)@(\w+)\.(\w+)/", "test@example.com", $matches);
+echo "Result: " . $result . "\n";
+print_r($matches);
+--EXPECT--
+Result: 1
+Array
+(
+    [0] => test@example.com
+    [1] => test
+    [2] => example
+    [3] => com
+)
+
+--TEST--
+preg_match - case insensitive flag
+--FILE--
+<?php
+$result = preg_match("/hello/i", "HELLO world");
+echo "Case insensitive: " . $result . "\n";
+--EXPECT--
+Case insensitive: 1
+
+--TEST--
+preg_match - no match returns 0
+--FILE--
+<?php
+$result = preg_match("/xyz/", "abc def");
+echo "No match: " . $result . "\n";
+--EXPECT--
+No match: 0
+
+--TEST--
+preg_match_all - multiple matches
+--FILE--
+<?php
+$result = preg_match_all("/a/", "banana");
+echo "Count: " . $result . "\n";
+--EXPECT--
+Count: 3
+
+--TEST--
+preg_match_all - return matches array
+--FILE--
+<?php
+// In VHP, we return the full matches array when matches param is not null
+// This differs from PHP which returns count and modifies the reference param
+$result = preg_match_all("/a/", "banana", "placeholder");
+print_r($result);
+--EXPECT--
+Array
+(
+    [0] => Array
+    (
+        [0] => a
+        [1] => 1
+        [2] => 2
+    )
+
+    [1] => Array
+    (
+        [0] => a
+        [1] => 3
+        [2] => 4
+    )
+
+    [2] => Array
+    (
+        [0] => a
+        [1] => 5
+        [2] => 6
+    )
+
+)
+

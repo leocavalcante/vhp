@@ -1,0 +1,9 @@
+--TEST--
+exit() with boolean true
+--DESCRIPTION--
+Tests exit(true) - should terminate with exit code 1
+--FILE--
+<?php
+exit(true);
+echo "This should not print";
+--EXPECT--

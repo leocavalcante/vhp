@@ -6,32 +6,48 @@ pub fn execute_jump<W: std::io::Write>(vm: &mut super::super::VM<W>, offset: u32
     vm.current_frame_mut().jump_to(offset as usize);
 }
 
-pub fn execute_jump_if_false<W: std::io::Write>(vm: &mut super::super::VM<W>, offset: u32) {
-    let value = vm.stack.pop().unwrap();
+pub fn execute_jump_if_false<W: std::io::Write>(
+    vm: &mut super::super::VM<W>,
+    offset: u32,
+) -> Result<(), String> {
+    let value = vm.stack.pop().ok_or("Stack underflow")?;
     if !value.to_bool() {
         vm.current_frame_mut().jump_to(offset as usize);
     }
+    Ok(())
 }
 
-pub fn execute_jump_if_true<W: std::io::Write>(vm: &mut super::super::VM<W>, offset: u32) {
-    let value = vm.stack.pop().unwrap();
+pub fn execute_jump_if_true<W: std::io::Write>(
+    vm: &mut super::super::VM<W>,
+    offset: u32,
+) -> Result<(), String> {
+    let value = vm.stack.pop().ok_or("Stack underflow")?;
     if value.to_bool() {
         vm.current_frame_mut().jump_to(offset as usize);
     }
+    Ok(())
 }
 
-pub fn execute_jump_if_null<W: std::io::Write>(vm: &mut super::super::VM<W>, offset: u32) {
-    let value = vm.stack.last().unwrap();
+pub fn execute_jump_if_null<W: std::io::Write>(
+    vm: &mut super::super::VM<W>,
+    offset: u32,
+) -> Result<(), String> {
+    let value = vm.stack.last().ok_or("Stack is empty")?;
     if matches!(value, Value::Null) {
         vm.current_frame_mut().jump_to(offset as usize);
     }
+    Ok(())
 }
 
-pub fn execute_jump_if_not_null<W: std::io::Write>(vm: &mut super::super::VM<W>, offset: u32) {
-    let value = vm.stack.last().unwrap();
+pub fn execute_jump_if_not_null<W: std::io::Write>(
+    vm: &mut super::super::VM<W>,
+    offset: u32,
+) -> Result<(), String> {
+    let value = vm.stack.last().ok_or("Stack is empty")?;
     if !matches!(value, Value::Null) {
         vm.current_frame_mut().jump_to(offset as usize);
     }
+    Ok(())
 }
 
 pub fn execute_return<W: std::io::Write>(vm: &mut super::super::VM<W>) -> Result<(), String> {
@@ -64,7 +80,7 @@ pub fn execute_yield<W: std::io::Write>(vm: &mut super::super::VM<W>) -> Result<
         .map(|v| !matches!(v, Value::Null))
         .unwrap_or(false)
     {
-        Some(vm.stack.pop().unwrap())
+        Some(vm.stack.pop().ok_or("Stack underflow")?)
     } else {
         None
     };

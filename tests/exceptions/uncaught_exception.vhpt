@@ -1,7 +1,10 @@
 --TEST--
-Uncaught exception error
+Uncaught exception error with backtrace
 --FILE--
 <?php
 throw new Exception("Uncaught!");
 --EXPECT_ERROR--
-Uncaught Exception: Uncaught!
+VM error: Exception: Uncaught! in unknown on line 0
+
+Stack trace:
+#0 [unknown:0] <test>

@@ -1,0 +1,14 @@
+--TEST--
+exit() can be called early in script
+--DESCRIPTION--
+Tests that exit() immediately terminates execution
+--FILE--
+<?php
+exit("Early exit\n");
+function foo() {
+    echo "This function should never be called";
+}
+foo();
+--EXPECT--
+Early exit
+

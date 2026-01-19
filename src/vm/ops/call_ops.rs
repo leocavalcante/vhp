@@ -214,6 +214,7 @@ fn execute_generator_call<W: std::io::Write>(
                 is_rewound: false,
                 finished: false,
                 return_value,
+                sent_value: None,
             };
             vm.stack
                 .push(crate::runtime::Value::Generator(Box::new(gen)));

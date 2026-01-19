@@ -15,7 +15,8 @@ use std::process;
 use test_runner::TestRunner;
 
 /// Run source with bytecode VM
-fn run(source: &str) -> Result<(), String> {
+/// Returns Ok(None) on normal completion, Ok(Some(exit_code)) when exit() is called, or Err on error
+fn run(source: &str) -> Result<Option<i32>, String> {
     use vm::compiler::Compiler;
     use vm::VM;
 
@@ -40,11 +41,19 @@ fn run(source: &str) -> Result<(), String> {
     vm_instance.register_interfaces(compilation.interfaces);
     vm_instance.register_traits(compilation.traits);
     vm_instance.register_enums(compilation.enums);
-    vm_instance
-        .execute(compilation.main)
-        .map_err(|e| format!("VM error: {}", e))?;
 
-    Ok(())
+    match vm_instance.execute(compilation.main) {
+        Ok(_) => Ok(None),
+        Err(e) if e.starts_with("__EXIT__:") => {
+            let parts: Vec<&str> = e.splitn(2, ':').collect();
+            let code = parts
+                .get(1)
+                .and_then(|s| s.parse::<i32>().ok())
+                .unwrap_or(0);
+            Ok(Some(code))
+        }
+        Err(e) => Err(format!("VM error: {}", e)),
+    }
 }
 
 fn run_tests(test_dir: &str, verbose: bool) -> Result<(), String> {
@@ -107,11 +116,14 @@ fn main() {
                 .find(|a| !a.starts_with('-'))
                 .map(|s| s.as_str())
                 .unwrap_or("tests");
-            run_tests(test_dir, verbose)
+            match run_tests(test_dir, verbose) {
+                Ok(_) => Ok(None),
+                Err(e) => Err(e),
+            }
         }
         "-h" | "--help" => {
             print_usage(&args[0]);
-            Ok(())
+            Ok(None)
         }
         filename => match fs::read_to_string(filename) {
             Ok(source) => run(&source),
@@ -122,8 +134,12 @@ fn main() {
         },
     };
 
-    if let Err(e) = result {
-        eprintln!("Error: {}", e);
-        process::exit(1);
+    match result {
+        Ok(Some(exit_code)) => process::exit(exit_code),
+        Ok(None) => {}
+        Err(e) => {
+            eprintln!("Error: {}", e);
+            process::exit(1);
+        }
     }
 }

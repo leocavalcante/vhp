@@ -234,11 +234,10 @@ pub fn execute_load_static_prop<W: std::io::Write>(
 ) -> Result<(), String> {
     let resolved_class = vm.resolve_class_keyword(&class_name)?;
 
-    let class_def = vm.classes.get(&resolved_class).ok_or_else(|| {
-        let msg = format!("STATIC OPS Line 247: Class '{}' not found", resolved_class);
-        eprintln!("DEBUG: {}", msg);
-        msg
-    })?;
+    let class_def = vm
+        .classes
+        .get(&resolved_class)
+        .ok_or_else(|| format!("Class '{}' not found", resolved_class))?;
 
     let value = class_def
         .static_properties

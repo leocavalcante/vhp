@@ -252,6 +252,21 @@ That's the difference between a tool and an ecosystem.
 - ✅ void and never return types
 - ✅ declare(strict_types=1) for strict type checking (PHP 7.0)
 
+**PCRE Regex (PHP 4+):**
+- ✅ preg_match - Perform a regular expression match
+- ✅ preg_match_all - Perform a global regular expression match
+- ✅ preg_split - Split string by a regular expression
+- ✅ preg_replace - Perform a regular expression search and replace
+- ✅ preg_replace_callback - Perform a search and replace with a callback
+- ✅ preg_grep - Return array entries that match a pattern
+
+**Date/Time Functions (PHP 4+):**
+- ✅ time - Current Unix timestamp
+- ✅ mktime - Get Unix timestamp from date components
+- ✅ strtotime - Parse date string to Unix timestamp
+- ✅ gmdate - Format GMT/UTC date
+- ✅ gmstrftime - Format date with locale
+
 **Namespaces:**
 - ✅ Namespace declarations (braced and unbraced syntax, PHP 5.3)
 - ✅ Qualified names (Foo\Bar, \Foo\Bar)
@@ -270,7 +285,7 @@ That's the difference between a tool and an ecosystem.
 
 We're just getting started. Check out [roadmap](https://leocavalcante.github.io/vhp/roadmap) to see what's coming:
 
-- More built-in functions (date/time, regex/PCRE, advanced array functions)
+- More built-in functions (date/time, advanced array functions)
 - Full generator execution with send/throw/return methods
 - Complete Fiber support
 - Composer compatibility

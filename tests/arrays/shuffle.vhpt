@@ -1,0 +1,104 @@
+--TEST--
+shuffle - randomize array order
+--FILE--
+<?php
+$arr = [1, 2, 3, 4, 5];
+$result = shuffle($arr);
+echo "Shuffled array has " . count($arr) . " elements\n";
+echo "Contains 1: " . (in_array(1, $arr) ? "yes" : "no") . "\n";
+echo "Contains 5: " . (in_array(5, $arr) ? "yes" : "no") . "\n";
+--EXPECT--
+Shuffled array has 5 elements
+Contains 1: yes
+Contains 5: yes
+
+--TEST--
+shuffle - preserves all elements
+--FILE--
+<?php
+$arr = ["a", "b", "c", "d"];
+$result = shuffle($arr);
+echo "Original count: 4\n";
+echo "Shuffled count: " . count($arr) . "\n";
+--EXPECT--
+Original count: 4
+Shuffled count: 4
+
+--TEST--
+shuffle - single element
+--FILE--
+<?php
+$arr = [42];
+$result = shuffle($arr);
+var_dump($arr);
+--EXPECT--
+array(1) {
+  [0]=>
+  int(42)
+}
+
+--TEST--
+shuffle - empty array
+--FILE--
+<?php
+$arr = [];
+$result = shuffle($arr);
+var_dump($arr);
+--EXPECT--
+array(0) {
+}
+
+--TEST--
+array_rand - get single random key
+--FILE--
+<?php
+$arr = ["a" => 1, "b" => 2, "c" => 3, "d" => 4, "e" => 5];
+$key = array_rand($arr);
+echo "Random key: " . $key . "\n";
+echo "Value: " . $arr[$key] . "\n";
+--EXPECT--
+Random key: c
+Value: 3
+
+--TEST--
+array_rand - get multiple random keys
+--FILE--
+<?php
+$arr = ["a" => 1, "b" => 2, "c" => 3, "d" => 4, "e" => 5];
+$keys = array_rand($arr, 3);
+echo "Got " . count($keys) . " random keys\n";
+--EXPECT--
+Got 3 random keys
+
+--TEST--
+array_rand - get all keys
+--FILE--
+<?php
+$arr = ["a" => 1, "b" => 2];
+$keys = array_rand($arr, 2);
+echo "Got " . count($keys) . " keys\n";
+--EXPECT--
+Got 2 keys
+
+--TEST--
+array_rand - with integer array
+--FILE--
+<?php
+$arr = [10, 20, 30, 40, 50];
+$key = array_rand($arr);
+echo "Random index: " . $key . "\n";
+echo "Value at index: " . $arr[$key] . "\n";
+--EXPECT--
+Random index: 2
+Value at index: 30
+
+--TEST--
+array_rand - error on empty array
+--FILE--
+<?php
+$arr = [];
+$result = array_rand($arr);
+echo "Should not reach here\n";
+--EXPECT_ERROR--
+array_rand(): Array is empty
+

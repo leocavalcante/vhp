@@ -201,3 +201,68 @@ pub fn printf<W: Write>(output: &mut W, args: &[Value]) -> Result<Value, String>
     write!(output, "{}", result.to_string_val()).map_err(|e| e.to_string())?;
     Ok(Value::Integer(result.to_string_val().len() as i64))
 }
+
+/// exit - Terminate script execution
+///
+/// Behavior:
+/// - No arguments: terminate with exit code 0
+/// - String argument: output the string and terminate with exit code 0
+/// - Integer argument: terminate with that exit code
+pub fn exit<W: Write>(output: &mut W, args: &[Value]) -> Result<Value, String> {
+    let exit_code = match args.len() {
+        0 => 0,
+        1 => {
+            match &args[0] {
+                Value::String(s) => {
+                    // Output the string and exit with code 0
+                    write!(output, "{}", s).map_err(|e| e.to_string())?;
+                    0
+                }
+                Value::Integer(n) => {
+                    // Use the integer as exit code (clamp to 0-255 range like PHP)
+                    let mut code = *n;
+                    if code < 0 {
+                        code = 0;
+                    } else if code > 255 {
+                        code = 255;
+                    }
+                    code
+                }
+                Value::Float(f) => {
+                    // Convert to int and clamp
+                    let mut code = *f as i64;
+                    if code < 0 {
+                        code = 0;
+                    } else if code > 255 {
+                        code = 255;
+                    }
+                    code
+                }
+                Value::Bool(b) => {
+                    // true -> 1, false -> 0
+                    if *b {
+                        1
+                    } else {
+                        0
+                    }
+                }
+                _ => {
+                    // Other types: convert to string and output, exit with code 0
+                    write!(output, "{}", args[0].to_output_string()).map_err(|e| e.to_string())?;
+                    0
+                }
+            }
+        }
+        _ => {
+            return Err("exit() expects at most 1 parameter".to_string());
+        }
+    };
+
+    // Return special error to signal script termination
+    Err(format!("__EXIT__:{}", exit_code))
+}
+
+/// die - Alias for exit()
+pub fn die<W: Write>(output: &mut W, args: &[Value]) -> Result<Value, String> {
+    exit(output, args)
+}

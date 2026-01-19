@@ -1,0 +1,85 @@
+--TEST--
+array_filter with arrow function - keep even numbers
+--FILE--
+<?php
+$numbers = [1, 2, 3, 4, 5, 6];
+$even = array_filter($numbers, fn($x) => $x % 2 == 0);
+print_r($even);
+--EXPECT--
+Array
+(
+    [1] => 2
+    [3] => 4
+    [5] => 6
+)
+
+--TEST--
+array_filter removes falsy values
+--FILE--
+<?php
+$mixed = [1, 0, 2, "", 3, null, false, "hello"];
+$result = array_filter($mixed, fn($x) => $x);
+print_r($result);
+--EXPECT--
+Array
+(
+    [0] => 1
+    [2] => 2
+    [4] => 3
+    [7] => hello
+)
+
+--TEST--
+array_filter with string function
+--FILE--
+<?php
+$words = ["Hello", "World", "PHP", "VHP"];
+$result = array_filter($words, fn($x) => strlen($x) > 4);
+print_r($result);
+--EXPECT--
+Array
+(
+    [1] => World
+    [3] => VHP
+)
+
+--TEST--
+array_filter preserves keys
+--FILE--
+<?php
+$arr = ["a" => 1, "b" => 2, "c" => 3, "d" => 4];
+$result = array_filter($arr, fn($x) => $x > 2);
+print_r($result);
+--EXPECT--
+Array
+(
+    [c] => 3
+    [d] => 4
+)
+
+--TEST--
+array_filter with empty array
+--FILE--
+<?php
+$result = array_filter([], fn($x) => $x);
+print_r($result);
+--EXPECT--
+Array
+(
+)
+
+--TEST--
+array_filter error: non-array second parameter
+--FILE--
+<?php
+$result = array_filter(fn($x) => $x, "not an array");
+--EXPECT_ERROR--
+array_filter() expects parameter 2 to be array
+
+--TEST--
+array_filter error: invalid callback type
+--FILE--
+<?php
+$result = array_filter([1, 2, 3], 123);
+--EXPECT_ERROR--
+array_filter() expects parameter 2 to be a valid callback

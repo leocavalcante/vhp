@@ -1,0 +1,10 @@
+--TEST--
+exit() with string argument
+--DESCRIPTION--
+Tests exit() with a string argument - should output the string and terminate
+--FILE--
+<?php
+exit("Goodbye!");
+echo "This should not print";
+--EXPECT--
+Goodbye!

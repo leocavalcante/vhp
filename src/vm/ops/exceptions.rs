@@ -47,21 +47,74 @@ pub fn execute_throw<W: std::io::Write>(vm: &mut super::super::VM<W>) -> Result<
             frame.jump_to(catch_offset);
         }
     } else {
-        let error_msg = if let Value::Object(ref obj) = exception {
-            if let Some(msg_value) = obj.properties.get("message") {
+        let (error_msg, trace_output) = if let Value::Object(ref obj) = exception {
+            let message = if let Some(msg_value) = obj.properties.get("message") {
                 match msg_value {
-                    Value::String(s) if !s.is_empty() => {
-                        format!("Uncaught {}: {}", obj.class_name, s)
-                    }
-                    _ => format!("Uncaught {}", obj.class_name),
+                    Value::String(s) if !s.is_empty() => s.clone(),
+                    _ => String::new(),
                 }
             } else {
-                format!("Uncaught {}", obj.class_name)
+                String::new()
+            };
+
+            let file = if let Some(file_value) = obj.properties.get("__file") {
+                match file_value {
+                    Value::String(s) if !s.is_empty() => s.clone(),
+                    _ => "unknown".to_string(),
+                }
+            } else {
+                "unknown".to_string()
+            };
+
+            let line = if let Some(line_value) = obj.properties.get("__line") {
+                match line_value {
+                    Value::Integer(n) => *n,
+                    _ => 0,
+                }
+            } else {
+                0
+            };
+
+            let class_name = obj.class_name.clone();
+
+            // Build backtrace output
+            let mut trace_lines = Vec::new();
+            trace_lines.push(format!(
+                "{}: {} in {} on line {}",
+                class_name, message, file, line
+            ));
+
+            // Get the call stack
+            for (i, frame) in vm.frames.iter().enumerate() {
+                let func_name = frame.function.name.clone();
+                let loc = if let Some(idx) = func_name.rfind("::") {
+                    let class_part = &func_name[..idx];
+                    let method_part = &func_name[idx + 2..];
+                    format!("{}->{}", class_part, method_part)
+                } else {
+                    func_name
+                };
+                trace_lines.push(format!("#{} [{}:{}] {}", i, file, line, loc));
             }
+
+            let trace_output = trace_lines.join("\n");
+
+            let base_msg = if !message.is_empty() {
+                format!("{}: {} in {} on line {}", class_name, message, file, line)
+            } else {
+                format!("Uncaught {}", class_name)
+            };
+
+            (base_msg, Some(trace_output))
         } else {
-            format!("Uncaught exception: {:?}", exception)
+            (format!("Uncaught exception: {:?}", exception), None)
         };
-        return Err(error_msg);
+
+        if let Some(trace) = trace_output {
+            return Err(format!("{}\n\nStack trace:\n{}", error_msg, trace));
+        } else {
+            return Err(error_msg);
+        }
     }
     Ok(())
 }

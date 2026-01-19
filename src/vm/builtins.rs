@@ -59,6 +59,14 @@ pub const BUILTIN_FUNCTIONS: &[&str] = &[
     "unlink",
     "is_readable",
     "is_writable",
+    "exit",
+    "die",
+    // Date/Time functions
+    "time",
+    "mktime",
+    "strtotime",
+    "gmdate",
+    "gmstrftime",
     // Math functions
     "abs",
     "ceil",
@@ -177,6 +185,14 @@ pub const BUILTIN_FUNCTIONS: &[&str] = &[
     "array_column",
     "array_flip",
     "array_count_values",
+    "sort",
+    "rsort",
+    "asort",
+    "arsort",
+    "ksort",
+    "krsort",
+    "shuffle",
+    "array_rand",
     // SPL autoload functions
     "spl_autoload_register",
     "spl_autoload_unregister",
@@ -186,6 +202,14 @@ pub const BUILTIN_FUNCTIONS: &[&str] = &[
     "load_psr4_class",
     "set_include_path",
     "get_include_path",
+    // PCRE functions
+    "preg_match",
+    "preg_match_all",
+    "preg_replace",
+    "preg_replace_callback",
+    "preg_split",
+    "preg_grep",
+    "preg_quote",
     // File inclusion functions
     "require",
     "require_once",
@@ -267,6 +291,17 @@ pub fn call_builtin<W: Write>(name: &str, args: &[Value], output: &mut W) -> Res
         "unlink" => builtins::fileio::unlink(args),
         "is_readable" => builtins::fileio::is_readable(args),
         "is_writable" => builtins::fileio::is_writable(args),
+
+        // Output functions (need writer)
+        "exit" => builtins::output::exit(output, args),
+        "die" => builtins::output::die(output, args),
+
+        // Date/Time functions
+        "time" => builtins::datetime::time(args),
+        "mktime" => builtins::datetime::mktime(args),
+        "strtotime" => builtins::datetime::strtotime(args),
+        "gmdate" => builtins::datetime::gmdate(args),
+        "gmstrftime" => builtins::datetime::gmstrftime(args),
 
         // Math functions
         "abs" => builtins::math::abs(args),
@@ -366,8 +401,8 @@ pub fn call_builtin<W: Write>(name: &str, args: &[Value], output: &mut W) -> Res
         "range" => builtins::array::range(args),
         "array_first" => builtins::array::array_first(args),
         "array_last" => builtins::array::array_last(args),
-        "array_map" => builtins::array::array_map(args),
-        "array_filter" => builtins::array::array_filter(args),
+        "array_map" => Ok(builtins::array::array_map(args)?),
+        "array_filter" => Ok(builtins::array::array_filter(args)?),
         "array_reduce" => builtins::array::array_reduce(args),
         "array_slice" => builtins::array::array_slice(args),
         "array_sum" => builtins::array::array_sum(args),
@@ -384,6 +419,16 @@ pub fn call_builtin<W: Write>(name: &str, args: &[Value], output: &mut W) -> Res
         "array_flip" => builtins::array_extra::array_flip(args),
         "array_count_values" => builtins::array_extra::array_count_values(args),
 
+        // Sorting functions
+        "sort" => builtins::array_sorting::sort(args),
+        "rsort" => builtins::array_sorting::rsort(args),
+        "asort" => builtins::array_sorting::asort(args),
+        "arsort" => builtins::array_sorting::arsort(args),
+        "ksort" => builtins::array_sorting::ksort(args),
+        "krsort" => builtins::array_sorting::krsort(args),
+        "shuffle" => builtins::array_sorting::shuffle(args),
+        "array_rand" => builtins::array_sorting::array_rand(args),
+
         // SPL autoload functions
         "spl_autoload_register" => builtins::spl::spl_autoload_register(args),
         "spl_autoload_unregister" => builtins::spl::spl_autoload_unregister(args),
@@ -392,6 +437,15 @@ pub fn call_builtin<W: Write>(name: &str, args: &[Value], output: &mut W) -> Res
         "spl_autoload_registered_psr4" => builtins::spl::spl_autoload_registered_psr4(args),
         "set_include_path" => builtins::spl::set_include_path(args),
         "get_include_path" => builtins::spl::get_include_path(args),
+
+        // PCRE functions
+        "preg_match" => Ok(builtins::pcre::preg_match(&args)?),
+        "preg_match_all" => Ok(builtins::pcre::preg_match_all(&args)?),
+        "preg_replace" => Ok(builtins::pcre::preg_replace(&args)?),
+        "preg_replace_callback" => Ok(builtins::pcre::preg_replace_callback(&args)?),
+        "preg_split" => Ok(builtins::pcre::preg_split(&args)?),
+        "preg_grep" => Ok(builtins::pcre::preg_grep(&args)?),
+        "preg_quote" => Ok(builtins::pcre::preg_quote(&args)?),
 
         // Output functions (need writer)
         "print" => builtins::output::print(output, args),

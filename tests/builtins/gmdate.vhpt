@@ -1,0 +1,26 @@
+--TEST--
+gmdate() formats GMT/UTC date
+--FILE--
+<?php
+$ts = mktime(12, 30, 45, 6, 15, 2024);
+
+// Basic format
+echo gmdate('Y-m-d H:i:s', $ts) . "\n";
+
+// Full date format
+echo gmdate('l, F j, Y', $ts) . "\n";
+
+// Default to current time (no timestamp)
+echo gmdate('Y-m-d') . "\n";
+
+// 2-digit year
+echo gmdate('y-m-d', $ts) . "\n";
+
+// Day without leading zero
+echo gmdate('n/j/Y', $ts) . "\n";
+--EXPECT--
+2024-06-15 12:30:45
+Saturday, June 15, 2024
+2026-01-16
+24-06-15
+6/15/2024

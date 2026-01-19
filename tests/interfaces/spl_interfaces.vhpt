@@ -1,0 +1,131 @@
+--TEST--
+SPL Iterator interface - basic implementation
+--FILE--
+<?php
+class MyIterator implements Iterator {
+    private $data = [1, 2, 3];
+    private $position = 0;
+    public function current() { return $this->data[$this->position]; }
+    public function key() { return $this->position; }
+    public function next() { $this->position = $this->position + 1; }
+    public function rewind() { $this->position = 0; }
+    public function valid() { return $this->position < 3; }
+}
+
+$it = new MyIterator();
+echo "Iterator created successfully\n";
+--EXPECT--
+Iterator created successfully
+
+--TEST--
+SPL Countable interface - basic implementation
+--FILE--
+<?php
+class MyCollection implements Countable {
+    private $items = [1, 2, 3, 4, 5];
+    public function count() { return count($this->items); }
+}
+
+$collection = new MyCollection();
+echo "Countable created successfully\n";
+--EXPECT--
+Countable created successfully
+
+--TEST--
+SPL ArrayAccess interface - basic implementation
+--FILE--
+<?php
+class MyArray implements ArrayAccess {
+    private $data = [];
+    public function offsetExists($offset): bool {
+        return isset($this->data[$offset]);
+    }
+    public function offsetGet($offset): mixed {
+        return $this->data[$offset] ?? null;
+    }
+    public function offsetSet($offset, $value): void {
+        $this->data[$offset] = $value;
+    }
+    public function offsetUnset($offset): void {
+        unset($this->data[$offset]);
+    }
+}
+
+$arr = new MyArray();
+$arr["key"] = "value";
+echo "ArrayAccess created successfully\n";
+--EXPECT--
+ArrayAccess created successfully
+
+--TEST--
+SPL Stringable interface - basic implementation
+--FILE--
+<?php
+class MyStringable implements Stringable {
+    public function __construct(private $value = "") {}
+    public function __toString(): string {
+        return $this->value;
+    }
+}
+
+$obj = new MyStringable("hello");
+echo "Stringable created successfully\n";
+--EXPECT--
+Stringable created successfully
+
+--TEST--
+SPL interface_exists function - Iterator
+--FILE--
+<?php
+echo interface_exists("Iterator") ? "Iterator exists\n" : "Iterator missing\n";
+echo interface_exists("Countable") ? "Countable exists\n" : "Countable missing\n";
+echo interface_exists("ArrayAccess") ? "ArrayAccess exists\n" : "ArrayAccess missing\n";
+echo interface_exists("Stringable") ? "Stringable exists\n" : "Stringable missing\n";
+--EXPECT--
+Iterator exists
+Countable exists
+ArrayAccess exists
+Stringable exists
+
+--TEST--
+SPL interface_exists with backslash prefix
+--FILE--
+<?php
+echo interface_exists("\Iterator") ? "Iterator exists\n" : "Iterator missing\n";
+echo interface_exists("\Countable") ? "Countable exists\n" : "Countable missing\n";
+--EXPECT--
+Iterator exists
+Countable exists
+
+--TEST--
+SPL IteratorAggregate interface - basic implementation
+--FILE--
+<?php
+class MyInnerIterator implements Iterator {
+    private $data = [1, 2, 3];
+    private $position = 0;
+    public function current() { return $this->data[$this->position]; }
+    public function key() { return $this->position; }
+    public function next() { $this->position = $this->position + 1; }
+    public function rewind() { $this->position = 0; }
+    public function valid() { return $this->position < 3; }
+}
+
+class MyAggregate implements IteratorAggregate {
+    public function getIterator(): Iterator {
+        return new MyInnerIterator();
+    }
+}
+
+$agg = new MyAggregate();
+echo "IteratorAggregate created successfully\n";
+--EXPECT--
+IteratorAggregate created successfully
+
+--TEST--
+SPL Traversable interface - marker interface check
+--FILE--
+<?php
+echo interface_exists("Traversable") ? "Traversable exists\n" : "Traversable missing\n";
+--EXPECT--
+Traversable exists

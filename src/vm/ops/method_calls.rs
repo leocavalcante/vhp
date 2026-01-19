@@ -104,9 +104,12 @@ pub fn execute_call_method<W: std::io::Write>(
                 }
                 "next" => {
                     gen.current_index += 1;
-                    let result = Value::Bool(gen.current_index < gen.yielded_values.len());
+                    let valid = gen.current_index < gen.yielded_values.len() && !gen.finished;
+                    if !valid {
+                        gen.finished = true;
+                    }
                     vm.stack.push(Value::Generator(gen));
-                    vm.stack.push(result);
+                    vm.stack.push(Value::Bool(valid));
                 }
                 "rewind" => {
                     // Rewind is handled by resetting current_index
@@ -124,21 +127,31 @@ pub fn execute_call_method<W: std::io::Write>(
                     vm.stack.push(ret);
                 }
                 "send" => {
-                    let _sent = args.first().cloned().unwrap_or(Value::Null);
+                    let sent = args.first().cloned().unwrap_or(Value::Null);
+                    gen.sent_value = Some(sent.clone());
+
                     // Advance to next yield and return its value
                     gen.current_index += 1;
-                    let result = if gen.current_index < gen.yielded_values.len() {
-                        gen.yielded_values[gen.current_index]
+
+                    if gen.current_index >= gen.yielded_values.len() {
+                        // Generator is exhausted
+                        gen.finished = true;
+                        let ret = gen.return_value.clone().unwrap_or(Value::Null);
+                        vm.stack.push(Value::Generator(gen));
+                        vm.stack.push(ret);
+                    } else {
+                        let result = gen.yielded_values[gen.current_index]
                             .1
                             .clone()
-                            .unwrap_or(Value::Null)
-                    } else {
-                        Value::Null
-                    };
-                    vm.stack.push(Value::Generator(gen));
-                    vm.stack.push(result);
+                            .unwrap_or(Value::Null);
+                        vm.stack.push(Value::Generator(gen));
+                        vm.stack.push(result);
+                    }
                 }
                 "throw" => {
+                    // Generator::throw() throws an exception into the generator
+                    // For stub implementation, we mark it as finished and return null
+                    gen.finished = true;
                     vm.stack.push(Value::Generator(gen));
                     vm.stack.push(Value::Null);
                 }

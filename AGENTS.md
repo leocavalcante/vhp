@@ -256,9 +256,24 @@ Source Code → Lexer → Tokens → Parser → AST → Compiler → Bytecode �
 - [x] Type hints for parameters (int, string, float, bool, array, etc.)
 - [x] Return type declarations (including void, never, static)
 
-### Built-in Functions (102 total)
+### Built-in Functions (108 total)
 
 VHP includes comprehensive built-in function support for PHP 8.x compatibility.
+
+### Date/Time Functions (PHP 4+)
+- [x] time - Current Unix timestamp
+- [x] mktime - Get Unix timestamp from date components
+- [x] strtotime - Parse date string to Unix timestamp
+- [x] gmdate - Format GMT/UTC date
+- [x] gmstrftime - Format date with locale
+
+### PCRE Regex Functions (PHP 4+)
+- [x] preg_match - Perform a regular expression match
+- [x] preg_match_all - Perform a global regular expression match
+- [x] preg_split - Split string by a regular expression
+- [x] preg_replace - Perform a regular expression search and replace
+- [x] preg_replace_callback - Perform a search and replace with a callback
+- [x] preg_grep - Return array entries that match a pattern
 
 ### Type Coercion (PHP-compatible)
 - [x] Loose equality (`==`) with type coercion
@@ -1012,11 +1027,12 @@ Refactoring monolithic VM execution into modular opcode handlers.
 - [ ] #[\DelayedTargetValidation]
 - [ ] Final property promotion
 - [ ] Attributes on constants
-- [ ] Error backtraces for fatal errors
+- [x] Error backtraces for fatal errors ✅
 
 ### Phase 10: Standard Library Expansion (Planned)
-- [x] PCRE regex (preg_match, preg_replace) - Stub implementation
-- [ ] Advanced array functions (full array_map, array_filter, array_reduce)
+- [x] PCRE regex (preg_match, preg_match_all, preg_split, preg_replace, preg_replace_callback, preg_grep) ✅
+- [x] Basic time functions (time, mktime, strtotime, gmdate, gmstrftime) ✅
+- [ ] Advanced array functions (array_map, array_filter, array_reduce) - Implemented in VM
 - [ ] DateTime classes
 - [ ] SPL classes and interfaces
 

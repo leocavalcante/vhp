@@ -85,11 +85,11 @@ fn register_exception_class(classes: &mut std::collections::HashMap<String, Arc<
         "message".to_string(),
         "code".to_string(),
     ];
-    construct.bytecode.push(Opcode::LoadFast(1));
     construct.strings.push("message".to_string());
+    construct.strings.push("code".to_string());
+    construct.bytecode.push(Opcode::LoadFast(1));
     construct.bytecode.push(Opcode::StoreThisProperty(0));
     construct.bytecode.push(Opcode::LoadFast(2));
-    construct.strings.push("code".to_string());
     construct.bytecode.push(Opcode::StoreThisProperty(1));
     construct.bytecode.push(Opcode::ReturnNull);
     exception
@@ -405,7 +405,7 @@ fn register_fiber_class(classes: &mut std::collections::HashMap<String, Arc<Comp
     let mut resume = CompiledFunction::new("Fiber::resume".to_string());
     resume.param_count = 1;
     resume.required_param_count = 0;
-    resume.local_count = 1;
+    resume.local_count = 2;
     resume.local_names = vec!["this".to_string(), "value".to_string()];
     resume.bytecode.push(Opcode::PushNull);
     resume.bytecode.push(Opcode::Return);
@@ -414,7 +414,7 @@ fn register_fiber_class(classes: &mut std::collections::HashMap<String, Arc<Comp
     let mut throw = CompiledFunction::new("Fiber::throw".to_string());
     throw.param_count = 1;
     throw.required_param_count = 1;
-    throw.local_count = 1;
+    throw.local_count = 2;
     throw.local_names = vec!["this".to_string(), "exception".to_string()];
     throw.bytecode.push(Opcode::PushNull);
     throw.bytecode.push(Opcode::Return);

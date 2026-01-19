@@ -145,17 +145,17 @@ impl<W: Write> VM<W> {
             }
             Opcode::StoreVar(idx) => {
                 let name = self.current_frame().get_string(idx).to_string();
-                ops::execute_store_var(self, name);
+                ops::execute_store_var(self, name)?;
             }
             Opcode::LoadFast(slot) => ops::execute_load_fast(self, slot),
-            Opcode::StoreFast(slot) => ops::execute_store_fast(self, slot),
+            Opcode::StoreFast(slot) => ops::execute_store_fast(self, slot)?,
             Opcode::LoadGlobal(idx) => {
                 let name = self.current_frame().get_string(idx).to_string();
                 ops::execute_load_global(self, name);
             }
             Opcode::StoreGlobal(idx) => {
                 let name = self.current_frame().get_string(idx).to_string();
-                ops::execute_store_global(self, name);
+                ops::execute_store_global(self, name)?;
             }
 
             // ==================== Arithmetic ====================
@@ -171,10 +171,10 @@ impl<W: Write> VM<W> {
             Opcode::Concat => ops::execute_concat(self)?,
 
             // ==================== Comparison ====================
-            Opcode::Eq => ops::execute_eq(self),
-            Opcode::Ne => ops::execute_ne(self),
-            Opcode::Identical => ops::execute_identical(self),
-            Opcode::NotIdentical => ops::execute_not_identical(self),
+            Opcode::Eq => ops::execute_eq(self)?,
+            Opcode::Ne => ops::execute_ne(self)?,
+            Opcode::Identical => ops::execute_identical(self)?,
+            Opcode::NotIdentical => ops::execute_not_identical(self)?,
             Opcode::Lt => ops::execute_lt(self)?,
             Opcode::Le => ops::execute_le(self)?,
             Opcode::Gt => ops::execute_gt(self)?,
@@ -182,17 +182,17 @@ impl<W: Write> VM<W> {
             Opcode::Spaceship => ops::execute_spaceship(self)?,
 
             // ==================== Logical ====================
-            Opcode::Not => ops::execute_not(self),
-            Opcode::And => ops::execute_and(self),
-            Opcode::Or => ops::execute_or(self),
-            Opcode::Xor => ops::execute_xor(self),
+            Opcode::Not => ops::execute_not(self)?,
+            Opcode::And => ops::execute_and(self)?,
+            Opcode::Or => ops::execute_or(self)?,
+            Opcode::Xor => ops::execute_xor(self)?,
 
             // ==================== Control Flow ====================
             Opcode::Jump(offset) => ops::execute_jump(self, offset),
-            Opcode::JumpIfFalse(offset) => ops::execute_jump_if_false(self, offset),
-            Opcode::JumpIfTrue(offset) => ops::execute_jump_if_true(self, offset),
-            Opcode::JumpIfNull(offset) => ops::execute_jump_if_null(self, offset),
-            Opcode::JumpIfNotNull(offset) => ops::execute_jump_if_not_null(self, offset),
+            Opcode::JumpIfFalse(offset) => ops::execute_jump_if_false(self, offset)?,
+            Opcode::JumpIfTrue(offset) => ops::execute_jump_if_true(self, offset)?,
+            Opcode::JumpIfNull(offset) => ops::execute_jump_if_null(self, offset)?,
+            Opcode::JumpIfNotNull(offset) => ops::execute_jump_if_not_null(self, offset)?,
             Opcode::Return => ops::execute_return(self)?,
             Opcode::Yield => ops::execute_yield(self)?,
             Opcode::YieldFrom => ops::execute_yield_from(self)?,
@@ -212,21 +212,21 @@ impl<W: Write> VM<W> {
             Opcode::ArraySet => ops::execute_array_set(self)?,
             Opcode::ArrayAppend => ops::execute_array_append(self)?,
             Opcode::ArrayMerge => ops::execute_array_merge(self)?,
-            Opcode::ArrayCount => ops::execute_array_count(self),
-            Opcode::ArrayGetKeyAt => ops::execute_array_get_key_at(self),
-            Opcode::ArrayGetValueAt => ops::execute_array_get_value_at(self),
-            Opcode::ToArray => ops::execute_to_array(self),
+            Opcode::ArrayCount => ops::execute_array_count(self)?,
+            Opcode::ArrayGetKeyAt => ops::execute_array_get_key_at(self)?,
+            Opcode::ArrayGetValueAt => ops::execute_array_get_value_at(self)?,
+            Opcode::ToArray => ops::execute_to_array(self)?,
 
             // ==================== Stack Manipulation ====================
             Opcode::Pop => ops::execute_pop(self),
-            Opcode::Dup => ops::execute_dup(self),
+            Opcode::Dup => ops::execute_dup(self)?,
             Opcode::Swap => ops::execute_swap(self)?,
 
             // ==================== Type Operations ====================
             Opcode::Cast(cast_type) => ops::execute_cast(self, cast_type)?,
 
             // ==================== Null Coalescing ====================
-            Opcode::NullCoalesce => ops::execute_null_coalesce(self),
+            Opcode::NullCoalesce => ops::execute_null_coalesce(self)?,
 
             // ==================== Output ====================
             Opcode::Echo => ops::execute_echo(self)?,
@@ -295,7 +295,7 @@ impl<W: Write> VM<W> {
 
             Opcode::IssetProperty(prop_idx) => {
                 let prop_name = self.current_frame().get_string(prop_idx).to_string();
-                ops::execute_isset_property(self, prop_name);
+                ops::execute_isset_property(self, prop_name)?;
             }
 
             Opcode::UnsetPropertyOnLocal(slot, prop_idx) => {
@@ -383,7 +383,7 @@ impl<W: Write> VM<W> {
             Opcode::InstanceOf(class_idx) => {
                 let class_name =
                     Self::normalize_class_name(self.current_frame().get_string(class_idx));
-                ops::execute_instance_of(self, class_name);
+                ops::execute_instance_of(self, class_name)?;
             }
 
             Opcode::Clone => ops::execute_clone(self)?,

@@ -1,0 +1,45 @@
+--TEST--
+preg_replace - basic replacement
+--FILE--
+<?php
+$result = preg_replace("/world/", "VHP", "hello world");
+echo $result . "\n";
+--EXPECT--
+hello VHP
+
+--TEST--
+preg_replace - multiple replacements
+--FILE--
+<?php
+$result = preg_replace("/a/", "x", "banana");
+echo $result . "\n";
+--EXPECT--
+bxnxnx
+
+--TEST--
+preg_replace - with limit
+--FILE--
+<?php
+$result = preg_replace("/a/", "x", "banana", 2);
+echo $result . "\n";
+--EXPECT--
+bxxna
+
+--TEST--
+preg_replace - no matches returns original
+--FILE--
+<?php
+$result = preg_replace("/xyz/", "abc", "hello world");
+echo $result . "\n";
+--EXPECT--
+hello world
+
+--TEST--
+preg_replace - using capture groups
+--FILE--
+<?php
+$result = preg_replace("/(\w+) (\w+)/", "$2 $1", "hello world");
+echo $result . "\n";
+--EXPECT--
+world hello
+

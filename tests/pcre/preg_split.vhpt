@@ -1,0 +1,40 @@
+--TEST--
+preg_split - basic split
+--FILE--
+<?php
+$result = preg_split("/,/", "a,b,c,d");
+print_r($result);
+--EXPECT--
+Array
+(
+    [0] => a
+    [1] => b
+    [2] => c
+    [3] => d
+)
+
+--TEST--
+preg_split - with limit
+--FILE--
+<?php
+$result = preg_split("/,/", "a,b,c,d,e", 2);
+print_r($result);
+--EXPECT--
+Array
+(
+    [0] => a
+    [1] => b,c,d,e
+)
+
+--TEST--
+preg_split - no matches returns single element array
+--FILE--
+<?php
+$result = preg_split("/,/", "abc");
+print_r($result);
+--EXPECT--
+Array
+(
+    [0] => abc
+)
+

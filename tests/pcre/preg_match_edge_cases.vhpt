@@ -1,0 +1,188 @@
+--TEST--
+preg_match - pattern with anchors
+--FILE--
+<?php
+$result = preg_match("/^hello$/", "hello");
+echo "Exact match: " . $result . "\n";
+
+$result2 = preg_match("/^hello$/", "hello world");
+echo "No match with text after: " . $result2 . "\n";
+
+$result3 = preg_match("/^hello$/", "say hello");
+echo "No match with text before: " . $result3 . "\n";
+--EXPECT--
+Exact match: 1
+No match with text after: 0
+No match with text before: 0
+
+--TEST--
+preg_match - word boundary
+--FILE--
+<?php
+$result = preg_match("/\bword\b/", "this is a word");
+echo "Word boundary match: " . $result . "\n";
+
+$result2 = preg_match("/\bword\b/", "keywords");
+echo "No match in middle: " . $result2 . "\n";
+
+$result3 = preg_match("/\bword\b/", "wordsmith");
+echo "No match at start: " . $result3 . "\n";
+--EXPECT--
+Word boundary match: 1
+No match in middle: 0
+No match at start: 0
+
+--TEST--
+preg_match - quantifiers
+--FILE--
+<?php
+$result = preg_match("/a+/", "aaaab");
+echo "One or more a: " . $result . "\n";
+
+$result2 = preg_match("/a*/", "bbb");
+echo "Zero or more a: " . $result2 . "\n";
+
+$result3 = preg_match("/a?/", "bbb");
+echo "Zero or one a: " . $result3 . "\n";
+--EXPECT--
+One or more a: 1
+Zero or more a: 1
+Zero or one a: 1
+
+--TEST--
+preg_match - character classes
+--FILE--
+<?php
+$result = preg_match("/[aeiou]/", "bcd");
+echo "No vowel: " . $result . "\n";
+
+$result2 = preg_match("/[aeiou]/", "cat");
+echo "Has vowel: " . $result2 . "\n";
+
+$result3 = preg_match("/[0-9]/", "abc123");
+echo "Has digit: " . $result3 . "\n";
+--EXPECT--
+No vowel: 0
+Has vowel: 1
+Has digit: 1
+
+--TEST--
+preg_match - negated character class
+--FILE--
+<?php
+$result = preg_match("/[^aeiou]/", "bcd");
+echo "Consonant: " . $result . "\n";
+
+$result2 = preg_match("/[^0-9]/", "abc");
+echo "Non-digit: " . $result2 . "\n";
+--EXPECT--
+Consonant: 1
+Non-digit: 1
+
+--TEST--
+preg_match - alternation
+--FILE--
+<?php
+$result = preg_match("/cat|dog|bird/", "I have a dog");
+echo "Match alternation: " . $result . "\n";
+
+$result2 = preg_match("/cat|dog|bird/", "I have a fish");
+echo "No alternation match: " . $result2 . "\n";
+--EXPECT--
+Match alternation: 1
+No alternation match: 0
+
+--TEST--
+preg_match - case insensitive flag i
+--FILE--
+<?php
+$result = preg_match("/hello/i", "HELLO world");
+echo "Uppercase HELLO: " . $result . "\n";
+
+$result2 = preg_match("/hello/i", "HeLLo");
+echo "Mixed case: " . $result2 . "\n";
+--EXPECT--
+Uppercase HELLO: 1
+Mixed case: 1
+
+--TEST--
+preg_match - dotall flag s
+--FILE--
+<?php
+$result = preg_match("/hello.world/s", "hello\nworld");
+echo "Dot matches newline: " . $result . "\n";
+
+$result2 = preg_match("/hello.world/", "hello\nworld");
+echo "Dot does not match newline: " . $result2 . "\n";
+--EXPECT--
+Dot matches newline: 1
+Dot does not match newline: 0
+
+--TEST--
+preg_match - multiline flag m
+--FILE--
+<?php
+$result = preg_match("/^start/m", "start\nmiddle\nend");
+echo "Match at start: " . $result . "\n";
+
+$result2 = preg_match("/^middle/m", "start\nmiddle\nend");
+echo "Match at middle: " . $result2 . "\n";
+--EXPECT--
+Match at start: 1
+Match at middle: 1
+
+--TEST--
+preg_match - no match returns 0
+--FILE--
+<?php
+$result = preg_match("/xyz/", "abc def");
+echo "No match result: " . $result . "\n";
+--EXPECT--
+No match result: 0
+
+--TEST--
+preg_match - empty pattern
+--FILE--
+<?php
+$result = preg_match("//", "anything");
+echo "Empty pattern: " . $result . "\n";
+--EXPECT--
+Empty pattern: 1
+
+--TEST--
+preg_match - special characters need escaping
+--FILE--
+<?php
+$result = preg_match("/\*\.php$/", "test.php");
+echo "Unescaped dot: " . $result . "\n";
+
+$result2 = preg_match("/\*\\\.php$/", "test.php");
+echo "Escaped dot: " . $result2 . "\n";
+--EXPECT--
+Unescaped dot: 0
+Escaped dot: 1
+
+--TEST--
+preg_match_all - global match count
+--FILE--
+<?php
+$result = preg_match_all("/a/", "banana");
+echo "Count of 'a': " . $result . "\n";
+
+$result2 = preg_match_all("/[aeiou]/", "hello world");
+echo "Vowel count: " . $result2 . "\n";
+--EXPECT--
+Count of 'a': 3
+Vowel count: 3
+
+--TEST--
+preg_match_all - overlapping matches
+--FILE--
+<?php
+$result = preg_match_all("/aa/", "aaa");
+echo "Overlapping 'aa': " . $result . "\n";
+--EXPECT--
+Overlapping 'aa': 1
+
+
+

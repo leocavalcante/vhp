@@ -1,0 +1,92 @@
+--TEST--
+array_map with arrow function
+--FILE--
+<?php
+$numbers = [1, 2, 3, 4, 5];
+$result = array_map($numbers, fn($x) => $x * 2);
+print_r($result);
+--EXPECT--
+Array
+(
+    [0] => 2
+    [1] => 4
+    [2] => 6
+    [3] => 8
+    [4] => 10
+)
+
+--TEST--
+array_map with closure stored in variable
+--FILE--
+<?php
+$numbers = [1, 2, 3];
+$doubler = fn($x) => $x * 2;
+$result = array_map($numbers, $doubler);
+print_r($result);
+--EXPECT--
+Array
+(
+    [0] => 2
+    [1] => 4
+    [2] => 6
+)
+
+--TEST--
+array_map with string function name
+--FILE--
+<?php
+$words = ["hello", "world"];
+$result = array_map($words, "strtoupper");
+print_r($result);
+--EXPECT--
+Array
+(
+    [0] => HELLO
+    [1] => WORLD
+)
+
+--TEST--
+array_map with callable array [ClassName, method]
+--FILE--
+<?php
+class StringHelper {
+    public static function capitalize($s) {
+        return strtoupper($s);
+    }
+}
+$words = ["hello", "world"];
+$result = array_map($words, ["StringHelper", "capitalize"]);
+print_r($result);
+--EXPECT--
+Array
+(
+    [0] => HELLO
+    [1] => WORLD
+)
+
+--TEST--
+array_map with empty array
+--FILE--
+<?php
+$result = array_map(fn($x) => $x * 2, []);
+print_r($result);
+--EXPECT--
+Array
+(
+)
+
+--TEST--
+array_map error: non-array second parameter
+--FILE--
+<?php
+$result = array_map(fn($x) => $x, "not an array");
+--EXPECT_ERROR--
+array_map() expects parameter 2 to be array
+
+--TEST--
+array_map error: invalid callback
+--FILE--
+<?php
+$result = array_map(123, [1, 2, 3]);
+--EXPECT_ERROR--
+array_map() expects parameter 1 to be a valid callback

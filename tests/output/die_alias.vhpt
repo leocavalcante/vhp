@@ -1,0 +1,10 @@
+--TEST--
+die() is an alias for exit()
+--DESCRIPTION--
+Tests die() function - same behavior as exit()
+--FILE--
+<?php
+die("Script terminated");
+echo "This should not print";
+--EXPECT--
+Script terminated

@@ -32,7 +32,7 @@ pub fn execute_load_property<W: std::io::Write>(
                 let stack_base = vm.stack.len();
                 let mut frame = super::super::frame::CallFrame::new(get_method, stack_base);
                 frame.locals[0] = Value::Object(instance);
-                frame.locals[1] = vm.stack.pop().unwrap();
+                frame.locals[1] = vm.stack.pop().ok_or("Stack underflow")?;
                 vm.frames.push(frame);
             } else {
                 vm.stack.push(Value::Null);
@@ -105,8 +105,11 @@ pub fn execute_unset_property<W: std::io::Write>(
     Ok(())
 }
 
-pub fn execute_isset_property<W: std::io::Write>(vm: &mut super::super::VM<W>, prop_name: String) {
-    let object = vm.stack.pop().unwrap();
+pub fn execute_isset_property<W: std::io::Write>(
+    vm: &mut super::super::VM<W>,
+    prop_name: String,
+) -> Result<(), String> {
+    let object = vm.stack.pop().ok_or("Stack underflow")?;
 
     match object {
         Value::Object(instance) => {
@@ -141,6 +144,7 @@ pub fn execute_isset_property<W: std::io::Write>(vm: &mut super::super::VM<W>, p
             vm.stack.push(Value::Bool(false));
         }
     }
+    Ok(())
 }
 
 pub fn execute_unset_property_on_local<W: std::io::Write>(

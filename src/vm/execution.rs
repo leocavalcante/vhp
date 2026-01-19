@@ -172,6 +172,9 @@ pub fn execute_vm<W: Write>(
                         vm.stack.push(value);
                         continue;
                     }
+                } else if e.starts_with("__EXIT__:") {
+                    // Handle exit() and die() calls
+                    return Err(e);
                 } else {
                     return Err(e);
                 }

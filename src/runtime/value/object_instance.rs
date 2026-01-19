@@ -1,12 +1,10 @@
 use std::collections::HashMap;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct ExceptionValue {
     pub class_name: String,
     pub message: String,
     pub code: i64,
-    pub file: String,
-    pub line: usize,
     pub previous: Option<Box<ExceptionValue>>,
 }
 

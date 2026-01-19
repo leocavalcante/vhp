@@ -1,0 +1,30 @@
+--TEST--
+strtotime() parses date strings to timestamp
+--FILE--
+<?php
+// Special keywords
+echo strtotime("now") > 0 ? "now valid" : "now invalid";
+echo "\n";
+
+// ISO 8601 format
+$ts = strtotime("2024-06-15");
+echo gmdate('Y-m-d', $ts) . "\n";
+
+// Relative time (add 1 day from base)
+$base = mktime(0, 0, 0, 1, 1, 2024);
+$ts2 = strtotime("+1 day", $base);
+echo gmdate('Y-m-d', $ts2) . "\n";
+
+// Relative time (subtract 1 day)
+$ts3 = strtotime("-1 day", mktime(0, 0, 0, 1, 2, 2024));
+echo gmdate('Y-m-d', $ts3) . "\n";
+
+// Invalid format returns false
+$result = strtotime("invalid date string");
+echo $result === false ? "false for invalid" : "should be false";
+--EXPECT--
+now valid
+2024-06-15
+2024-01-02
+2024-01-01
+false for invalid

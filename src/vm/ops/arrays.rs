@@ -99,19 +99,22 @@ pub fn execute_array_merge<W: std::io::Write>(vm: &mut super::super::VM<W>) -> R
     Ok(())
 }
 
-pub fn execute_array_count<W: std::io::Write>(vm: &mut super::super::VM<W>) {
-    let array = vm.stack.pop().unwrap();
+pub fn execute_array_count<W: std::io::Write>(vm: &mut super::super::VM<W>) -> Result<(), String> {
+    let array = vm.stack.pop().ok_or("Stack underflow")?;
     match array {
         Value::Array(arr) => {
             vm.stack.push(Value::Integer(arr.len() as i64));
         }
         _ => vm.stack.push(Value::Integer(0)),
     }
+    Ok(())
 }
 
-pub fn execute_array_get_key_at<W: std::io::Write>(vm: &mut super::super::VM<W>) {
-    let index = vm.stack.pop().unwrap();
-    let array = vm.stack.pop().unwrap();
+pub fn execute_array_get_key_at<W: std::io::Write>(
+    vm: &mut super::super::VM<W>,
+) -> Result<(), String> {
+    let index = vm.stack.pop().ok_or("Stack underflow")?;
+    let array = vm.stack.pop().ok_or("Stack underflow")?;
     match (array, index) {
         (Value::Array(arr), Value::Integer(idx)) => {
             if idx >= 0 && (idx as usize) < arr.len() {
@@ -123,11 +126,14 @@ pub fn execute_array_get_key_at<W: std::io::Write>(vm: &mut super::super::VM<W>)
         }
         _ => vm.stack.push(Value::Null),
     }
+    Ok(())
 }
 
-pub fn execute_array_get_value_at<W: std::io::Write>(vm: &mut super::super::VM<W>) {
-    let index = vm.stack.pop().unwrap();
-    let array = vm.stack.pop().unwrap();
+pub fn execute_array_get_value_at<W: std::io::Write>(
+    vm: &mut super::super::VM<W>,
+) -> Result<(), String> {
+    let index = vm.stack.pop().ok_or("Stack underflow")?;
+    let array = vm.stack.pop().ok_or("Stack underflow")?;
     match (array, index) {
         (Value::Array(arr), Value::Integer(idx)) => {
             if idx >= 0 && (idx as usize) < arr.len() {
@@ -139,6 +145,7 @@ pub fn execute_array_get_value_at<W: std::io::Write>(vm: &mut super::super::VM<W
         }
         _ => vm.stack.push(Value::Null),
     }
+    Ok(())
 }
 
 pub fn execute_array_unpack<W: std::io::Write>(vm: &mut super::super::VM<W>) -> Result<(), String> {
@@ -151,8 +158,8 @@ pub fn execute_array_unpack<W: std::io::Write>(vm: &mut super::super::VM<W>) -> 
     Ok(())
 }
 
-pub fn execute_to_array<W: std::io::Write>(vm: &mut super::super::VM<W>) {
-    let iterable = vm.stack.pop().unwrap();
+pub fn execute_to_array<W: std::io::Write>(vm: &mut super::super::VM<W>) -> Result<(), String> {
+    let iterable = vm.stack.pop().ok_or("Stack underflow")?;
 
     match iterable {
         Value::Array(arr) => {
@@ -174,4 +181,5 @@ pub fn execute_to_array<W: std::io::Write>(vm: &mut super::super::VM<W>) {
             vm.stack.push(Value::Array(Vec::new()));
         }
     }
+    Ok(())
 }

@@ -1,0 +1,20 @@
+--TEST--
+mktime() creates Unix timestamp from date components
+--FILE--
+<?php
+// Specific date/time
+$ts = mktime(12, 30, 45, 6, 15, 2024);
+echo gmdate('Y-m-d H:i:s', $ts) . "\n";
+
+// Default parameters (uses current year/month/day)
+$ts2 = mktime(14, 0, 0);
+echo is_int($ts2) ? "valid timestamp" : "invalid";
+echo "\n";
+
+// Invalid date (February 30) returns false
+$ts3 = mktime(0, 0, 0, 2, 30, 2024);
+echo $ts3 === false ? "false for invalid" : "should be false";
+--EXPECT--
+2024-06-15 12:30:45
+valid timestamp
+false for invalid

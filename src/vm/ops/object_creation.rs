@@ -64,9 +64,12 @@ pub fn execute_new_object<W: std::io::Write>(
     Ok(())
 }
 
-pub fn execute_instance_of<W: std::io::Write>(vm: &mut super::super::VM<W>, class_name: String) {
+pub fn execute_instance_of<W: std::io::Write>(
+    vm: &mut super::super::VM<W>,
+    class_name: String,
+) -> Result<(), String> {
     let class_name = VM::<W>::normalize_class_name(&class_name);
-    let object = vm.stack.pop().unwrap();
+    let object = vm.stack.pop().ok_or("Stack underflow")?;
 
     let result = match object {
         Value::Object(instance) => {
@@ -77,6 +80,7 @@ pub fn execute_instance_of<W: std::io::Write>(vm: &mut super::super::VM<W>, clas
         _ => false,
     };
     vm.stack.push(Value::Bool(result));
+    Ok(())
 }
 
 pub fn execute_clone<W: std::io::Write>(vm: &mut super::super::VM<W>) -> Result<(), String> {

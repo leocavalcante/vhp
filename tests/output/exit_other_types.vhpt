@@ -1,0 +1,9 @@
+--TEST--
+exit() with other types
+--DESCRIPTION--
+Tests exit() with other types (null, array) - should convert to string and exit with code 0
+--FILE--
+<?php
+exit(null);
+echo "This should not print";
+--EXPECT--
